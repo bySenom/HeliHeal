@@ -1,8 +1,17 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.3-alpha.1",
+    currentVersion = "0.9.4-alpha.1",
     entries = {
+        {
+            version = "0.9.4-alpha.1",
+            title = "Compact Talent-Aware Priority List",
+            changes = {
+                "Ausgeblendete Talent-Fähigkeiten hinterlassen keine leeren Zeilen mehr.",
+                "Sichtbare Fähigkeiten werden in den Optionen lückenlos neu nummeriert.",
+                "Interne Slots und gespeicherte Hotkeys bleiben dabei unverändert.",
+            },
+        },
         {
             version = "0.9.3-alpha.1",
             title = "Reliable Major Cooldown Confirmation",

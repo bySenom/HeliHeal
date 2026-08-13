@@ -834,11 +834,20 @@ function HeliHeal:RefreshOptionsUI()
         for abilityKey in pairs(conflict.abilityKeys) do conflictsByAbility[abilityKey] = conflict end
     end
 
+    local visiblePriority = 0
     for slotIndex, row in ipairs(prioritiesPage.slotRows or {}) do
         local slot = self.db.profile.slots[slotIndex]
         if slot then
             local ability = ns.AbilityLibrary:Resolve(slot)
             ability = self:GetSlot(slotIndex) or ability
+            if ability.enabled then
+                visiblePriority = visiblePriority + 1
+                local y = -214 - ((visiblePriority - 1) * 37)
+                row:ClearAllPoints()
+                row:SetPoint("TOPLEFT", 28, y)
+                row:SetPoint("TOPRIGHT", -28, y)
+                row.priority:SetText(("%02d"):format(visiblePriority))
+            end
             row.icon:SetTexture(ability.icon)
             row.icon:SetDesaturated(false)
             row.abilityName:SetText(ability.name)

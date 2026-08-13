@@ -140,6 +140,10 @@ local enUS = {
     ["Paladin Talent and Holy Power Model"] = "Paladin Talent and Holy Power Model",
     ["One Button Assistant and Live Holy Power"] = "One Button Assistant and Live Holy Power",
     ["Reliable Major Cooldown Confirmation"] = "Reliable Major Cooldown Confirmation",
+    ["Compact Talent-Aware Priority List"] = "Compact Talent-Aware Priority List",
+    ["Ausgeblendete Talent-Fähigkeiten hinterlassen keine leeren Zeilen mehr."] = "Hidden talent abilities no longer leave empty rows.",
+    ["Sichtbare Fähigkeiten werden in den Optionen lückenlos neu nummeriert."] = "Visible abilities are renumbered without gaps in the options.",
+    ["Interne Slots und gespeicherte Hotkeys bleiben dabei unverändert."] = "Internal slots and saved hotkeys remain unchanged.",
     ["Zornige Vergeltung wird nach einem erfolgreichen Spieler-Cast direkt bestätigt."] = "Avenging Wrath is confirmed directly after a successful player cast.",
     ["Shift-Belegungen, Makros und GCD-freie Cooldowns benötigen keinen vorher erkannten Actionbar-Hook mehr."] = "Shift bindings, macros and off-GCD cooldowns no longer require a previously observed action-bar hook.",
     ["Zorniger Kreuzritter und Aurenmeisterschaft verwenden denselben sicheren Bestätigungspfad."] = "Avenging Crusader and Aura Mastery use the same reliable confirmation path.",
@@ -170,6 +174,7 @@ local deDE = {
     ["Paladin Talent and Holy Power Model"] = "Paladin-Talente und Holy-Power-Modell",
     ["One Button Assistant and Live Holy Power"] = "Ein-Knopf-Assistent und echte Holy Power",
     ["Reliable Major Cooldown Confirmation"] = "Zuverlässige Bestätigung großer Cooldowns",
+    ["Compact Talent-Aware Priority List"] = "Kompakte talentabhängige Prioritätsliste",
 }
 
 local translations = enUS
