@@ -25,7 +25,7 @@ local RESTORATION_SPECIALIZATIONS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 2
-local ROTATION_DATA_VERSION = 12106
+local ROTATION_DATA_VERSION = 12107
 
 local function copyTable(source)
     local result = {}
@@ -362,6 +362,7 @@ function HeliHeal:BuildDiagnosticReport()
         "uses=" .. countEntries(self.sessionUses),
         "charges=" .. countEntries(self.sessionCharges),
         "tracked=" .. countEntries(self.sessionTimedEffects),
+        "spellHaste=" .. tostring(self.cachedSpellHaste or "unavailable"),
         "holyPower=" .. tostring(self.sessionHolyPower or 0),
         "freeSpenders=" .. tostring(self.pendingFreeHolyPowerSpenders or 0),
         "pendingInputs=" .. countEntries(self.pendingAcknowledgements),
@@ -478,7 +479,30 @@ function HeliHeal:GetSlot(slotIndex)
             ability.maxCharges = ability.maxCharges + 1
         end
     end
+    if ability.hastedCooldown and ability.cooldown > 0 then
+        local haste = math.max(0, tonumber(self.cachedSpellHaste) or 0)
+        ability.cooldown = math.floor(((ability.cooldown / (1 + haste / 100)) * 100) + 0.5) / 100
+    end
     return ability
+end
+
+function HeliHeal:RefreshSpellHasteSnapshot(silent)
+    if self.classToken ~= "PALADIN" or type(UnitSpellHaste) ~= "function" then return false end
+    if InCombatLockdown and InCombatLockdown() then return false end
+    local ok, haste = pcall(function()
+        local value = tonumber(UnitSpellHaste("player"))
+        if not value or value < 0 or value > 500 then return nil end
+        return value
+    end)
+    if not ok or haste == nil then return false end
+    local changed = math.abs((self.cachedSpellHaste or -1) - haste) > 0.001
+    self.cachedSpellHaste = haste
+    if changed then
+        self:RefreshDisplay()
+        if self.RefreshOptionsUI then self:RefreshOptionsUI() end
+    end
+    if not silent then self:Print(L("Gespeichertes Zaubertempo: %.1f%%", haste)) end
+    return true
 end
 
 function HeliHeal:GetHolyPowerDelta(ability)

@@ -241,9 +241,11 @@ function HeliHeal:CreateTalentListener()
         listener:RegisterEvent("ACTIVE_COMBAT_CONFIG_CHANGED")
         listener:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
         listener:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+        listener:RegisterEvent("UNIT_STATS")
         listener:RegisterEvent("SPELLS_CHANGED")
         listener:RegisterEvent("PLAYER_REGEN_ENABLED")
         self:RefreshTalentSnapshot(true)
+        self:RefreshSpellHasteSnapshot(true)
         return
     end
     local listener = CreateFrame("Frame")
@@ -253,10 +255,12 @@ function HeliHeal:CreateTalentListener()
     listener:RegisterEvent("ACTIVE_COMBAT_CONFIG_CHANGED")
     listener:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     listener:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+    listener:RegisterEvent("UNIT_STATS")
     listener:RegisterEvent("SPELLS_CHANGED")
     listener:RegisterEvent("PLAYER_REGEN_ENABLED")
     listener:SetScript("OnEvent", function(_, event, argument)
         if event == "PLAYER_SPECIALIZATION_CHANGED" and argument and argument ~= "player" then return end
+        if event == "UNIT_STATS" and argument ~= "player" then return end
         if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_SPECIALIZATION_CHANGED" then
             HeliHeal:RefreshPlayerSupport(true)
         end
@@ -266,10 +270,12 @@ function HeliHeal:CreateTalentListener()
             if activeConfigID and argument and argument ~= activeConfigID then return end
         end
         HeliHeal:RefreshTalentSnapshot(true)
+        HeliHeal:RefreshSpellHasteSnapshot(true)
         if event == "PLAYER_REGEN_ENABLED" then
             HeliHeal:ReconcileOutOfCombatState(true)
         end
     end)
     self.talentListener = listener
     self:RefreshTalentSnapshot(true)
+    self:RefreshSpellHasteSnapshot(true)
 end

@@ -218,6 +218,13 @@ local function normalizeCapturedMouse(mouseButton)
     return withModifiers(bindingKey)
 end
 
+local function formatSeconds(value)
+    value = tonumber(value) or 0
+    local rounded = math.floor(value + 0.5)
+    if math.abs(value - rounded) < 0.05 then return tostring(rounded) end
+    return ("%.1f"):format(value)
+end
+
 function HeliHeal:BuildOverviewPage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
@@ -855,7 +862,7 @@ function HeliHeal:RefreshOptionsUI()
                 local goal = self:GetTrackedGoal(ability)
                 row.cooldownLabel:SetText(L("Lokale Laufzeit: %ss • Ziel: %d", ability.trackedDuration, goal))
             else
-                row.cooldownLabel:SetText(ability.cooldown > 0 and L("Lokaler CD: %ss", ability.cooldown) or L("Filler • kein lokaler CD"))
+                row.cooldownLabel:SetText(ability.cooldown > 0 and L("Lokaler CD: %ss", formatSeconds(ability.cooldown)) or L("Filler • kein lokaler CD"))
             end
             local conflict = conflictsByAbility[slot.abilityKey]
             if conflict then

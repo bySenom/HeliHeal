@@ -1,8 +1,18 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.4-alpha.1",
+    currentVersion = "0.9.5-alpha.1",
     entries = {
+        {
+            version = "0.9.5-alpha.1",
+            title = "Haste-Aware Paladin Recharge",
+            changes = {
+                "Heiliger Schock verwendet jetzt die durch Zaubertempo reduzierte Wiederaufladezeit.",
+                "Richturteil und Kreuzfahrerstoß verwenden dasselbe Tempo-Modell.",
+                "Zaubertempo wird nur außerhalb des Kampfes sicher gespeichert und im Kampf nicht als SecretValue verarbeitet.",
+                "Temporäre Tempo-Buffs im Kampf verändern die statische Schätzung absichtlich nicht.",
+            },
+        },
         {
             version = "0.9.4-alpha.1",
             title = "Compact Talent-Aware Priority List",

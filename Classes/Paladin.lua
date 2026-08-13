@@ -8,7 +8,7 @@ local abilities = {
     paladin_holy_shock = {
         spellID = 20473, name = "Holy Shock", cooldown = 6, maxCharges = 1,
         bonusChargeTalent = "paladinLightsConviction",
-        holyPowerGain = 1, inputLockout = 1.5,
+        holyPowerGain = 1, hastedCooldown = true, inputLockout = 1.5,
     },
     paladin_divine_toll = {
         spellID = 375576, name = "Divine Toll", cooldown = 45,
@@ -47,13 +47,13 @@ local abilities = {
     },
     paladin_judgment = {
         spellID = 275773, name = "Judgment", cooldown = 11,
-        holyPowerGain = 1, inputLockout = 1.5,
+        holyPowerGain = 1, hastedCooldown = true, inputLockout = 1.5,
     },
     -- Observed for One Button Assistant resource reconciliation. These do not
     -- appear in HeliHeal's healing priority or binding options.
     paladin_crusader_strike = {
         spellID = 35395, name = "Crusader Strike", cooldown = 6,
-        holyPowerGain = 1, inputLockout = 1.5,
+        holyPowerGain = 1, hastedCooldown = true, inputLockout = 1.5,
     },
     paladin_shield_of_the_righteous = {
         spellID = 53600, name = "Shield of the Righteous", cooldown = 1,

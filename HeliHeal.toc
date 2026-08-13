@@ -3,7 +3,7 @@
 ## Notes: Static, player-driven healing priority tracker for Midnight.
 ## Notes-deDE: Statischer, input-gesteuerter Heilungs-Prioritätstracker für Midnight.
 ## Author: HeliHeal Team
-## Version: 0.9.4-alpha.1
+## Version: 0.9.5-alpha.1
 ## SavedVariables: HeliHealDB
 ## IconTexture: Interface\AddOns\HeliHeal\Media\HeliHealIcon.tga
 ## X-Category: Combat

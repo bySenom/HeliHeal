@@ -43,6 +43,10 @@ addon.RefreshDisplay = function() end
 addon.RefreshOptionsUI = function() end
 addon.Print = function() end
 
+UnitSpellHaste = function() return 20 end
+InCombatLockdown = function() return false end
+assert(addon:RefreshSpellHasteSnapshot(true), "out-of-combat spell haste must be readable")
+
 local tollIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_toll")
 local shockIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_shock")
 local flameIndex = addon:GetSlotIndexByAbilityKey("paladin_eternal_flame")
@@ -53,6 +57,16 @@ assert(addon:GetSlot(tollIndex).cooldown == 30,
     "Quickened Invocation must reduce Divine Toll to 30 seconds")
 assert(addon:GetSlot(shockIndex).maxCharges == 2,
     "Light's Conviction must keep two Holy Shock charges")
+assert(addon:GetSlot(shockIndex).cooldown == 5,
+    "20 percent cached spell haste must reduce Holy Shock recharge from six to five seconds")
+local judgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")
+assert(addon:GetSlot(judgmentIndex).cooldown == 9.17,
+    "cached spell haste must also reduce Judgment's eleven-second cooldown")
+InCombatLockdown = function() return true end
+UnitSpellHaste = function() return 100 end
+assert(not addon:RefreshSpellHasteSnapshot(true) and addon:GetSlot(shockIndex).cooldown == 5,
+    "combat must retain the last safe haste snapshot instead of evaluating restricted stats")
+InCombatLockdown = function() return false end
 
 local order = addon:GetDisplayOrder(now)
 assert(order[1].ability.abilityKey == "paladin_divine_toll",

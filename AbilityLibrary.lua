@@ -42,6 +42,7 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.bonusChargeTalent = record.bonusChargeTalent
     record.grantsFreeSpenderTalent = record.grantsFreeSpenderTalent
     record.confirmOnPlayerSuccess = record.confirmOnPlayerSuccess == true
+    record.hastedCooldown = record.hastedCooldown == true
     self.abilities[key] = record
     return record
 end
@@ -137,6 +138,7 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             bonusChargeTalent = ability.bonusChargeTalent,
             grantsFreeSpenderTalent = ability.grantsFreeSpenderTalent,
             confirmOnPlayerSuccess = ability.confirmOnPlayerSuccess,
+            hastedCooldown = ability.hastedCooldown,
             derivedBindingFrom = ability.derivedBindingFrom,
             inputKey = bindings and bindings[bindingKey] or "",
         }
@@ -190,6 +192,7 @@ function AbilityLibrary:Resolve(slot)
         bonusChargeTalent = slot.bonusChargeTalent,
         grantsFreeSpenderTalent = slot.grantsFreeSpenderTalent,
         confirmOnPlayerSuccess = slot.confirmOnPlayerSuccess == true,
+        hastedCooldown = slot.hastedCooldown == true,
         derivedBindingFrom = slot.derivedBindingFrom,
         enabled = slot.enabled ~= false and spellID > 0,
     }

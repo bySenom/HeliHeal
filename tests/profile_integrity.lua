@@ -23,7 +23,7 @@ local profile = {
 }
 addon.db = { profile = profile }
 assert(addon:MigrateProfile(profile), "legacy profile must migrate exactly once")
-assert(profile.schemaVersion == 2 and profile.rotationDataVersion == 12106,
+assert(profile.schemaVersion == 2 and profile.rotationDataVersion == 12107,
     "migration must stamp the schema and rotation data versions")
 assert(profile.bindings.healing_stream_combo == "BUTTON5" and profile.healingMode == "aoe",
     "migration must preserve and normalize legacy bindings and modes")

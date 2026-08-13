@@ -132,6 +132,7 @@ local enUS = {
     ["Riptide-Aufladungen bleiben dadurch mit erfolgreichen Instant-Casts synchron."] = "Riptide charges now remain synchronized with successful instant casts.",
     ["Lokale Holy-Power-Schätzung: %d/5"] = "Local Holy Power estimate: %d/5",
     ["Verwendung: /hh hp 0-5"] = "Usage: /hh hp 0-5",
+    ["Gespeichertes Zaubertempo: %.1f%%"] = "Cached spell haste: %.1f%%",
     ["Holy Paladin Support"] = "Holy Paladin Support",
     ["Holy-Paladin-Prioritäten für Herald of the Sun und Lightsmith ergänzt."] = "Added Holy Paladin priorities for Herald of the Sun and Lightsmith.",
     ["Eigene Mythic+- und Raid-Pakete mit Standard-, AoE-, Einzelziel- und Mana-Modus hinzugefügt."] = "Added dedicated Mythic+ and Raid packs with Standard, AoE, Single Target and Mana modes.",
@@ -141,6 +142,11 @@ local enUS = {
     ["One Button Assistant and Live Holy Power"] = "One Button Assistant and Live Holy Power",
     ["Reliable Major Cooldown Confirmation"] = "Reliable Major Cooldown Confirmation",
     ["Compact Talent-Aware Priority List"] = "Compact Talent-Aware Priority List",
+    ["Haste-Aware Paladin Recharge"] = "Haste-Aware Paladin Recharge",
+    ["Heiliger Schock verwendet jetzt die durch Zaubertempo reduzierte Wiederaufladezeit."] = "Holy Shock now uses its spell-haste-reduced recharge time.",
+    ["Richturteil und Kreuzfahrerstoß verwenden dasselbe Tempo-Modell."] = "Judgment and Crusader Strike use the same haste model.",
+    ["Zaubertempo wird nur außerhalb des Kampfes sicher gespeichert und im Kampf nicht als SecretValue verarbeitet."] = "Spell haste is cached safely only outside combat and is not processed as a SecretValue in combat.",
+    ["Temporäre Tempo-Buffs im Kampf verändern die statische Schätzung absichtlich nicht."] = "Temporary in-combat haste buffs intentionally do not alter the static estimate.",
     ["Ausgeblendete Talent-Fähigkeiten hinterlassen keine leeren Zeilen mehr."] = "Hidden talent abilities no longer leave empty rows.",
     ["Sichtbare Fähigkeiten werden in den Optionen lückenlos neu nummeriert."] = "Visible abilities are renumbered without gaps in the options.",
     ["Interne Slots und gespeicherte Hotkeys bleiben dabei unverändert."] = "Internal slots and saved hotkeys remain unchanged.",
@@ -175,6 +181,7 @@ local deDE = {
     ["One Button Assistant and Live Holy Power"] = "Ein-Knopf-Assistent und echte Holy Power",
     ["Reliable Major Cooldown Confirmation"] = "Zuverlässige Bestätigung großer Cooldowns",
     ["Compact Talent-Aware Priority List"] = "Kompakte talentabhängige Prioritätsliste",
+    ["Haste-Aware Paladin Recharge"] = "Tempoabhängige Paladin-Wiederaufladung",
 }
 
 local translations = enUS
