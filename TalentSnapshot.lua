@@ -212,6 +212,9 @@ function HeliHeal:CreateTalentListener()
             if activeConfigID and argument and argument ~= activeConfigID then return end
         end
         HeliHeal:RefreshTalentSnapshot(true)
+        if event == "PLAYER_REGEN_ENABLED" then
+            HeliHeal:ReconcileOutOfCombatState(true)
+        end
     end)
     self.talentListener = listener
     self:RefreshTalentSnapshot(true)

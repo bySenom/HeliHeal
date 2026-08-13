@@ -2,6 +2,7 @@ local _, ns = ...
 
 ns.defaults = {
     profile = {
+        schemaVersion = 2,
         enabled = true,
         locked = false,
         scale = 1,

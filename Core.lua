@@ -22,6 +22,9 @@ local RESTORATION_SPECIALIZATIONS = {
     DRUID = 105,
 }
 
+local CURRENT_SCHEMA_VERSION = 2
+local ROTATION_DATA_VERSION = 12102
+
 local function copyTable(source)
     local result = {}
     for key, value in pairs(source or {}) do
@@ -34,9 +37,19 @@ local function copyTable(source)
     return result
 end
 
-function HeliHeal:ResetRuntimeState()
+function HeliHeal:ResetInputState()
     if self.CancelPendingAcknowledgements then self:CancelPendingAcknowledgements() end
     self.inputGeneration = (self.inputGeneration or 0) + 1
+    self.pendingAcknowledgements = {}
+    self.recentSuccessfulSpells = {}
+    self.heldInputKeys = {}
+    self.mouseHeldInputs = {}
+    self.inputLockedUntil = {}
+    self.lastObservedInput = nil
+end
+
+function HeliHeal:ResetRuntimeState()
+    self:ResetInputState()
     self.sessionUses = {}
     self.sessionCharges = {}
     self.sessionSpendHistory = {}
@@ -47,12 +60,39 @@ function HeliHeal:ResetRuntimeState()
     self.pendingArchdruid = nil
     self.unleashConsumptionHistory = {}
     self.riptideRechargeRateUntil = nil
-    self.pendingAcknowledgements = {}
-    self.recentSuccessfulSpells = {}
-    self.heldInputKeys = {}
-    self.mouseHeldInputs = {}
-    self.inputLockedUntil = {}
-    self.lastObservedInput = nil
+end
+
+function HeliHeal:MigrateProfile(profile)
+    profile = profile or (self.db and self.db.profile)
+    if not profile then return false end
+    local originalVersion = tonumber(rawget(profile, "schemaVersion")) or 0
+    if originalVersion >= CURRENT_SCHEMA_VERSION then return false end
+
+    profile.bindings = profile.bindings or {}
+    if originalVersion < 1 then
+        for _, oldSlot in ipairs(profile.slots or {}) do
+            if oldSlot.inputKey and oldSlot.inputKey ~= "" then
+                for abilityKey, ability in pairs(ns.AbilityLibrary.abilities) do
+                    if tonumber(oldSlot.spellID) == ability.spellID then
+                        profile.bindings[abilityKey] = oldSlot.inputKey
+                    end
+                end
+            end
+        end
+    end
+    if originalVersion < 2 then
+        for abilityKey, inputKey in pairs(profile.bindings) do
+            if type(inputKey) ~= "string" then
+                profile.bindings[abilityKey] = nil
+            else
+                profile.bindings[abilityKey] = inputKey:match("^%s*(.-)%s*$"):upper()
+            end
+        end
+        profile.healingMode = HEALING_MODE_ALIASES[(profile.healingMode or "standard"):lower()] or "standard"
+    end
+    profile.schemaVersion = CURRENT_SCHEMA_VERSION
+    profile.rotationDataVersion = ROTATION_DATA_VERSION
+    return true
 end
 
 function HeliHeal:GetPlayerSpecializationID()
@@ -91,6 +131,7 @@ end
 
 function HeliHeal:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("HeliHealDB", ns.defaults, true)
+    self:MigrateProfile(self.db.profile)
     self:ResetRuntimeState()
     self:RefreshPlayerSupport(false)
     self:EnsureRotationProfile()
@@ -123,6 +164,7 @@ end
 
 function HeliHeal:RefreshFromProfile()
     self:ResetRuntimeState()
+    self:MigrateProfile(self.db.profile)
     self:EnsureRotationProfile()
     if self.frame then
         self:ApplyDisplaySettings()
@@ -139,7 +181,7 @@ function HeliHeal:EnsureRotationProfile()
 
     -- Preserve matching keys from older freeform slots before replacing them
     -- with the authoritative class data pack.
-    if rawget(profile, "rotationDataVersion") ~= 12102 then
+    if rawget(profile, "rotationDataVersion") ~= ROTATION_DATA_VERSION then
         for _, oldSlot in ipairs(profile.slots or {}) do
             if oldSlot.inputKey and oldSlot.inputKey ~= "" then
                 for abilityKey, ability in pairs(ns.AbilityLibrary.abilities) do
@@ -149,7 +191,7 @@ function HeliHeal:EnsureRotationProfile()
                 end
             end
         end
-        profile.rotationDataVersion = 12102
+        profile.rotationDataVersion = ROTATION_DATA_VERSION
     end
 
     profile.healingMode = HEALING_MODE_LABELS[profile.healingMode] and profile.healingMode or "standard"
@@ -174,7 +216,7 @@ function HeliHeal:SetRotationPreset(presetKey)
         return
     end
     self.db.profile.rotationPreset = presetKey
-    self.db.profile.rotationDataVersion = 12102
+    self.db.profile.rotationDataVersion = ROTATION_DATA_VERSION
     self.db.profile.slots = ns.AbilityLibrary:BuildPresetSlots(presetKey, self.db.profile.bindings)
     self:ResetSession()
     self:RefreshOptionsUI()
@@ -194,6 +236,122 @@ function HeliHeal:SetAbilityBinding(slotIndex, inputKey)
         end
     end
     self:RefreshDisplay()
+    if self.RefreshOptionsUI then self:RefreshOptionsUI() end
+    local conflict = self:GetBindingConflictForAbility(bindingKey)
+    if conflict then
+        self:Print(("Hotkey %s ist mehrfach belegt: %s"):format(conflict.inputKey, table.concat(conflict.names, ", ")))
+    end
+end
+
+function HeliHeal:GetBindingConflicts()
+    local grouped = {}
+    for _, slot in ipairs(self.db.profile.slots or {}) do
+        if slot.enabled ~= false and not slot.derivedBindingFrom and slot.inputKey and slot.inputKey ~= "" then
+            local group = grouped[slot.inputKey]
+            if not group then
+                group = { inputKey = slot.inputKey, abilityKeys = {}, names = {} }
+                grouped[slot.inputKey] = group
+            end
+            if not group.abilityKeys[slot.abilityKey] then
+                group.abilityKeys[slot.abilityKey] = true
+                group.names[#group.names + 1] = slot.name or slot.abilityKey
+            end
+        end
+    end
+    local conflicts = {}
+    for _, group in pairs(grouped) do
+        local count = 0
+        for _ in pairs(group.abilityKeys) do count = count + 1 end
+        if count > 1 then conflicts[#conflicts + 1] = group end
+    end
+    table.sort(conflicts, function(a, b) return a.inputKey < b.inputKey end)
+    return conflicts
+end
+
+function HeliHeal:GetBindingConflictForAbility(abilityKey)
+    for _, conflict in ipairs(self:GetBindingConflicts()) do
+        if conflict.abilityKeys[abilityKey] then return conflict end
+    end
+end
+
+function HeliHeal:ReconcileOutOfCombatState(silent)
+    if InCombatLockdown and InCombatLockdown() then
+        self.outOfCombatSyncPending = true
+        return false
+    end
+
+    local now = GetTime()
+    self.outOfCombatSyncPending = false
+    self:ResetInputState()
+    for slotIndex, _ in ipairs(self.db.profile.slots or {}) do
+        local ability = self:GetSlot(slotIndex)
+        if ability then
+            local usedAt = self.sessionUses[slotIndex]
+            if usedAt and (ability.cooldown <= 0 or now >= usedAt + ability.cooldown) then
+                self.sessionUses[slotIndex] = nil
+            end
+            if ability.maxCharges > 1 then self:GetChargeState(slotIndex, ability, now) end
+            if ability.trackedDuration > 0 then self:GetTrackedState(ability, now) end
+        end
+    end
+    if self.riptideRechargeRateUntil and now >= self.riptideRechargeRateUntil then
+        self.riptideRechargeRateUntil = nil
+    end
+    if self.pendingSwiftness and self.pendingSwiftness.expiresAt and now >= self.pendingSwiftness.expiresAt then
+        self.pendingSwiftness = nil
+    end
+    self:IsDownpourReady(now)
+    if not self:IsUnleashReady(now) then self.unleashConsumptionHistory = {} end
+    self:IsArchdruidReady(now)
+    self:RefreshDisplay()
+    if not silent then self:Print("Lokalen Zustand außerhalb des Kampfes abgeglichen.") end
+    return true
+end
+
+local function countEntries(value)
+    local count = 0
+    for _ in pairs(value or {}) do count = count + 1 end
+    return count
+end
+
+function HeliHeal:BuildDiagnosticReport()
+    local version = "?"
+    if C_AddOns and type(C_AddOns.GetAddOnMetadata) == "function" then
+        version = C_AddOns.GetAddOnMetadata("HeliHeal", "Version") or version
+    elseif type(GetAddOnMetadata) == "function" then
+        version = GetAddOnMetadata("HeliHeal", "Version") or version
+    end
+    local build = type(GetBuildInfo) == "function" and select(2, GetBuildInfo()) or "?"
+    local talent = self.talentSnapshot or {}
+    local conflictKeys = {}
+    for _, conflict in ipairs(self:GetBindingConflicts()) do conflictKeys[#conflictKeys + 1] = conflict.inputKey end
+    local bindings = {}
+    for abilityKey, inputKey in pairs(self.db.profile.bindings or {}) do
+        if inputKey ~= "" then bindings[#bindings + 1] = abilityKey .. "=" .. inputKey end
+    end
+    table.sort(bindings)
+    return table.concat({
+        "version=" .. tostring(version),
+        "client=" .. tostring(build),
+        "class=" .. tostring(self.classToken or "?"),
+        "spec=" .. tostring(self.specializationID or "?"),
+        "supported=" .. tostring(self.supportedClass == true),
+        "schema=" .. tostring(rawget(self.db.profile, "schemaVersion") or 0),
+        "preset=" .. tostring(self.db.profile.rotationPreset or "?"),
+        "mode=" .. tostring(self:GetHealingMode()),
+        "talentConfig=" .. tostring(talent.configID or "unavailable"),
+        "talentsReadable=" .. tostring(talent.available == true),
+        "bindings=" .. (#bindings > 0 and table.concat(bindings, ",") or "none"),
+        "conflicts=" .. (#conflictKeys > 0 and table.concat(conflictKeys, ",") or "none"),
+        "uses=" .. countEntries(self.sessionUses),
+        "charges=" .. countEntries(self.sessionCharges),
+        "tracked=" .. countEntries(self.sessionTimedEffects),
+        "pendingInputs=" .. countEntries(self.pendingAcknowledgements),
+    }, "; ")
+end
+
+function HeliHeal:PrintDiagnostics()
+    self:Print("DIAG: " .. self:BuildDiagnosticReport())
 end
 
 function HeliHeal:GetHealingMode()
@@ -512,6 +670,7 @@ function HeliHeal:ArmSwiftness(slotIndex, ability, now)
         armedAt = now,
         consumerAbilityKey = ability.preferredSwiftnessConsumer or "chain_heal",
         bonusGrantedTo = ability.grantsBonusChargeTo,
+        expiresAt = now + 15,
     }
     return true
 end
@@ -711,7 +870,9 @@ function HeliHeal:HandleSlashCommand(input)
     elseif command == "reset" then
         self:ResetSession()
     elseif command == "sync" then
-        self:ResetSession()
+        self:ReconcileOutOfCombatState(false)
+    elseif command == "debug" or command == "diag" then
+        self:PrintDiagnostics()
     elseif command == "refund" or command == "zurueck" then
         if not self:RefundAbility(argument) then
             self:Print("Unbekannte Fähigkeit. Beispiele: /hh refund hst, riptide, downpour, rain")

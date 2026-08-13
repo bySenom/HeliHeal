@@ -49,8 +49,9 @@ Class mechanics such as Healing Stream charges, Stormstream uses, Riptide rechar
 | `/hh lock` | Lock or unlock the display |
 | `/hh mode standard\|aoe\|single\|mana` | Change healing mode |
 | `/hh talents` | Show detected talents |
-| `/hh sync` | Reset the local simulation |
+| `/hh sync` | Reconcile local estimates outside combat |
 | `/hh reset` | Reset local timers and charges |
+| `/hh debug` | Print a compact diagnostic report |
 
 ## Limitations
 
@@ -59,5 +60,6 @@ HeliHeal does not inspect health, mana, targets, auras, range, healing results, 
 ## Feedback
 
 Please report reproducible bugs and suggestions through [GitHub Issues](https://github.com/bySenom/HeliHeal/issues).
+Use the [Beta Test Checklist](BETA_TESTING.md) for structured in-game verification.
 
 HeliHeal is available under the [MIT License](LICENSE). Embedded Ace3 libraries retain their upstream license.

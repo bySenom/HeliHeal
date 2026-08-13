@@ -672,6 +672,12 @@ function HeliHeal:RefreshOptionsUI()
         button.label:SetTextColor(unpackColor(active and C.accent or C.muted))
     end
 
+
+    local conflictsByAbility = {}
+    for _, conflict in ipairs(self:GetBindingConflicts()) do
+        for abilityKey in pairs(conflict.abilityKeys) do conflictsByAbility[abilityKey] = conflict end
+    end
+
     for slotIndex, row in ipairs(prioritiesPage.slotRows or {}) do
         local slot = self.db.profile.slots[slotIndex]
         if slot then
@@ -686,13 +692,26 @@ function HeliHeal:RefreshOptionsUI()
             else
                 row.cooldownLabel:SetText(ability.cooldown > 0 and (("Lokaler CD: %ss"):format(ability.cooldown)) or "Filler • kein lokaler CD")
             end
+            local conflict = conflictsByAbility[slot.abilityKey]
+            if conflict then
+                row.cooldownLabel:SetText(row.cooldownLabel:GetText() .. " • HOTKEY DOPPELT")
+                row.cooldownLabel:SetTextColor(unpackColor(C.danger))
+                row:SetBackdropBorderColor(unpackColor(C.danger))
+            else
+                row.cooldownLabel:SetTextColor(unpackColor(C.muted))
+                row:SetBackdropBorderColor(unpackColor(C.borderSoft))
+            end
             if slot.derivedBindingFrom then
                 row.key.label:SetText("WIE HEALING RAIN")
                 row.key:SetScript("OnClick", nil)
                 row.key:SetBackdropBorderColor(unpackColor(C.borderSoft))
+                row.key.label:SetTextColor(unpackColor(C.muted))
             else
-                row.key.label:SetText(slot.inputKey and slot.inputKey ~= "" and slot.inputKey or "HOTKEY HINTERLEGEN")
+                local keyLabel = slot.inputKey and slot.inputKey ~= "" and slot.inputKey or "HOTKEY HINTERLEGEN"
+                row.key.label:SetText(conflict and (keyLabel .. " • DOPPELT") or keyLabel)
                 row.key:SetScript("OnClick", row.key.captureOnClick)
+                row.key:SetBackdropBorderColor(unpackColor(conflict and C.danger or C.border))
+                row.key.label:SetTextColor(unpackColor(conflict and C.danger or C.muted))
             end
             row:SetShown(ability.enabled)
         else
