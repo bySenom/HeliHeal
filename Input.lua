@@ -53,7 +53,8 @@ function HeliHeal:GetLiveGCDRemaining(now)
         local startTime = tonumber(info.startTime)
         local duration = tonumber(info.duration)
         local modRate = tonumber(info.modRate) or 1
-        if not startTime or not duration or duration <= 0 or duration > 2.5 or modRate <= 0 then
+        if duration == 0 then return 0 end
+        if not startTime or not duration or duration < 0 or duration > 2.5 or modRate <= 0 then
             return nil
         end
         return math.max(0, startTime + (duration / modRate) - (now or GetTime()))
@@ -90,14 +91,16 @@ function HeliHeal:QueueSlotAcknowledgement(slotIndex, delay)
     local configuredSlot = self.db.profile.slots[slotIndex]
     if not configuredSlot then return end
     delay = math.max(5, tonumber(delay) or 0)
-    local pending = { spellID = configuredSlot.spellID, observedAt = GetTime() }
+    local generation = self.inputGeneration or 0
+    local pending = { spellID = configuredSlot.spellID, observedAt = GetTime(), generation = generation }
     self.pendingAcknowledgements[slotIndex] = pending
 
     if not C_Timer or type(C_Timer.NewTimer) ~= "function" then return end
 
     local timer
     timer = C_Timer.NewTimer(delay, function()
-        if HeliHeal.pendingAcknowledgements[slotIndex] ~= pending then
+        if (HeliHeal.inputGeneration or 0) ~= generation
+            or HeliHeal.pendingAcknowledgements[slotIndex] ~= pending then
             return
         end
         -- No matching successful cast arrived. Discard only the observation;
@@ -112,12 +115,16 @@ function HeliHeal:CommitObservedSpell(spellID)
     local now = GetTime()
     for slotIndex, pending in pairs(self.pendingAcknowledgements or {}) do
         local configuredSlot = self.db.profile.slots[slotIndex]
-        if self:SlotAcceptsSpell(configuredSlot, spellID) then
+        local generation = self.inputGeneration or 0
+        if pending.generation ~= nil and pending.generation ~= generation then
+            self.pendingAcknowledgements[slotIndex] = nil
+        elseif self:SlotAcceptsSpell(configuredSlot, spellID) then
             if pending.timer and type(pending.timer.Cancel) == "function" then pending.timer:Cancel() end
             self.pendingAcknowledgements[slotIndex] = nil
             local staticWindow = math.max(1.5, tonumber(configuredSlot.inputLockout) or 1.5)
             self.inputLockedUntil[slotIndex] = now + staticWindow
             local function refreshGCDLock()
+                if (HeliHeal.inputGeneration or 0) ~= generation then return end
                 local sampledAt = GetTime()
                 local gcdRemaining = HeliHeal:GetLiveGCDRemaining(sampledAt)
                 if gcdRemaining ~= nil then
@@ -197,7 +204,7 @@ function HeliHeal:ReleaseActionBinding(bindingAction)
 end
 
 function HeliHeal:ObserveInputKey(inputKey)
-    if self.suspendInput or not inputKey or inputKey == "" then
+    if self.inputListenerEnabled == false or self.suspendInput or not inputKey or inputKey == "" then
         return
     end
 
@@ -230,7 +237,7 @@ function HeliHeal:ObserveInputKey(inputKey)
 end
 
 function HeliHeal:ObserveActionBinding(bindingAction)
-    if self.suspendInput then
+    if self.inputListenerEnabled == false or self.suspendInput then
         return
     end
 
@@ -244,6 +251,14 @@ function HeliHeal:ObserveActionBinding(bindingAction)
 end
 
 function HeliHeal:CreateInputListener()
+    if self.mouseInputListener and self.castInputListener then
+        self.mouseInputListener:RegisterEvent("GLOBAL_MOUSE_DOWN")
+        self.mouseInputListener:RegisterEvent("GLOBAL_MOUSE_UP")
+        self.castInputListener:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+        self.castInputListener:RegisterEvent("UNIT_SPELLCAST_FAILED")
+        self.castInputListener:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+        return
+    end
     -- Secure post-hooks observe Blizzard's normal action-button key path after
     -- it runs. HeliHeal never owns, replaces or propagates a combat key event.
     if type(ActionButtonDown) == "function" then

@@ -2,6 +2,7 @@ local addon = {}
 local namespace = { addon = addon }
 
 local now = 0
+local gcdDuration = 1.2
 GetTime = function() return now end
 IsControlKeyDown = function() return false end
 IsAltKeyDown = function() return false end
@@ -9,7 +10,7 @@ IsShiftKeyDown = function() return false end
 C_Spell = {
     GetSpellCooldown = function(spellID)
         assert(spellID == 61304)
-        return { startTime = now, duration = 1.2, isEnabled = true, modRate = 1 }
+        return { startTime = now, duration = gcdDuration, isEnabled = true, modRate = 1 }
     end,
 }
 
@@ -117,4 +118,28 @@ addon:ObserveInputKey("1")
 assert(acknowledgements[2] == 2 and addon.pendingAcknowledgements[2],
     "an expired success cache entry must never confirm a later input")
 
-print("Input guard OK: hard/instant success commits, live GCD locks, timeout/failure never advance")
+addon:RejectObservedSpell(1064)
+now = 50
+gcdDuration = 0
+addon:ReleaseInputKey("1")
+addon.inputLockedUntil[2] = nil
+addon:ObserveInputKey("1")
+assert(addon:CommitObservedSpell(1064), "inactive readable GCD must still confirm the cast")
+assert(addon.inputLockedUntil[2] == now,
+    "a readable inactive GCD must not fall back to a stale 1.5-second lock")
+
+local nextFrameCallback
+C_Timer.After = function(_, callback) nextFrameCallback = callback end
+gcdDuration = 1.2
+now = 60
+addon:ReleaseInputKey("1")
+addon:ObserveInputKey("1")
+assert(addon:CommitObservedSpell(1064) and nextFrameCallback,
+    "successful cast must schedule a next-frame GCD sample")
+addon.inputGeneration = (addon.inputGeneration or 0) + 1
+addon.inputLockedUntil = {}
+nextFrameCallback()
+assert(not addon.inputLockedUntil[2],
+    "a stale next-frame callback must not mutate a newer runtime generation")
+
+print("Input guard OK: hard/instant success commits, exact GCD locks, stale callbacks and failures never advance")

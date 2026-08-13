@@ -134,16 +134,7 @@ function HeliHeal:RefreshTalentSnapshot(silent)
             self.db.profile.rotationPreset = detectedPreset
             self.db.profile.slots = ns.AbilityLibrary:BuildPresetSlots(detectedPreset, self.db.profile.bindings)
         end
-        self.sessionUses = {}
-        self.sessionCharges = {}
-        self.sessionSpendHistory = {}
-        self.sessionTimedEffects = {}
-        self.pendingSwiftness = nil
-        self.pendingDownpour = nil
-        self.pendingUnleash = nil
-        self.pendingArchdruid = nil
-        self.unleashConsumptionHistory = {}
-        self.riptideRechargeRateUntil = nil
+        self:ResetRuntimeState()
         if self.frame then self:RefreshDisplay() end
         if self.RefreshOptionsUI then self:RefreshOptionsUI() end
     end
@@ -188,6 +179,19 @@ function HeliHeal:PrintTalentSnapshot()
 end
 
 function HeliHeal:CreateTalentListener()
+    if self.talentListener then
+        local listener = self.talentListener
+        listener:RegisterEvent("PLAYER_ENTERING_WORLD")
+        listener:RegisterEvent("TRAIT_CONFIG_LIST_UPDATED")
+        listener:RegisterEvent("TRAIT_CONFIG_UPDATED")
+        listener:RegisterEvent("ACTIVE_COMBAT_CONFIG_CHANGED")
+        listener:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+        listener:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+        listener:RegisterEvent("SPELLS_CHANGED")
+        listener:RegisterEvent("PLAYER_REGEN_ENABLED")
+        self:RefreshTalentSnapshot(true)
+        return
+    end
     local listener = CreateFrame("Frame")
     listener:RegisterEvent("PLAYER_ENTERING_WORLD")
     listener:RegisterEvent("TRAIT_CONFIG_LIST_UPDATED")
@@ -199,6 +203,9 @@ function HeliHeal:CreateTalentListener()
     listener:RegisterEvent("PLAYER_REGEN_ENABLED")
     listener:SetScript("OnEvent", function(_, event, argument)
         if event == "PLAYER_SPECIALIZATION_CHANGED" and argument and argument ~= "player" then return end
+        if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_SPECIALIZATION_CHANGED" then
+            HeliHeal:RefreshPlayerSupport(true)
+        end
         if event == "TRAIT_CONFIG_UPDATED" then
             local activeConfigID = C_ClassTalents and C_ClassTalents.GetActiveConfigID
                 and C_ClassTalents.GetActiveConfigID()

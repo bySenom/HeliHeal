@@ -17,6 +17,11 @@ local HEALING_MODE_ALIASES = {
     mana = "mana", sparen = "mana",
 }
 
+local RESTORATION_SPECIALIZATIONS = {
+    SHAMAN = 264,
+    DRUID = 105,
+}
+
 local function copyTable(source)
     local result = {}
     for key, value in pairs(source or {}) do
@@ -29,8 +34,9 @@ local function copyTable(source)
     return result
 end
 
-function HeliHeal:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New("HeliHealDB", ns.defaults, true)
+function HeliHeal:ResetRuntimeState()
+    if self.CancelPendingAcknowledgements then self:CancelPendingAcknowledgements() end
+    self.inputGeneration = (self.inputGeneration or 0) + 1
     self.sessionUses = {}
     self.sessionCharges = {}
     self.sessionSpendHistory = {}
@@ -40,14 +46,53 @@ function HeliHeal:OnInitialize()
     self.pendingUnleash = nil
     self.pendingArchdruid = nil
     self.unleashConsumptionHistory = {}
+    self.riptideRechargeRateUntil = nil
     self.pendingAcknowledgements = {}
     self.recentSuccessfulSpells = {}
     self.heldInputKeys = {}
     self.mouseHeldInputs = {}
     self.inputLockedUntil = {}
+    self.lastObservedInput = nil
+end
+
+function HeliHeal:GetPlayerSpecializationID()
+    if type(GetSpecialization) ~= "function" or type(GetSpecializationInfo) ~= "function" then return nil end
+    local ok, specializationID = pcall(function()
+        local specializationIndex = GetSpecialization()
+        if not specializationIndex then return nil end
+        return GetSpecializationInfo(specializationIndex)
+    end)
+    return ok and tonumber(specializationID) or nil
+end
+
+function HeliHeal:RefreshPlayerSupport(resetOnChange)
+    local previousClass = self.classToken
+    local previousSpecialization = self.specializationID
+    local previousSupport = self.supportedClass
     local _, classToken = UnitClass("player")
     self.classToken = classToken
-    self.supportedClass = classToken == "SHAMAN" or classToken == "DRUID"
+    self.specializationID = self:GetPlayerSpecializationID()
+    self.supportedClass = RESTORATION_SPECIALIZATIONS[classToken] == self.specializationID
+
+    local changed = previousClass ~= self.classToken
+        or previousSpecialization ~= self.specializationID
+        or previousSupport ~= self.supportedClass
+    if changed and resetOnChange then
+        self:ResetRuntimeState()
+        if self.db then self:EnsureRotationProfile() end
+        if self.frame then
+            self:ApplyDisplaySettings()
+            self:RefreshDisplay()
+        end
+        if self.RefreshOptionsUI then self:RefreshOptionsUI() end
+    end
+    return changed
+end
+
+function HeliHeal:OnInitialize()
+    self.db = LibStub("AceDB-3.0"):New("HeliHealDB", ns.defaults, true)
+    self:ResetRuntimeState()
+    self:RefreshPlayerSupport(false)
     self:EnsureRotationProfile()
 
     self:RegisterChatCommand("heliheal", "HandleSlashCommand")
@@ -59,6 +104,7 @@ function HeliHeal:OnInitialize()
 end
 
 function HeliHeal:OnEnable()
+    self.inputListenerEnabled = true
     self:CreateInputListener()
     self:CreateDisplay()
     self:SetupOptions()
@@ -66,21 +112,18 @@ function HeliHeal:OnEnable()
     self:RefreshFromProfile()
 end
 
+function HeliHeal:OnDisable()
+    self.inputListenerEnabled = false
+    if self.mouseInputListener then self.mouseInputListener:UnregisterAllEvents() end
+    if self.castInputListener then self.castInputListener:UnregisterAllEvents() end
+    if self.talentListener then self.talentListener:UnregisterAllEvents() end
+    self:ResetRuntimeState()
+    if self.frame then self.frame:Hide() end
+end
+
 function HeliHeal:RefreshFromProfile()
-    self:CancelPendingAcknowledgements()
+    self:ResetRuntimeState()
     self:EnsureRotationProfile()
-    self.sessionUses = {}
-    self.sessionCharges = {}
-    self.sessionSpendHistory = {}
-    self.sessionTimedEffects = {}
-    self.pendingSwiftness = nil
-    self.pendingDownpour = nil
-    self.pendingUnleash = nil
-    self.pendingArchdruid = nil
-    self.unleashConsumptionHistory = {}
-    self.riptideRechargeRateUntil = nil
-    self.inputLockedUntil = {}
-    self.recentSuccessfulSpells = {}
     if self.frame then
         self:ApplyDisplaySettings()
         self:RefreshDisplay()
@@ -643,19 +686,7 @@ function HeliHeal:RefundAbility(abilityName)
 end
 
 function HeliHeal:ResetSession()
-    self:CancelPendingAcknowledgements()
-    self.sessionUses = {}
-    self.sessionCharges = {}
-    self.sessionSpendHistory = {}
-    self.sessionTimedEffects = {}
-    self.pendingSwiftness = nil
-    self.pendingDownpour = nil
-    self.pendingUnleash = nil
-    self.pendingArchdruid = nil
-    self.unleashConsumptionHistory = {}
-    self.riptideRechargeRateUntil = nil
-    self.inputLockedUntil = {}
-    self.recentSuccessfulSpells = {}
+    self:ResetRuntimeState()
     self:RefreshDisplay()
     self:Print("Lokale Cooldown-Simulation zurückgesetzt.")
 end
