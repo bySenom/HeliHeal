@@ -33,7 +33,7 @@ addon.db = {
                 enabled = true,
                 inputKey = "BUTTON5",
                 inputLockout = 1.0,
-                castSpellIDs = { 5394, 1267089 },
+                castSpellIDs = { 5394, 1267068, 1267089 },
             },
             {
                 spellID = 1064,
@@ -65,7 +65,7 @@ assert(#scheduled == 1, "repeat click inside queue plus GCD lockout must be igno
 
 now = 2.0
 assert(not acknowledgements[1], "queued input must not advance before a successful cast event")
-assert(addon:CommitObservedSpell(1267089), "an accepted transformed spell ID must confirm the input")
+assert(addon:CommitObservedSpell(1267068), "the Stormstream player-cast ID must confirm the input")
 assert(acknowledgements[1] == 1, "the successful player spell must acknowledge exactly once")
 assert(scheduled[1].cancelled, "successful confirmation must cancel the timeout")
 
