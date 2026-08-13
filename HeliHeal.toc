@@ -2,7 +2,7 @@
 ## Title: HeliHeal
 ## Notes: Static, player-driven healing priority tracker for Midnight.
 ## Author: HeliHeal Team
-## Version: 0.8.0
+## Version: 0.8.1-alpha.1
 ## SavedVariables: HeliHealDB
 ## IconTexture: Interface\AddOns\HeliHeal\Media\HeliHealIcon.tga
 ## X-Category: Combat

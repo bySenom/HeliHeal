@@ -1,4 +1,4 @@
-# HeliHeal 0.8.0 (Midnight 12.1)
+# HeliHeal 0.8.1 Alpha 1 (Midnight 12.1)
 
 ![HeliHeal logo](Media/HeliHealLogo.png)
 
@@ -62,9 +62,9 @@ Observing Unleash Life arms a ten-second local empower state for Riptide, Chain 
 
 HeliHeal observes the secure post-hooks of Blizzard's `ActionButtonDown` and `MultiActionButtonDown` paths. If the configured key (for example `Shift+1`) is bound to that action-bar button, HeliHeal starts its local timer after Blizzard processes the key. It never owns or propagates the combat key event, never casts abilities and does not claim that the observed input produced a successful cast.
 
-Before acknowledging an observed input, HeliHeal waits for the player's current `SpellQueueWindow` (normally expressed in milliseconds). It reads `C_Spell.GetSpellQueueWindow()` with a `SpellQueueWindow` CVar fallback and clamps the static delay to 0–1000 ms. This keeps the recommendation visible while the ability is queued; it does not inspect the active cast or confirm whether the spell succeeded.
+Before acknowledging an observed input, HeliHeal waits for the player's current `SpellQueueWindow` (normally expressed in milliseconds) plus a conservative static action window of at least one 1.5-second base GCD. It reads `C_Spell.GetSpellQueueWindow()` with a `SpellQueueWindow` CVar fallback and clamps the queue component to 0–1000 ms. This keeps the recommendation visible while an input is queued or spammed during another cast. HeliHeal still does not inspect the live GCD, active cast or successful spell result.
 
-Input spam is guarded by a complete press/release latch plus a per-ability static lockout. Holding a key counts once until Blizzard's matching action-button-up path, and mouse buttons remain latched until `GLOBAL_MOUSE_UP`. Repeated physical presses inside `SpellQueueWindow + input GCD` are ignored (1.0 second for Healing Stream, 1.5 seconds for Riptide), preventing local charge loss while the queued ability has not yet had time to execute.
+Input spam is guarded by a complete press/release latch plus a per-ability static lockout. Holding a key counts once until Blizzard's matching action-button-up path, and mouse buttons remain latched until `GLOBAL_MOUSE_UP`. Repeated physical presses inside the complete `SpellQueueWindow + static action window` are ignored, preventing recommendations or local charges from advancing before the queued action has had time to execute.
 
 Commands: `/hh`, `/hh talents [refresh]`, `/hh used 1`, `/hh mode standard|aoe|single|mana|next`, `/hh refund hst|riptide|downpour|rain|unleash|chain|wave`, `/hh sync`, `/hh reset`, `/hh show`, `/hh hide`, `/hh lock`.
 

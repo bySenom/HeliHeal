@@ -22,7 +22,7 @@ HeliHeal does not cast spells, choose healing targets, inspect health values or 
 - 🖱️ Mouse buttons, extra mouse buttons and mouse-wheel bindings
 - 🎯 Physical mouse-button observation also works over unit and raid frames
 - ⏱️ Input-driven cooldown, charge and maintenance-timer simulation
-- 🕒 Respects the configured SpellQueueWindow before advancing a recommendation
+- 🕒 Waits for SpellQueueWindow plus a static base-GCD action window before advancing
 - 🛡️ Key-down/key-up latch and per-ability lockout protect local charges from button spam
 - 🌧️ Shaman Downpour window derived from an observed Healing Rain input
 - 💧 Shaman Healing Stream and synthetic Stormstream charge model
@@ -66,7 +66,7 @@ With Power of the Archdruid selected, an observed Swiftmend arms a 15-second loc
 
 HeliHeal uses fixed, addon-owned priority packs. You only configure the observed input for each listed ability.
 
-When a matching action-bar or physical mouse input is detected, HeliHeal waits for the current SpellQueueWindow and then updates its own local timer or charge state. This keeps the recommendation visible while the spell is still queued.
+When a matching action-bar or physical mouse input is detected, HeliHeal waits for the current SpellQueueWindow plus a conservative static action window of at least one 1.5-second base GCD before updating its own timer or charge state. This keeps the recommendation visible when the next key is spammed while another spell is still casting.
 
 The addon never claims that the input resulted in a successful cast. If a spell failed because of range, movement, target validity or another condition, use `/hh refund` for a supported Shaman state or `/hh sync` to reset the complete local simulation.
 

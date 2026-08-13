@@ -55,6 +55,16 @@ function HeliHeal:GetSpellQueueDelay()
     return milliseconds / 1000
 end
 
+function HeliHeal:GetInputCommitDelay(configuredSlot)
+    -- HeliHeal deliberately does not read the live GCD or current cast. Keep
+    -- the recommendation stable for one conservative base GCD after the
+    -- queue window instead of treating the first early/spammed input as an
+    -- immediately completed cast.
+    local actionWindow = tonumber(configuredSlot and configuredSlot.inputLockout) or 1.5
+    actionWindow = math.max(1.5, math.min(actionWindow, 4.0))
+    return self:GetSpellQueueDelay() + actionWindow
+end
+
 function HeliHeal:CancelPendingAcknowledgements()
     for slotIndex, timer in pairs(self.pendingAcknowledgements or {}) do
         if timer and type(timer.Cancel) == "function" then
@@ -70,7 +80,7 @@ function HeliHeal:QueueSlotAcknowledgement(slotIndex, delay)
         return
     end
 
-    delay = delay or self:GetSpellQueueDelay()
+    delay = delay or (self:GetSpellQueueDelay() + 1.5)
     if delay <= 0 or not C_Timer or type(C_Timer.NewTimer) ~= "function" then
         self:AcknowledgeSlot(slotIndex)
         return
@@ -126,10 +136,9 @@ function HeliHeal:ObserveInputKey(inputKey)
                 if not impulseInput then
                     self.heldInputKeys[inputKey] = true
                 end
-                local delay = self:GetSpellQueueDelay()
-                local inputLockout = math.max(0, tonumber(configured.inputLockout) or 1.0)
-                self.inputLockedUntil[slotIndex] = now + delay + inputLockout
-                self:QueueSlotAcknowledgement(slotIndex, delay)
+                local commitDelay = self:GetInputCommitDelay(configured)
+                self.inputLockedUntil[slotIndex] = now + commitDelay
+                self:QueueSlotAcknowledgement(slotIndex, commitDelay)
             end
             return
         end
