@@ -249,6 +249,27 @@ function HeliHeal:BuildOverviewPage(parent)
         function(value) return ("%d px"):format(value) end)
     spacingSlider:SetPoint("RIGHT", -74, 0)
 
+    local languageRow = createSettingRow(page, -390, L("Sprache"), L("Standard: WoW-Clientsprache. Ein Wechsel lädt die UI neu."))
+    page.languageButtons = {}
+    local languages = {
+        { "auto", L("CLIENTSPRACHE"), 125 },
+        { "deDE", L("DEUTSCH"), 92 },
+        { "enUS", "ENGLISH", 92 },
+    }
+    local previous
+    for index = #languages, 1, -1 do
+        local language = languages[index]
+        local button = createButton(languageRow, language[2], language[3], 32, false)
+        if previous then
+            button:SetPoint("RIGHT", previous, "LEFT", -8, 0)
+        else
+            button:SetPoint("RIGHT", -16, 0)
+        end
+        button:SetScript("OnClick", function() self:SetLanguageMode(language[1]) end)
+        page.languageButtons[language[1]] = button
+        previous = button
+    end
+
     local reset = createButton(page, L("LOKALE TIMER ZURÜCKSETZEN"), 210, 38, false)
     reset:SetPoint("BOTTOMLEFT", 28, 28)
     reset:SetScript("OnClick", function() self:ResetSession() end)
@@ -778,6 +799,11 @@ function HeliHeal:RefreshOptionsUI()
     local overview = window.pages.overview
     for _, control in ipairs(overview.refreshers or {}) do
         control:Refresh()
+    end
+    for mode, button in pairs(overview.languageButtons or {}) do
+        local active = mode == self:GetLanguageMode()
+        button:SetBackdropBorderColor(unpackColor(active and C.accent or C.border))
+        button.label:SetTextColor(unpackColor(active and C.accent or C.muted))
     end
     for _, control in ipairs(window.pages.style.refreshers or {}) do
         control:Refresh()

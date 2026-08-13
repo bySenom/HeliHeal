@@ -1,8 +1,17 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.8.5-alpha.1",
+    currentVersion = "0.8.6-alpha.1",
     entries = {
+        {
+            version = "0.8.6-alpha.1",
+            title = "Selectable Interface Language",
+            changes = {
+                "Neue accountweite Sprachauswahl: Clientsprache, Deutsch oder English.",
+                "Clientsprache bleibt der Standard und folgt automatisch der WoW-Einstellung.",
+                "Ein Sprachwechsel wird gespeichert und nach einem UI-Reload vollständig angewendet.",
+            },
+        },
         {
             version = "0.8.5-alpha.1",
             title = "What's New and Update History",

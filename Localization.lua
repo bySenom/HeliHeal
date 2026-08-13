@@ -1,6 +1,6 @@
 local _, ns = ...
 
-local locale = type(GetLocale) == "function" and GetLocale() or "enUS"
+local clientLocale = type(GetLocale) == "function" and GetLocale() or "enUS"
 
 local enUS = {
     ["Einzelziel"] = "Single Target",
@@ -31,6 +31,10 @@ local enUS = {
     ["Skaliert die vollständige Priority-Anzeige."] = "Scales the complete priority display.",
     ["Icon-Abstand"] = "Icon spacing",
     ["Bestimmt den Abstand zwischen Empfehlung und Folgeslots."] = "Controls the gap between the recommendation icons.",
+    ["Sprache"] = "Language",
+    ["Standard: WoW-Clientsprache. Ein Wechsel lädt die UI neu."] = "Default: WoW client language. Changing it reloads the UI.",
+    ["CLIENTSPRACHE"] = "CLIENT LANGUAGE",
+    ["DEUTSCH"] = "GERMAN",
     ["LOKALE TIMER ZURÜCKSETZEN"] = "RESET LOCAL TIMERS",
     ["ANZEIGE ZENTRIEREN"] = "CENTER DISPLAY",
     ["Inputs können während des Kampfes nicht neu belegt werden."] = "Inputs cannot be rebound during combat.",
@@ -117,6 +121,10 @@ local enUS = {
     ["Statischer Hekili-inspirierter Healing-Priority-Tracker."] = "Static Hekili-inspired healing priority tracker.",
     ["Restoration-Shaman-Presets, Hotkey-Erfassung und lokale Timer."] = "Restoration Shaman presets, hotkey capture and local timers.",
     ["Modernes, bewegliches und anpassbares Icon-HUD."] = "Modern, movable and customizable icon HUD.",
+    ["Selectable Interface Language"] = "Selectable Interface Language",
+    ["Neue accountweite Sprachauswahl: Clientsprache, Deutsch oder English."] = "New account-wide language selection: Client Language, German or English.",
+    ["Clientsprache bleibt der Standard und folgt automatisch der WoW-Einstellung."] = "Client Language remains the default and automatically follows the WoW setting.",
+    ["Ein Sprachwechsel wird gespeichert und nach einem UI-Reload vollständig angewendet."] = "Language changes are saved and fully applied after a UI reload.",
 }
 
 local deDE = {
@@ -127,16 +135,29 @@ local deDE = {
     ["Cast Confirmation"] = "Zauberbestätigung",
     ["Healing Modes and Druid Support"] = "Heilmodi und Druiden-Support",
     ["Initial Alpha"] = "Erste Alpha",
+    ["Selectable Interface Language"] = "Auswählbare Oberflächensprache",
 }
 
-local translations = locale == "deDE" and deDE or enUS
-ns.locale = locale
-ns.localeFallback = locale ~= "deDE" and locale ~= "enUS" and locale ~= "enGB"
+local translations = enUS
+
+function ns.SetLocale(mode)
+    mode = mode == "deDE" and "deDE" or (mode == "enUS" and "enUS" or "auto")
+    local requestedLocale = mode == "auto" and clientLocale or mode
+    local effectiveLocale = requestedLocale == "deDE" and "deDE" or "enUS"
+    translations = effectiveLocale == "deDE" and deDE or enUS
+    ns.clientLocale = clientLocale
+    ns.localeMode = mode
+    ns.locale = effectiveLocale
+    ns.localeFallback = mode == "auto"
+        and clientLocale ~= "deDE" and clientLocale ~= "enUS" and clientLocale ~= "enGB"
+    return effectiveLocale
+end
 
 function ns.Localize(key, ...)
-    local value = translations[key] or (locale == "deDE" and key) or enUS[key] or key
+    local value = translations[key] or (ns.locale == "deDE" and key) or enUS[key] or key
     if select("#", ...) > 0 then return value:format(...) end
     return value
 end
 
 ns.L = ns.Localize
+ns.SetLocale("auto")

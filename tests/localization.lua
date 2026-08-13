@@ -16,11 +16,27 @@ assert(english.L("Übersicht") == "Overview", "enUS must translate the German so
 assert(english.L("Heilmodus: %s", "AoE") == "Healing mode: AoE",
     "formatted localization values must preserve arguments")
 assert(not english.localeFallback, "enUS must be a native HeliHeal locale")
+assert(english.SetLocale("deDE") == "deDE" and english.L("Übersicht") == "Übersicht",
+    "manual German selection must override an English client")
+assert(english.SetLocale("enUS") == "enUS" and english.L("Übersicht") == "Overview",
+    "manual English selection must be restorable")
 
 local french = loadLocale("frFR")
 assert(french.L("Übersicht") == "Overview",
     "unsupported client locales must receive a complete English fallback, never German UI")
 assert(french.localeFallback, "fallback locale must be visible in diagnostics")
+
+local addon = {}
+LibStub = function(name)
+    assert(name == "AceAddon-3.0")
+    return { NewAddon = function() return addon end }
+end
+assert(loadfile("Core.lua"))("HeliHeal", english)
+addon.db = { global = { language = "auto" }, profile = {} }
+assert(addon:SetLanguageMode("deDE", false) and addon.db.global.language == "deDE",
+    "language selection must persist account-wide without requiring a profile change")
+assert(english.L("Übersicht") == "Übersicht", "saved German selection must activate German UI text")
+assert(not addon:SetLanguageMode("frFR", false), "unsupported manual language modes must be rejected")
 
 local namespace = loadLocale("deDE")
 C_Spell = {

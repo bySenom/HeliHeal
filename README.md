@@ -20,7 +20,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Movable, scalable and customizable display
 - Persistent AceDB profiles
 - One-time What's New popup and local update history
-- Automatic German/English UI localization with client-localized spell names
+- Selectable Client Language, German or English UI with client-localized spell names
 
 ## Supported builds
 

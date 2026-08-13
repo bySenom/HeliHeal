@@ -8,8 +8,8 @@ local HEALING_MODES = { "standard", "aoe", "single", "mana" }
 local HEALING_MODE_LABELS = {
     standard = "Standard",
     aoe = "AoE",
-    single = L("Einzelziel"),
-    mana = L("Mana sparen"),
+    single = "Einzelziel",
+    mana = "Mana sparen",
 }
 local HEALING_MODE_ALIASES = {
     standard = "standard", normal = "standard",
@@ -132,6 +132,7 @@ end
 
 function HeliHeal:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("HeliHealDB", ns.defaults, true)
+    ns.SetLocale(self.db.global.language)
     self:MigrateProfile(self.db.profile)
     self:ResetRuntimeState()
     self:RefreshPlayerSupport(false)
@@ -336,6 +337,8 @@ function HeliHeal:BuildDiagnosticReport()
         "version=" .. tostring(version),
         "client=" .. tostring(build),
         "locale=" .. tostring(ns.locale or "?"),
+        "clientLocale=" .. tostring(ns.clientLocale or "?"),
+        "localeMode=" .. tostring(ns.localeMode or "auto"),
         "localeFallback=" .. tostring(ns.localeFallback == true),
         "class=" .. tostring(self.classToken or "?"),
         "spec=" .. tostring(self.specializationID or "?"),
@@ -378,12 +381,27 @@ function HeliHeal:MarkChangelogSeen(version)
     end
 end
 
+function HeliHeal:GetLanguageMode()
+    return self.db and self.db.global and self.db.global.language or "auto"
+end
+
+function HeliHeal:SetLanguageMode(mode, reloadUI)
+    if mode ~= "auto" and mode ~= "deDE" and mode ~= "enUS" then return false end
+    if self:GetLanguageMode() == mode then return true end
+    self.db.global.language = mode
+    ns.SetLocale(mode)
+    if reloadUI ~= false then
+        if C_UI and C_UI.Reload then C_UI.Reload() else ReloadUI() end
+    end
+    return true
+end
+
 function HeliHeal:GetHealingMode()
     return self.db.profile.healingMode or "standard"
 end
 
 function HeliHeal:GetHealingModeLabel()
-    return HEALING_MODE_LABELS[self:GetHealingMode()] or HEALING_MODE_LABELS.standard
+    return L(HEALING_MODE_LABELS[self:GetHealingMode()] or HEALING_MODE_LABELS.standard)
 end
 
 function HeliHeal:SetHealingMode(mode, silent)
@@ -394,7 +412,7 @@ function HeliHeal:SetHealingMode(mode, silent)
     self.db.profile.healingMode = mode
     self:RefreshDisplay()
     if self.RefreshOptionsUI then self:RefreshOptionsUI() end
-    if not silent then self:Print(L("Heilmodus: %s", HEALING_MODE_LABELS[mode])) end
+    if not silent then self:Print(L("Heilmodus: %s", self:GetHealingModeLabel())) end
     return true
 end
 

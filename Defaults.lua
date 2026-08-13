@@ -3,6 +3,7 @@ local _, ns = ...
 ns.defaults = {
     global = {
         lastSeenChangelogVersion = "",
+        language = "auto",
     },
     profile = {
         schemaVersion = 2,
