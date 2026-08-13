@@ -54,6 +54,13 @@ addon.db = {
                 inputKey = "",
                 inputLockout = 1.5,
             },
+            {
+                spellID = 31884,
+                enabled = true,
+                inputKey = "SHIFT-1",
+                inputLockout = 1.0,
+                confirmOnPlayerSuccess = true,
+            },
         },
     },
 }
@@ -203,5 +210,14 @@ assert(addon:ObserveAssistedCombatBinding("ACTIONBUTTON1"),
     "the later action post-hook must still identify the Assisted Combat button")
 assert(acknowledgements[4] == 2 and not addon.pendingAssistedCombat,
     "the OBA post-hook must consume the actual recent instant spell, not Blizzard's next suggestion")
+
+now = 100
+assert(addon:RecordPlayerSpellSucceeded(31884),
+    "an off-GCD major cooldown must confirm directly from the successful player spell")
+assert(acknowledgements[5] == 1,
+    "Shift-bound Avenging Wrath must leave the recommendation even if its action hook was missed")
+now = 100.1
+assert(not addon:RecordPlayerSpellSucceeded(31884) and acknowledgements[5] == 1,
+    "duplicate success events inside the correlation window must not acknowledge twice")
 
 print("Input guard OK: direct and Assisted Combat casts, exact GCD locks and live Holy Power sync")

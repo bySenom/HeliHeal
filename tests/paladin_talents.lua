@@ -88,6 +88,8 @@ assert(addon:GetSlot(tollIndex).enabled and addon:GetSlot(tollIndex).cooldown ==
 assert(not addon:GetSlot(prismIndex).enabled, "the unselected Holy Prism choice must stay hidden")
 assert(addon:GetSlot(wingsIndex).enabled,
     "Avenging Wrath must replace the unselected Avenging Crusader")
+assert(addon:GetSlot(wingsIndex).confirmOnPlayerSuccess,
+    "Avenging Wrath must survive profile rebuilding with direct success confirmation enabled")
 assert(addon:GetSlot(wingsIndex).cooldown == 90,
     "two Call of the Righteous ranks must reduce Avenging Wrath to 90 seconds")
 local auraIndex = addon:GetSlotIndexByAbilityKey("paladin_aura_mastery")

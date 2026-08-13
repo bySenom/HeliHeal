@@ -216,12 +216,31 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID)
     if not spellID then return false end
     self.recentSuccessfulSpells = self.recentSuccessfulSpells or {}
     self.recentSuccessfulSpells[spellID] = GetTime()
-    if self:CommitObservedSpell(spellID) or self:CommitAssistedCombatSpell(spellID) then
+    if self:CommitObservedSpell(spellID) or self:CommitAssistedCombatSpell(spellID)
+        or self:CommitConfiguredPlayerSpell(spellID) then
         self.recentSuccessfulSpells[spellID] = nil
         self:ScheduleHolyPowerSync()
         return true
     end
     self:ScheduleHolyPowerSync()
+    return false
+end
+
+function HeliHeal:CommitConfiguredPlayerSpell(spellID)
+    local now = GetTime()
+    self.recentDirectConfirmations = self.recentDirectConfirmations or {}
+    for slotIndex, configuredSlot in ipairs(self.db.profile.slots or {}) do
+        if configuredSlot.enabled and configuredSlot.confirmOnPlayerSuccess
+            and self:SlotAcceptsSpell(configuredSlot, spellID) then
+            local lastConfirmed = self.recentDirectConfirmations[slotIndex]
+            if lastConfirmed and now - lastConfirmed < 0.25 then return false end
+            self.recentDirectConfirmations[slotIndex] = now
+            self.inputLockedUntil[slotIndex] = now
+                + math.max(1.0, tonumber(configuredSlot.inputLockout) or 1.0)
+            self:AcknowledgeSlot(slotIndex)
+            return true
+        end
+    end
     return false
 end
 

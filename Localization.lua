@@ -139,6 +139,11 @@ local enUS = {
     ["Divine Toll, Holy Prism, Holy Armaments und Holy-Shock-Aufladungen reagieren auf den Talent-Snapshot."] = "Divine Toll, Holy Prism, Holy Armaments and Holy Shock charges adapt to the talent snapshot.",
     ["Paladin Talent and Holy Power Model"] = "Paladin Talent and Holy Power Model",
     ["One Button Assistant and Live Holy Power"] = "One Button Assistant and Live Holy Power",
+    ["Reliable Major Cooldown Confirmation"] = "Reliable Major Cooldown Confirmation",
+    ["Zornige Vergeltung wird nach einem erfolgreichen Spieler-Cast direkt bestätigt."] = "Avenging Wrath is confirmed directly after a successful player cast.",
+    ["Shift-Belegungen, Makros und GCD-freie Cooldowns benötigen keinen vorher erkannten Actionbar-Hook mehr."] = "Shift bindings, macros and off-GCD cooldowns no longer require a previously observed action-bar hook.",
+    ["Zorniger Kreuzritter und Aurenmeisterschaft verwenden denselben sicheren Bestätigungspfad."] = "Avenging Crusader and Aura Mastery use the same reliable confirmation path.",
+    ["Doppelte Success-Events innerhalb des Cast-Fensters werden verworfen."] = "Duplicate success events inside the cast correlation window are discarded.",
     ["Der Blizzard One Button Assistant wird auf Standard-Aktionsleisten automatisch erkannt."] = "Blizzard's One Button Assistant is detected automatically on standard action bars.",
     ["Erfolgreiche OBA-Zauber aktualisieren passende HeliHeal-Cooldowns und Aufladungen."] = "Successful OBA spells update matching HeliHeal cooldowns and charges.",
     ["Die lesbare Holy Power des Spielers korrigiert die lokale Simulation nach jedem Cast."] = "The player's readable Holy Power corrects the local simulation after every cast.",
@@ -164,6 +169,7 @@ local deDE = {
     ["Holy Paladin Support"] = "Heiligpaladin-Unterstützung",
     ["Paladin Talent and Holy Power Model"] = "Paladin-Talente und Holy-Power-Modell",
     ["One Button Assistant and Live Holy Power"] = "Ein-Knopf-Assistent und echte Holy Power",
+    ["Reliable Major Cooldown Confirmation"] = "Zuverlässige Bestätigung großer Cooldowns",
 }
 
 local translations = enUS

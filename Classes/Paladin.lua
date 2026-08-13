@@ -32,18 +32,18 @@ local abilities = {
     paladin_avenging_wrath = {
         spellID = 31884, name = "Avenging Wrath", cooldown = 120,
         requiresTalent = "paladinAvengingWrath", cooldownRankTalent = "paladinCallOfRighteous",
-        cooldownReductionPerRank = 15, inputLockout = 1.0,
+        cooldownReductionPerRank = 15, confirmOnPlayerSuccess = true, inputLockout = 1.0,
     },
     paladin_avenging_crusader = {
         spellID = 216331, name = "Avenging Crusader", cooldown = 60,
         requiresTalent = "paladinAvengingCrusader", cooldownRankTalent = "paladinCallOfRighteous",
-        cooldownReductionPerRank = 7.5, inputLockout = 1.0,
+        cooldownReductionPerRank = 7.5, confirmOnPlayerSuccess = true, inputLockout = 1.0,
     },
     paladin_aura_mastery = {
         spellID = 31821, name = "Aura Mastery", cooldown = 180,
         requiresTalent = "paladinRingingHeavens", holyPowerGain = 3,
         grantsFreeSpenderTalent = "paladinAurora", cooldownTalent = "paladinUnwaveringSpirit",
-        cooldownReduction = 30, inputLockout = 1.5,
+        cooldownReduction = 30, confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     paladin_judgment = {
         spellID = 275773, name = "Judgment", cooldown = 11,

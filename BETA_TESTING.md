@@ -22,6 +22,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Failed, interrupted, out-of-range and invalid-target casts keep the recommendation.
 - One Button Assistant queueing does not advance HeliHeal before the actual spell succeeds.
 - Holy Paladin: use Judgment, Crusader Strike and Shield of the Righteous through the One Button Assistant; `/hh diagnostics` must follow the real 0-5 Holy Power value.
+- Cast Shift-bound Avenging Wrath: the recommendation must disappear immediately after `UNIT_SPELLCAST_SUCCEEDED`, even though Wings is off the GCD.
 - Instant casts such as Riptide and Rejuvenation advance without an extra 1.5-second delay.
 
 ## Restoration Shaman

@@ -1,8 +1,18 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.2-alpha.1",
+    currentVersion = "0.9.3-alpha.1",
     entries = {
+        {
+            version = "0.9.3-alpha.1",
+            title = "Reliable Major Cooldown Confirmation",
+            changes = {
+                "Zornige Vergeltung wird nach einem erfolgreichen Spieler-Cast direkt bestätigt.",
+                "Shift-Belegungen, Makros und GCD-freie Cooldowns benötigen keinen vorher erkannten Actionbar-Hook mehr.",
+                "Zorniger Kreuzritter und Aurenmeisterschaft verwenden denselben sicheren Bestätigungspfad.",
+                "Doppelte Success-Events innerhalb des Cast-Fensters werden verworfen.",
+            },
+        },
         {
             version = "0.9.2-alpha.1",
             title = "One Button Assistant and Live Holy Power",

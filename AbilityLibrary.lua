@@ -41,6 +41,7 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.cooldownReductionPerRank = math.max(0, tonumber(record.cooldownReductionPerRank) or 0)
     record.bonusChargeTalent = record.bonusChargeTalent
     record.grantsFreeSpenderTalent = record.grantsFreeSpenderTalent
+    record.confirmOnPlayerSuccess = record.confirmOnPlayerSuccess == true
     self.abilities[key] = record
     return record
 end
@@ -135,6 +136,7 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             cooldownReductionPerRank = ability.cooldownReductionPerRank,
             bonusChargeTalent = ability.bonusChargeTalent,
             grantsFreeSpenderTalent = ability.grantsFreeSpenderTalent,
+            confirmOnPlayerSuccess = ability.confirmOnPlayerSuccess,
             derivedBindingFrom = ability.derivedBindingFrom,
             inputKey = bindings and bindings[bindingKey] or "",
         }
@@ -187,6 +189,7 @@ function AbilityLibrary:Resolve(slot)
         cooldownReductionPerRank = math.max(0, tonumber(slot.cooldownReductionPerRank) or 0),
         bonusChargeTalent = slot.bonusChargeTalent,
         grantsFreeSpenderTalent = slot.grantsFreeSpenderTalent,
+        confirmOnPlayerSuccess = slot.confirmOnPlayerSuccess == true,
         derivedBindingFrom = slot.derivedBindingFrom,
         enabled = slot.enabled ~= false and spellID > 0,
     }

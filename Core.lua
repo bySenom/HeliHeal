@@ -25,7 +25,7 @@ local RESTORATION_SPECIALIZATIONS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 2
-local ROTATION_DATA_VERSION = 12105
+local ROTATION_DATA_VERSION = 12106
 
 local function copyTable(source)
     local result = {}
@@ -44,6 +44,7 @@ function HeliHeal:ResetInputState()
     self.inputGeneration = (self.inputGeneration or 0) + 1
     self.pendingAcknowledgements = {}
     self.recentSuccessfulSpells = {}
+    self.recentDirectConfirmations = {}
     self.heldInputKeys = {}
     self.mouseHeldInputs = {}
     self.inputLockedUntil = {}
