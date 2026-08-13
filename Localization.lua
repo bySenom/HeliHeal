@@ -130,6 +130,11 @@ local enUS = {
     ["Hotkey-Entprellung arbeitet jetzt pro Taste statt global."] = "Hotkey debouncing now works per binding instead of globally.",
     ["Schnell aufeinanderfolgende unterschiedliche Fähigkeiten verlieren keine Cast-Bestätigung mehr."] = "Different abilities pressed in rapid succession no longer lose cast confirmation.",
     ["Riptide-Aufladungen bleiben dadurch mit erfolgreichen Instant-Casts synchron."] = "Riptide charges now remain synchronized with successful instant casts.",
+    ["Holy Paladin Support"] = "Holy Paladin Support",
+    ["Holy-Paladin-Prioritäten für Herald of the Sun und Lightsmith ergänzt."] = "Added Holy Paladin priorities for Herald of the Sun and Lightsmith.",
+    ["Eigene Mythic+- und Raid-Pakete mit Standard-, AoE-, Einzelziel- und Mana-Modus hinzugefügt."] = "Added dedicated Mythic+ and Raid packs with Standard, AoE, Single Target and Mana modes.",
+    ["Holy Power wird ausschließlich aus bestätigten eigenen Casts lokal geschätzt."] = "Holy Power is estimated locally from confirmed player casts only.",
+    ["Divine Toll, Holy Prism, Holy Armaments und Holy-Shock-Aufladungen reagieren auf den Talent-Snapshot."] = "Divine Toll, Holy Prism, Holy Armaments and Holy Shock charges adapt to the talent snapshot.",
 }
 
 local deDE = {
@@ -142,6 +147,7 @@ local deDE = {
     ["Initial Alpha"] = "Erste Alpha",
     ["Selectable Interface Language"] = "Auswählbare Oberflächensprache",
     ["Reliable Rapid Inputs"] = "Zuverlässige schnelle Eingaben",
+    ["Holy Paladin Support"] = "Heiligpaladin-Unterstützung",
 }
 
 local translations = enUS

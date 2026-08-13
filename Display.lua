@@ -136,6 +136,16 @@ function HeliHeal:GetDisplayOrder(now)
         local swiftnessIsArmed = self.pendingSwiftness and self.pendingSwiftness.slotIndex == slotIndex
         local priorityRank = ability and priorityRanks[ability.abilityKey]
         local contextAvailable = ability and ability.abilityKey ~= "downpour" or downpourReady
+        if ability and self.classToken == "PALADIN" then
+            local holyPower = self.sessionHolyPower or 0
+            if (ability.holyPowerCost or 0) > holyPower then
+                contextAvailable = false
+            elseif ability.maxHolyPower and holyPower > ability.maxHolyPower then
+                contextAvailable = false
+            elseif (ability.holyPowerGain or 0) > 0 and holyPower >= 5 then
+                contextAvailable = false
+            end
+        end
         if ability and ability.enabled and priorityRank and contextAvailable and not swiftnessIsArmed then
             -- In contextual modes Downpour temporarily occupies Healing Rain's
             -- action-button input, so showing both would duplicate one hotkey.
@@ -191,6 +201,11 @@ function HeliHeal:GetDisplayOrder(now)
 
     local preferredConsumer = self.pendingSwiftness and self.pendingSwiftness.consumerAbilityKey
     table.sort(ready, function(a, b)
+        if self.classToken == "PALADIN" and (self.sessionHolyPower or 0) >= 5 then
+            local aSpender = (a.ability.holyPowerCost or 0) > 0
+            local bSpender = (b.ability.holyPowerCost or 0) > 0
+            if aSpender ~= bSpender then return aSpender end
+        end
         if preferredConsumer then
             local aPreferred = a.ability.abilityKey == preferredConsumer
             local bPreferred = b.ability.abilityKey == preferredConsumer

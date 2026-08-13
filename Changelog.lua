@@ -1,8 +1,18 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.8.7-alpha.1",
+    currentVersion = "0.9.0-alpha.1",
     entries = {
+        {
+            version = "0.9.0-alpha.1",
+            title = "Holy Paladin Support",
+            changes = {
+                "Holy-Paladin-Prioritäten für Herald of the Sun und Lightsmith ergänzt.",
+                "Eigene Mythic+- und Raid-Pakete mit Standard-, AoE-, Einzelziel- und Mana-Modus hinzugefügt.",
+                "Holy Power wird ausschließlich aus bestätigten eigenen Casts lokal geschätzt.",
+                "Divine Toll, Holy Prism, Holy Armaments und Holy-Shock-Aufladungen reagieren auf den Talent-Snapshot.",
+            },
+        },
         {
             version = "0.8.7-alpha.1",
             title = "Reliable Rapid Inputs",

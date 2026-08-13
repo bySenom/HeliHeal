@@ -15,12 +15,20 @@ local TALENTS = {
     druidLifetreading = { 1217941 },
     druidKeeper = { 433831, 428731 },
     druidWildstalker = { 439926, 439530 },
+    paladinHerald = { 431377, 156322 },
+    paladinLightsmith = { 432459, 432472, 434132 },
+    paladinDivineToll = { 375576 },
+    paladinHolyPrism = { 114165 },
+    paladinQuickenedInvocation = { 379391 },
+    paladinLightsConviction = { 414073 },
 }
 
 local SNAPSHOT_FLAGS = {
     "echoOfTheElements", "elementalReverb", "downpour", "doubleDip",
     "mysticKnowledge", "surgingTotem", "unleashLife", "restorationTier2", "restorationTier4",
     "druidGermination", "druidPowerArchdruid", "druidLifetreading", "druidKeeper", "druidWildstalker",
+    "paladinHerald", "paladinLightsmith", "paladinDivineToll", "paladinHolyPrism",
+    "paladinQuickenedInvocation", "paladinLightsConviction",
 }
 
 local function isKnownSpell(spellID)
@@ -109,8 +117,8 @@ function HeliHeal:RefreshTalentSnapshot(silent)
     for talentKey, spellIDs in pairs(TALENTS) do
         snapshot[talentKey] = spells and containsTalent(spells, spellIDs) or false
     end
-    snapshot.restorationTier2 = self.classToken ~= "DRUID" and isKnownSpell(1264866)
-    snapshot.restorationTier4 = self.classToken ~= "DRUID" and isKnownSpell(1264867)
+    snapshot.restorationTier2 = self.classToken == "SHAMAN" and isKnownSpell(1264866)
+    snapshot.restorationTier4 = self.classToken == "SHAMAN" and isKnownSpell(1264867)
 
     local changed = not snapshotsEqual(self.talentSnapshot, snapshot)
     self.talentSnapshot = snapshot
@@ -125,11 +133,14 @@ function HeliHeal:RefreshTalentSnapshot(silent)
         local detectedHero
         if self.classToken == "DRUID" then
             detectedHero = snapshot.druidKeeper and "keeper" or (snapshot.druidWildstalker and "wildstalker")
+        elseif self.classToken == "PALADIN" then
+            detectedHero = snapshot.paladinLightsmith and "lightsmith" or (snapshot.paladinHerald and "herald")
         else
             detectedHero = (snapshot.elementalReverb or snapshot.mysticKnowledge) and "farseer"
                 or (snapshot.surgingTotem and "totemic")
         end
-        local classPrefix = self.classToken == "DRUID" and "druid" or "shaman"
+        local classPrefix = self.classToken == "DRUID" and "druid"
+            or (self.classToken == "PALADIN" and "paladin" or "shaman")
         local detectedPreset = detectedHero and content and (classPrefix .. "_" .. detectedHero .. "_" .. content)
         if detectedPreset and ns.AbilityLibrary:GetPreset(detectedPreset) and detectedPreset ~= currentPreset then
             self.db.profile.rotationPreset = detectedPreset
@@ -169,6 +180,14 @@ function HeliHeal:PrintTalentSnapshot()
         local details = ("Germination %s | Power of the Archdruid %s | Lifetreading %s | Keeper %s | Wildstalker %s")
             :format(yesNo(snapshot.druidGermination), yesNo(snapshot.druidPowerArchdruid),
                 yesNo(snapshot.druidLifetreading), yesNo(snapshot.druidKeeper), yesNo(snapshot.druidWildstalker))
+        self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
+        return
+    end
+    if self.classToken == "PALADIN" then
+        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Quickened Invocation %s | Light's Conviction %s")
+            :format(yesNo(snapshot.paladinHerald), yesNo(snapshot.paladinLightsmith),
+                yesNo(snapshot.paladinDivineToll), yesNo(snapshot.paladinHolyPrism),
+                yesNo(snapshot.paladinQuickenedInvocation), yesNo(snapshot.paladinLightsConviction))
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end

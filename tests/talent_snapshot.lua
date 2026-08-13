@@ -44,6 +44,7 @@ addon.db = {
     },
 }
 addon.db.profile.slots = namespace.AbilityLibrary:BuildPresetSlots(addon.db.profile.rotationPreset, {})
+addon.classToken = "SHAMAN"
 addon.sessionUses = {}
 addon.sessionCharges = {}
 addon.sessionSpendHistory = {}

@@ -35,6 +35,15 @@ specializationID = 103
 assert(addon:RefreshPlayerSupport(false) and not addon.supportedClass,
     "Feral Druid must not display a healing rotation")
 
+classToken = "PALADIN"
+specializationID = 65
+assert(addon:RefreshPlayerSupport(false) and addon.supportedClass,
+    "Holy Paladin must be supported")
+
+specializationID = 66
+assert(addon:RefreshPlayerSupport(false) and not addon.supportedClass,
+    "Protection Paladin must not display a healing rotation")
+
 local cancelled = false
 addon.pendingAcknowledgements = {
     [1] = { timer = { Cancel = function() cancelled = true end } },
@@ -62,4 +71,4 @@ assert(not next(addon.inputLockedUntil) and not next(addon.recentSuccessfulSpell
 assert(not next(addon.lastObservedInputs),
     "runtime reset must clear per-binding debounce timestamps")
 
-print("Core lifecycle OK: Restoration-only gating and complete local-state reset")
+print("Core lifecycle OK: healer-spec gating and complete local-state reset")

@@ -10,7 +10,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 
 ## Features
 
-- Restoration Shaman and Restoration Druid priority packs
+- Restoration Shaman, Restoration Druid and Holy Paladin priority packs
 - Separate Mythic+ and Raid presets
 - Standard, AoE, Single Target and Mana Saving modes
 - Keyboard, modifier, mouse-button and mouse-wheel bindings
@@ -28,6 +28,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 |---|---|---|
 | Restoration Shaman | Totemic, Farseer | Mythic+, Raid |
 | Restoration Druid | Wildstalker, Keeper of the Grove | Mythic+, Raid |
+| Holy Paladin | Herald of the Sun, Lightsmith | Mythic+, Raid |
 
 ## Installation
 
@@ -41,7 +42,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 
 HeliHeal observes configured action-bar and physical mouse inputs without replacing Blizzard's protected input handling. A recommendation advances only after Blizzard confirms that the expected player spell succeeded. Failed, interrupted or unmatched inputs do not consume it.
 
-Class mechanics such as Healing Stream charges, Stormstream uses, Riptide recharge and Rejuvenation coverage are simulated locally from confirmed casts and an out-of-combat talent snapshot.
+Class mechanics such as Healing Stream charges, Stormstream uses, Riptide recharge, Rejuvenation coverage and Holy Power are simulated locally from confirmed casts and an out-of-combat talent snapshot.
 
 ## Commands
 

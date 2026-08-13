@@ -10,7 +10,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - `/hh changelog` opens the complete local update history and does not repeat the popup.
 - `deDE` shows German UI text; `enUS`/`enGB` show English UI text and spell names follow the client locale.
 - Language defaults to Client Language; selecting German or English persists account-wide after the automatic UI reload.
-- Switching away from Restoration hides the tracker; switching back restores it.
+- Switching away from a supported healing specialization hides the tracker; switching back restores it.
 - Profile switching clears pending inputs without losing the selected profile's bindings.
 - Death, resurrection and loading screens do not advance recommendations.
 
@@ -37,6 +37,14 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Rejuvenation advances the local coverage counter and expires applications on schedule.
 - Germination and Power of the Archdruid modify only the intended local counters.
 - Mythic+ and Raid coverage goals match the selected Standard, AoE, Single Target or Mana mode.
+
+## Holy Paladin
+
+- Herald of the Sun uses Eternal Flame while Lightsmith uses Word of Glory and Holy Armaments.
+- Divine Toll or Holy Prism appears only for the selected talent; Holy Armaments accepts both alternating spell casts through one binding.
+- Quickened Invocation reduces the local generator cooldown by 15 seconds and Light's Conviction adds the second Holy Shock charge.
+- Confirmed generators increase the local Holy Power estimate; spenders stay hidden below 3 and are forced first at 5.
+- Raid Standard/AoE prioritizes Light of Dawn while Mythic+ Standard/Single Target prioritizes the hero-appropriate single-target spender.
 
 ## Recovery and diagnostics
 

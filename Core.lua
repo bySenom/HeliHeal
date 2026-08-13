@@ -21,10 +21,11 @@ local HEALING_MODE_ALIASES = {
 local RESTORATION_SPECIALIZATIONS = {
     SHAMAN = 264,
     DRUID = 105,
+    PALADIN = 65,
 }
 
 local CURRENT_SCHEMA_VERSION = 2
-local ROTATION_DATA_VERSION = 12102
+local ROTATION_DATA_VERSION = 12103
 
 local function copyTable(source)
     local result = {}
@@ -55,6 +56,8 @@ function HeliHeal:ResetRuntimeState()
     self.sessionCharges = {}
     self.sessionSpendHistory = {}
     self.sessionTimedEffects = {}
+    self.sessionHolyPower = 0
+    self.holyPowerHistory = {}
     self.pendingSwiftness = nil
     self.pendingDownpour = nil
     self.pendingUnleash = nil
@@ -201,6 +204,7 @@ function HeliHeal:EnsureRotationProfile()
     local defaults = {
         SHAMAN = "shaman_totemic_mythicplus",
         DRUID = "druid_wildstalker_mythicplus",
+        PALADIN = "paladin_herald_mythicplus",
     }
     local defaultPreset = defaults[self.classToken] or "shaman_totemic_mythicplus"
     local presetKey = profile.rotationPreset or defaultPreset
@@ -353,6 +357,7 @@ function HeliHeal:BuildDiagnosticReport()
         "uses=" .. countEntries(self.sessionUses),
         "charges=" .. countEntries(self.sessionCharges),
         "tracked=" .. countEntries(self.sessionTimedEffects),
+        "holyPower=" .. tostring(self.sessionHolyPower or 0),
         "pendingInputs=" .. countEntries(self.pendingAcknowledgements),
     }, "; ")
 end
@@ -448,6 +453,29 @@ function HeliHeal:GetSlot(slotIndex)
         if self:IsTalentActive("restorationTier2") then ability.cooldown = 17 end
     elseif ability.abilityKey == "druid_rejuvenation" and self:IsTalentActive("druidGermination") then
         ability.trackedDuration = 14
+    elseif ability.abilityKey == "paladin_holy_shock" and self.talentSnapshot
+        and self.talentSnapshot.available and not self:IsTalentActive("paladinLightsConviction") then
+        ability.maxCharges = 1
+    elseif (ability.abilityKey == "paladin_divine_toll" or ability.abilityKey == "paladin_holy_prism")
+        and self.talentSnapshot and self.talentSnapshot.available then
+        ability.enabled = ability.enabled and self.classToken == "PALADIN"
+            and not self:IsTalentActive("paladinLightsmith")
+        if self:IsTalentActive("paladinQuickenedInvocation") then ability.cooldown = ability.cooldown - 15 end
+        if ability.abilityKey == "paladin_divine_toll" then
+            ability.enabled = ability.enabled and self:IsTalentActive("paladinDivineToll")
+        else
+            ability.enabled = ability.enabled and self:IsTalentActive("paladinHolyPrism")
+        end
+    elseif ability.abilityKey == "paladin_holy_armament" and self.talentSnapshot
+        and self.talentSnapshot.available then
+        ability.enabled = ability.enabled and self:IsTalentActive("paladinLightsmith")
+        if self:IsTalentActive("paladinQuickenedInvocation") then ability.cooldown = ability.cooldown - 15 end
+    elseif ability.abilityKey == "paladin_eternal_flame" and self.talentSnapshot
+        and self.talentSnapshot.available then
+        ability.enabled = ability.enabled and self:IsTalentActive("paladinHerald")
+    elseif ability.abilityKey == "paladin_word_of_glory" and self.talentSnapshot
+        and self.talentSnapshot.available then
+        ability.enabled = ability.enabled and not self:IsTalentActive("paladinHerald")
     end
     return ability
 end
@@ -737,6 +765,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex)
     end
 
     local now = GetTime()
+    local holyPowerBefore = self.sessionHolyPower or 0
     if slot.abilityKey == "druid_swiftmend" and self:IsTalentActive("druidPowerArchdruid") then
         self.pendingArchdruid = { expiresAt = now + 15 }
     end
@@ -779,6 +808,14 @@ function HeliHeal:AcknowledgeSlot(slotIndex)
         self.sessionUses[slotIndex] = now
     end
 
+    if (slot.holyPowerCost or 0) > 0 or (slot.holyPowerGain or 0) > 0 then
+        self.sessionHolyPower = math.max(0, math.min(5,
+            holyPowerBefore - (slot.holyPowerCost or 0) + (slot.holyPowerGain or 0)))
+        self.holyPowerHistory = self.holyPowerHistory or {}
+        self.holyPowerHistory[slotIndex] = self.holyPowerHistory[slotIndex] or {}
+        table.insert(self.holyPowerHistory[slotIndex], holyPowerBefore)
+    end
+
 
     if slot.abilityKey == "druid_regrowth" and self:IsArchdruidReady(now) then
         self.pendingArchdruid = nil
@@ -814,6 +851,14 @@ function HeliHeal:RefundAbility(abilityName)
         unleash = "unleash_life", unleashlife = "unleash_life", lebenentfesseln = "unleash_life",
         chain = "chain_heal", chainheal = "chain_heal", kettenheilung = "chain_heal",
         wave = "healing_wave", healingwave = "healing_wave", wellederheilung = "healing_wave",
+        holyshock = "paladin_holy_shock", shock = "paladin_holy_shock",
+        divinetoll = "paladin_divine_toll", toll = "paladin_divine_toll",
+        holyprism = "paladin_holy_prism", prism = "paladin_holy_prism",
+        holyarmament = "paladin_holy_armament", armament = "paladin_holy_armament",
+        wordofglory = "paladin_word_of_glory", wog = "paladin_word_of_glory",
+        eternalflame = "paladin_eternal_flame", flame = "paladin_eternal_flame",
+        lightofdawn = "paladin_light_of_dawn", lod = "paladin_light_of_dawn",
+        holylight = "paladin_holy_light", flashoflight = "paladin_flash_of_light", fol = "paladin_flash_of_light",
     }
     local key = (abilityName or ""):lower():gsub("[%s_%-]", "")
     key = aliases[key] or key
@@ -840,6 +885,11 @@ function HeliHeal:RefundAbility(abilityName)
     local slotIndex = self:GetSlotIndexByAbilityKey(key)
     local ability = slotIndex and self:GetSlot(slotIndex)
     if not ability then return false end
+
+    local holyPowerHistory = self.holyPowerHistory and self.holyPowerHistory[slotIndex]
+    if holyPowerHistory and #holyPowerHistory > 0 then
+        self.sessionHolyPower = table.remove(holyPowerHistory)
+    end
 
     local pendingTimer = self.pendingAcknowledgements and self.pendingAcknowledgements[slotIndex]
     pendingTimer = pendingTimer and (pendingTimer.timer or pendingTimer)
