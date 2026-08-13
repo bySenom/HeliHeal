@@ -1,0 +1,26 @@
+## Interface: 120007, 120100
+## Title: HeliHeal
+## Notes: Static, player-driven healing priority tracker for Midnight.
+## Author: HeliHeal Team
+## Version: 0.8.0
+## SavedVariables: HeliHealDB
+## IconTexture: Interface\Icons\Spell_Holy_HolyBolt
+## X-Category: Combat
+## X-License: MIT
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceConsole-3.0\AceConsole-3.0.xml
+Libs\AceDB-3.0\AceDB-3.0.xml
+
+Namespace.lua
+AbilityLibrary.lua
+Classes\Shaman.lua
+Classes\Druid.lua
+Defaults.lua
+Core.lua
+TalentSnapshot.lua
+Input.lua
+Display.lua
+Options.lua

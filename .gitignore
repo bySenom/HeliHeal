@@ -1,0 +1,17 @@
+# WoW and editor-generated files
+HeliHealDB.lua
+HeliHealDB.lua.bak
+*.swp
+*.tmp
+*.log
+
+# Release archives and local build output
+dist/
+release/
+*.zip
+
+# Operating-system and IDE metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
