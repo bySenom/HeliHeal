@@ -40,6 +40,8 @@ local function isImpulseInput(inputKey)
     return inputKey:match("MOUSEWHEELUP$") or inputKey:match("MOUSEWHEELDOWN$")
 end
 
+local RECENT_SUCCESS_WINDOW = 0.25
+
 function HeliHeal:GetLiveGCDRemaining(now)
     if not C_Spell or type(C_Spell.GetSpellCooldown) ~= "function" then return nil end
     local ok, info = pcall(C_Spell.GetSpellCooldown, 61304)
@@ -136,6 +138,33 @@ function HeliHeal:CommitObservedSpell(spellID)
     return false
 end
 
+function HeliHeal:RecordPlayerSpellSucceeded(spellID)
+    spellID = tonumber(spellID)
+    if not spellID then return false end
+    self.recentSuccessfulSpells = self.recentSuccessfulSpells or {}
+    self.recentSuccessfulSpells[spellID] = GetTime()
+    if self:CommitObservedSpell(spellID) then
+        self.recentSuccessfulSpells[spellID] = nil
+        return true
+    end
+    return false
+end
+
+function HeliHeal:CommitRecentSpellForSlot(slotIndex)
+    local configuredSlot = self.db.profile.slots[slotIndex]
+    local now = GetTime()
+    for spellID, succeededAt in pairs(self.recentSuccessfulSpells or {}) do
+        local age = now - succeededAt
+        if age > RECENT_SUCCESS_WINDOW or age < 0 then
+            self.recentSuccessfulSpells[spellID] = nil
+        elseif self:SlotAcceptsSpell(configuredSlot, spellID) then
+            self.recentSuccessfulSpells[spellID] = nil
+            return self:CommitObservedSpell(spellID)
+        end
+    end
+    return false
+end
+
 function HeliHeal:RejectObservedSpell(spellID)
     for slotIndex, pending in pairs(self.pendingAcknowledgements or {}) do
         local configuredSlot = self.db.profile.slots[slotIndex]
@@ -191,6 +220,9 @@ function HeliHeal:ObserveInputKey(inputKey)
                 local safetyTimeout = 5
                 self.inputLockedUntil[slotIndex] = now + safetyTimeout
                 self:QueueSlotAcknowledgement(slotIndex, safetyTimeout)
+                -- Instant spells can report success synchronously inside the
+                -- protected action before our secure post-hook runs.
+                self:CommitRecentSpellForSlot(slotIndex)
             end
             return
         end
@@ -271,7 +303,7 @@ function HeliHeal:CreateInputListener()
     castListener:SetScript("OnEvent", function(_, event, unit, _, spellID)
         if unit ~= "player" or not spellID then return end
         if event == "UNIT_SPELLCAST_SUCCEEDED" then
-            HeliHeal:CommitObservedSpell(spellID)
+            HeliHeal:RecordPlayerSpellSucceeded(spellID)
         else
             HeliHeal:RejectObservedSpell(spellID)
         end

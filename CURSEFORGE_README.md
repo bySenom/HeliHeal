@@ -67,7 +67,7 @@ With Power of the Archdruid selected, an observed Swiftmend arms a 15-second loc
 
 HeliHeal uses fixed, addon-owned priority packs. You only configure the observed input for each listed ability.
 
-When a matching action-bar or physical mouse input is detected, HeliHeal creates a pending observation. It updates its local timer or charge state only when Blizzard reports that the configured player spell succeeded. Failed, interrupted or unmatched inputs do not consume the recommendation. This keeps the next icon visible when its key is spammed too early during another cast.
+When a matching action-bar or physical mouse input is detected, HeliHeal creates a pending observation. It updates its local timer or charge state only when Blizzard reports that the configured player spell succeeded. A short 250 ms success cache also covers instant spells whose success event can precede the secure post-hook. Failed, interrupted or unmatched inputs do not consume the recommendation. This keeps the next icon visible when its key is spammed too early during another cast.
 
 After a confirmed spell, HeliHeal samples only the universal GCD spell (`61304`) to lock repeated input for the real remaining GCD. If that value is unavailable or restricted, it safely falls back to 1.5 seconds. `/hh refund` and `/hh sync` remain available for exceptional state corrections.
 

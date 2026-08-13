@@ -41,6 +41,7 @@ function HeliHeal:OnInitialize()
     self.pendingArchdruid = nil
     self.unleashConsumptionHistory = {}
     self.pendingAcknowledgements = {}
+    self.recentSuccessfulSpells = {}
     self.heldInputKeys = {}
     self.mouseHeldInputs = {}
     self.inputLockedUntil = {}
@@ -79,6 +80,7 @@ function HeliHeal:RefreshFromProfile()
     self.unleashConsumptionHistory = {}
     self.riptideRechargeRateUntil = nil
     self.inputLockedUntil = {}
+    self.recentSuccessfulSpells = {}
     if self.frame then
         self:ApplyDisplaySettings()
         self:RefreshDisplay()
@@ -653,6 +655,7 @@ function HeliHeal:ResetSession()
     self.unleashConsumptionHistory = {}
     self.riptideRechargeRateUntil = nil
     self.inputLockedUntil = {}
+    self.recentSuccessfulSpells = {}
     self:RefreshDisplay()
     self:Print("Lokale Cooldown-Simulation zurückgesetzt.")
 end

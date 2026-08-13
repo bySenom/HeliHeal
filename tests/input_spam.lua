@@ -99,4 +99,22 @@ assert(addon:RejectObservedSpell(1064), "matching failed cast must reject the pe
 assert(acknowledgements[2] == 1 and not addon.pendingAcknowledgements[2],
     "failed casts must keep the recommendation and clear only the pending input")
 
-print("Input guard OK: cast success commits, live GCD locks, timeout/failure never advance")
+now = 30
+addon:ReleaseInputKey("1")
+assert(not addon:RecordPlayerSpellSucceeded(1064),
+    "instant success arriving before the secure post-hook must be cached")
+now = 30.05
+addon:ObserveInputKey("1")
+assert(acknowledgements[2] == 2 and not addon.pendingAcknowledgements[2],
+    "the post-hook must consume a matching recent instant-cast success immediately")
+
+now = 40
+addon:ReleaseInputKey("1")
+addon.inputLockedUntil[2] = nil
+addon:RecordPlayerSpellSucceeded(1064)
+now = 40.3
+addon:ObserveInputKey("1")
+assert(acknowledgements[2] == 2 and addon.pendingAcknowledgements[2],
+    "an expired success cache entry must never confirm a later input")
+
+print("Input guard OK: hard/instant success commits, live GCD locks, timeout/failure never advance")
