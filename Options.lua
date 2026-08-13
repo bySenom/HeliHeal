@@ -222,41 +222,26 @@ function HeliHeal:BuildOverviewPage(parent)
     page:SetAllPoints()
     setPageHeader(page, "Übersicht", "Anzeige, Verhalten und Größe des statischen Priority-Trackers.")
 
-    local contract = CreateFrame("Frame", nil, page, "BackdropTemplate")
-    contract:SetPoint("TOPLEFT", 28, -110)
-    contract:SetPoint("TOPRIGHT", -28, -110)
-    contract:SetHeight(82)
-    backdrop(contract, C.panel, C.accentDark)
-    local dot = contract:CreateTexture(nil, "ARTWORK")
-    dot:SetTexture(WHITE)
-    dot:SetColorTexture(unpackColor(C.accent))
-    dot:SetSize(8, 42)
-    dot:SetPoint("LEFT", 0, 0)
-    local contractTitle = text(contract, "STATIC INPUT MODE", 11, C.accent, "OUTLINE")
-    contractTitle:SetPoint("TOPLEFT", 22, -16)
-    local contractText = text(contract, "Keine Auren, Cooldowns, Ziele, Lebenspunkte oder Combat-Logs. Nur sichere Actionbar-Key-Post-Hooks.", 11, C.text)
-    contractText:SetPoint("TOPLEFT", contractTitle, "BOTTOMLEFT", 0, -10)
-
-    local enabledRow = createSettingRow(page, -212, "Tracker anzeigen", "Blendet die HeliHeal-Prioritätsleiste ein oder aus.")
+    local enabledRow = createSettingRow(page, -110, "Tracker anzeigen", "Blendet die HeliHeal-Prioritätsleiste ein oder aus.")
     local enabledToggle = createToggle(enabledRow,
         function() return self.db.profile.enabled end,
         function(value) self.db.profile.enabled = value; self:ApplyDisplaySettings() end)
     enabledToggle:SetPoint("RIGHT", -20, 0)
 
-    local lockRow = createSettingRow(page, -282, "Position sperren", "Verhindert das versehentliche Verschieben der Anzeige.")
+    local lockRow = createSettingRow(page, -180, "Position sperren", "Verhindert das versehentliche Verschieben der Anzeige.")
     local lockToggle = createToggle(lockRow,
         function() return self.db.profile.locked end,
         function(value) self.db.profile.locked = value; self:ApplyDisplaySettings() end)
     lockToggle:SetPoint("RIGHT", -20, 0)
 
-    local scaleRow = createSettingRow(page, -352, "UI-Skalierung", "Skaliert die vollständige Priority-Anzeige.")
+    local scaleRow = createSettingRow(page, -250, "UI-Skalierung", "Skaliert die vollständige Priority-Anzeige.")
     local scaleSlider = createSlider(scaleRow, 0.6, 1.8, 0.05,
         function() return self.db.profile.scale end,
         function(value) self.db.profile.scale = value; self:ApplyDisplaySettings() end,
         function(value) return ("%.0f%%"):format(value * 100) end)
     scaleSlider:SetPoint("RIGHT", -74, 0)
 
-    local spacingRow = createSettingRow(page, -422, "Icon-Abstand", "Bestimmt den Abstand zwischen Empfehlung und Folgeslots.")
+    local spacingRow = createSettingRow(page, -320, "Icon-Abstand", "Bestimmt den Abstand zwischen Empfehlung und Folgeslots.")
     local spacingSlider = createSlider(spacingRow, 0, 24, 1,
         function() return self.db.profile.spacing end,
         function(value) self.db.profile.spacing = value; self:RefreshDisplay() end,
