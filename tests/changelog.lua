@@ -8,7 +8,7 @@ end
 C_AddOns = {
     GetAddOnMetadata = function(addonName, field)
         assert(addonName == "HeliHeal" and field == "Version")
-        return "0.8.6-alpha.1"
+        return "0.8.7-alpha.1"
     end,
 }
 

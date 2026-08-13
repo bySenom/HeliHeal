@@ -1,8 +1,17 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.8.6-alpha.1",
+    currentVersion = "0.8.7-alpha.1",
     entries = {
+        {
+            version = "0.8.7-alpha.1",
+            title = "Reliable Rapid Inputs",
+            changes = {
+                "Hotkey-Entprellung arbeitet jetzt pro Taste statt global.",
+                "Schnell aufeinanderfolgende unterschiedliche Fähigkeiten verlieren keine Cast-Bestätigung mehr.",
+                "Riptide-Aufladungen bleiben dadurch mit erfolgreichen Instant-Casts synchron.",
+            },
+        },
         {
             version = "0.8.6-alpha.1",
             title = "Selectable Interface Language",

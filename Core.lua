@@ -46,7 +46,7 @@ function HeliHeal:ResetInputState()
     self.heldInputKeys = {}
     self.mouseHeldInputs = {}
     self.inputLockedUntil = {}
-    self.lastObservedInput = nil
+    self.lastObservedInputs = {}
 end
 
 function HeliHeal:ResetRuntimeState()

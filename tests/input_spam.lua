@@ -42,6 +42,12 @@ addon.db = {
                 inputKey = "1",
                 inputLockout = 1.5,
             },
+            {
+                spellID = 61295,
+                enabled = true,
+                inputKey = "2",
+                inputLockout = 1.5,
+            },
         },
     },
 }
@@ -141,5 +147,17 @@ addon.inputLockedUntil = {}
 nextFrameCallback()
 assert(not addon.inputLockedUntil[2],
     "a stale next-frame callback must not mutate a newer runtime generation")
+
+now = 70
+addon:ReleaseInputKey("1")
+addon:ObserveInputKey("1")
+now = 70.04
+addon:ObserveInputKey("2")
+assert(addon.pendingAcknowledgements[2] and addon.pendingAcknowledgements[3],
+    "two different bindings inside 80 ms must each remain observable")
+assert(addon:CommitObservedSpell(61295),
+    "the second rapid input must still correlate its successful Riptide cast")
+assert(acknowledgements[3] == 1 and not addon.pendingAcknowledgements[3],
+    "rapid Riptide must acknowledge exactly once without losing its charge spend")
 
 print("Input guard OK: hard/instant success commits, exact GCD locks, stale callbacks and failures never advance")

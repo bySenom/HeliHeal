@@ -219,8 +219,13 @@ function HeliHeal:ObserveInputKey(inputKey)
                 return
             end
 
-            if not self.lastObservedInput or now - self.lastObservedInput > 0.08 then
-                self.lastObservedInput = now
+            self.lastObservedInputs = self.lastObservedInputs or {}
+            local lastObservedAt = self.lastObservedInputs[inputKey]
+            if not lastObservedAt or now - lastObservedAt > 0.08 then
+                -- Debounce duplicate hooks for this physical binding only.
+                -- A global timestamp could discard a different instant spell
+                -- pressed immediately afterwards while WoW still casts it.
+                self.lastObservedInputs[inputKey] = now
                 if not impulseInput then
                     self.heldInputKeys[inputKey] = true
                 end

@@ -126,6 +126,10 @@ local enUS = {
     ["Clientsprache bleibt der Standard und folgt automatisch der WoW-Einstellung."] = "Client Language remains the default and automatically follows the WoW setting.",
     ["Ein Sprachwechsel wird gespeichert und nach einem UI-Reload vollständig angewendet."] = "Language changes are saved and fully applied after a UI reload.",
     ["Wiederaufladezeit von Totem des Heilenden Flusses auf 17 Sekunden korrigiert."] = "Corrected Healing Stream Totem recharge time to 17 seconds.",
+    ["Reliable Rapid Inputs"] = "Reliable Rapid Inputs",
+    ["Hotkey-Entprellung arbeitet jetzt pro Taste statt global."] = "Hotkey debouncing now works per binding instead of globally.",
+    ["Schnell aufeinanderfolgende unterschiedliche Fähigkeiten verlieren keine Cast-Bestätigung mehr."] = "Different abilities pressed in rapid succession no longer lose cast confirmation.",
+    ["Riptide-Aufladungen bleiben dadurch mit erfolgreichen Instant-Casts synchron."] = "Riptide charges now remain synchronized with successful instant casts.",
 }
 
 local deDE = {
@@ -137,6 +141,7 @@ local deDE = {
     ["Healing Modes and Druid Support"] = "Heilmodi und Druiden-Support",
     ["Initial Alpha"] = "Erste Alpha",
     ["Selectable Interface Language"] = "Auswählbare Oberflächensprache",
+    ["Reliable Rapid Inputs"] = "Zuverlässige schnelle Eingaben",
 }
 
 local translations = enUS

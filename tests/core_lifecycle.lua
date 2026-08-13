@@ -50,6 +50,7 @@ addon.heldInputKeys = { BUTTON5 = true }
 addon.mouseHeldInputs = { Button5 = "BUTTON5" }
 addon.inputLockedUntil = { [1] = 99 }
 addon.recentSuccessfulSpells = { [5394] = 1 }
+addon.lastObservedInputs = { BUTTON5 = 1 }
 addon:ResetRuntimeState()
 
 assert(cancelled, "runtime reset must cancel pending acknowledgement timers")
@@ -58,5 +59,7 @@ assert(not next(addon.heldInputKeys) and not next(addon.mouseHeldInputs),
     "runtime reset must clear keyboard and mouse held latches")
 assert(not next(addon.inputLockedUntil) and not next(addon.recentSuccessfulSpells),
     "runtime reset must clear lockouts and instant-cast success cache")
+assert(not next(addon.lastObservedInputs),
+    "runtime reset must clear per-binding debounce timestamps")
 
 print("Core lifecycle OK: Restoration-only gating and complete local-state reset")
