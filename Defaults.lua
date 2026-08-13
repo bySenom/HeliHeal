@@ -1,6 +1,9 @@
 local _, ns = ...
 
 ns.defaults = {
+    global = {
+        lastSeenChangelogVersion = "",
+    },
     profile = {
         schemaVersion = 2,
         enabled = true,

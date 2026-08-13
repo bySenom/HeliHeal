@@ -19,6 +19,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Local cooldown, charge and HoT estimates
 - Movable, scalable and customizable display
 - Persistent AceDB profiles
+- One-time What's New popup and local update history
 
 ## Supported builds
 
@@ -52,6 +53,7 @@ Class mechanics such as Healing Stream charges, Stormstream uses, Riptide rechar
 | `/hh sync` | Reconcile local estimates outside combat |
 | `/hh reset` | Reset local timers and charges |
 | `/hh debug` | Print a compact diagnostic report |
+| `/hh changelog` | Open the in-game update history |
 
 ## Limitations
 

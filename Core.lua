@@ -354,6 +354,26 @@ function HeliHeal:PrintDiagnostics()
     self:Print("DIAG: " .. self:BuildDiagnosticReport())
 end
 
+function HeliHeal:GetAddonVersion()
+    if C_AddOns and type(C_AddOns.GetAddOnMetadata) == "function" then
+        return C_AddOns.GetAddOnMetadata("HeliHeal", "Version") or ns.changelog.currentVersion
+    elseif type(GetAddOnMetadata) == "function" then
+        return GetAddOnMetadata("HeliHeal", "Version") or ns.changelog.currentVersion
+    end
+    return ns.changelog.currentVersion
+end
+
+function HeliHeal:ShouldShowWhatsNew()
+    local global = self.db and self.db.global
+    return global and global.lastSeenChangelogVersion ~= self:GetAddonVersion()
+end
+
+function HeliHeal:MarkChangelogSeen(version)
+    if self.db and self.db.global then
+        self.db.global.lastSeenChangelogVersion = version or self:GetAddonVersion()
+    end
+end
+
 function HeliHeal:GetHealingMode()
     return self.db.profile.healingMode or "standard"
 end
@@ -873,6 +893,8 @@ function HeliHeal:HandleSlashCommand(input)
         self:ReconcileOutOfCombatState(false)
     elseif command == "debug" or command == "diag" then
         self:PrintDiagnostics()
+    elseif command == "changelog" or command == "updates" then
+        self:ShowChangelogHistory()
     elseif command == "refund" or command == "zurueck" then
         if not self:RefundAbility(argument) then
             self:Print("Unbekannte Fähigkeit. Beispiele: /hh refund hst, riptide, downpour, rain")

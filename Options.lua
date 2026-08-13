@@ -499,6 +499,124 @@ function HeliHeal:BuildProfilesPage(parent)
     return page
 end
 
+local function changelogText(entry)
+    local lines = {}
+    for _, change in ipairs(entry.changes or {}) do
+        lines[#lines + 1] = "• " .. change
+    end
+    return table.concat(lines, "\n")
+end
+
+function HeliHeal:BuildChangelogPage(parent)
+    local page = CreateFrame("Frame", nil, parent)
+    page:SetAllPoints()
+    setPageHeader(page, "Update-Verlauf", "Alle wichtigen Änderungen bleiben lokal und jederzeit einsehbar.")
+
+    local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 28, -108)
+    scroll:SetPoint("BOTTOMRIGHT", -48, 22)
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetWidth(700)
+    scroll:SetScrollChild(content)
+
+    local offset = 0
+    for index, entry in ipairs(ns.changelog.entries) do
+        local cardHeight = 78 + (#(entry.changes or {}) * 18)
+        local card = CreateFrame("Frame", nil, content, "BackdropTemplate")
+        card:SetPoint("TOPLEFT", 0, -offset)
+        card:SetPoint("TOPRIGHT", 0, -offset)
+        card:SetHeight(cardHeight)
+        backdrop(card, index == 1 and C.panelHover or C.panel, index == 1 and C.accentDark or C.borderSoft)
+
+        local version = text(card, "v" .. entry.version, 13, index == 1 and C.accent or C.text, "OUTLINE")
+        version:SetPoint("TOPLEFT", 18, -15)
+        local titleLabel = text(card, entry.title, 10, C.muted)
+        titleLabel:SetPoint("LEFT", version, "RIGHT", 12, 0)
+        local body = text(card, changelogText(entry), 10, C.text)
+        body:SetPoint("TOPLEFT", version, "BOTTOMLEFT", 0, -12)
+        body:SetPoint("RIGHT", -18, 0)
+        body:SetJustifyH("LEFT")
+        body:SetJustifyV("TOP")
+
+        offset = offset + cardHeight + 10
+    end
+    content:SetHeight(math.max(1, offset))
+    page.scroll = scroll
+    return page
+end
+
+function HeliHeal:HideWhatsNewModal(markSeen)
+    local modal = self.optionsWindow and self.optionsWindow.whatsNewModal
+    if not modal then return end
+    if markSeen and modal.version then self:MarkChangelogSeen(modal.version) end
+    modal:Hide()
+end
+
+function HeliHeal:ShowWhatsNewModal()
+    local window = self.optionsWindow
+    if not window then return end
+    local version = self:GetAddonVersion()
+    local entry = ns.changelog:GetEntry(version) or ns.changelog.entries[1]
+    if not entry then return end
+
+    local modal = window.whatsNewModal
+    if not modal then
+        modal = CreateFrame("Frame", nil, window, "BackdropTemplate")
+        modal:SetAllPoints()
+        modal:SetFrameLevel(window:GetFrameLevel() + 40)
+        modal:EnableMouse(true)
+        backdrop(modal, { 0, 0, 0, 0.78 }, { 0, 0, 0, 0 })
+
+        local card = CreateFrame("Frame", nil, modal, "BackdropTemplate")
+        card:SetSize(610, 390)
+        card:SetPoint("CENTER")
+        backdrop(card, C.bg, C.accentDark, 2)
+        modal.card = card
+
+        local caption = text(card, "NEU IN HELIHEAL", 10, C.accent, "OUTLINE")
+        caption:SetPoint("TOPLEFT", 28, -26)
+        card.versionLabel = text(card, "", 25, C.text, "OUTLINE")
+        card.versionLabel:SetPoint("TOPLEFT", caption, "BOTTOMLEFT", 0, -10)
+        card.titleLabel = text(card, "", 11, C.muted)
+        card.titleLabel:SetPoint("TOPLEFT", card.versionLabel, "BOTTOMLEFT", 1, -8)
+
+        local line = card:CreateTexture(nil, "ARTWORK")
+        line:SetTexture(WHITE)
+        line:SetColorTexture(unpackColor(C.accent))
+        line:SetPoint("TOPLEFT", 28, -113)
+        line:SetPoint("TOPRIGHT", -28, -113)
+        line:SetHeight(2)
+
+        card.body = text(card, "", 12, C.text)
+        card.body:SetPoint("TOPLEFT", 30, -140)
+        card.body:SetPoint("TOPRIGHT", -30, -140)
+        card.body:SetJustifyH("LEFT")
+        card.body:SetJustifyV("TOP")
+
+        local history = createButton(card, "UPDATE-VERLAUF", 180, 36, false)
+        history:SetPoint("BOTTOMLEFT", 28, 24)
+        history:SetScript("OnClick", function()
+            HeliHeal:HideWhatsNewModal(true)
+            HeliHeal:SelectOptionsPage("changelog")
+        end)
+        local done = createButton(card, "VERSTANDEN", 150, 36, true)
+        done:SetPoint("BOTTOMRIGHT", -28, 24)
+        done:SetScript("OnClick", function() HeliHeal:HideWhatsNewModal(true) end)
+
+        local close = createButton(card, "×", 32, 32, false)
+        close:SetPoint("TOPRIGHT", -16, -16)
+        close.label:SetFont(FONT, 20, "OUTLINE")
+        close:SetScript("OnClick", function() HeliHeal:HideWhatsNewModal(true) end)
+        window.whatsNewModal = modal
+    end
+
+    modal.version = entry.version
+    modal.card.versionLabel:SetText("v" .. entry.version)
+    modal.card.titleLabel:SetText(entry.title)
+    modal.card.body:SetText(changelogText(entry))
+    modal:Show()
+end
+
 function HeliHeal:CreateModernOptions()
     local window = CreateFrame("Frame", "HeliHealOptionsWindow", UIParent, "BackdropTemplate")
     window:SetSize(1040, 700)
@@ -514,7 +632,10 @@ function HeliHeal:CreateModernOptions()
 
     window:SetScript("OnDragStart", function(self) self:StartMoving() end)
     window:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-    window:SetScript("OnHide", function() HeliHeal:EndKeyCapture() end)
+    window:SetScript("OnHide", function()
+        HeliHeal:EndKeyCapture()
+        HeliHeal:HideWhatsNewModal(true)
+    end)
 
     local accentTop = window:CreateTexture(nil, "ARTWORK")
     accentTop:SetTexture(WHITE)
@@ -537,7 +658,7 @@ function HeliHeal:CreateModernOptions()
     logoText:SetPoint("CENTER", 0, 1)
     local brand = text(sidebar, "HeliHeal", 22, C.text, "OUTLINE")
     brand:SetPoint("LEFT", logo, "RIGHT", 13, 5)
-    local version = text(sidebar, "MIDNIGHT  •  v0.7.0", 9, C.muted, "OUTLINE")
+    local version = text(sidebar, "MIDNIGHT  •  v" .. self:GetAddonVersion(), 9, C.muted, "OUTLINE")
     version:SetPoint("TOPLEFT", brand, "BOTTOMLEFT", 1, -7)
 
     local separator = sidebar:CreateTexture(nil, "ARTWORK")
@@ -559,6 +680,7 @@ function HeliHeal:CreateModernOptions()
         style = self:BuildStylePage(window.pagesHost),
         priorities = self:BuildPrioritiesPage(window.pagesHost),
         profiles = self:BuildProfilesPage(window.pagesHost),
+        changelog = self:BuildChangelogPage(window.pagesHost),
     }
 
     window.navButtons = {}
@@ -567,6 +689,7 @@ function HeliHeal:CreateModernOptions()
         { "style", "HUD-ELEMENTE", "Icon, Hotkey & Cooldown" },
         { "priorities", "PRIORITÄTEN", "Fähigkeiten & Inputs" },
         { "profiles", "PROFILE & RESET", "Konfiguration verwalten" },
+        { "changelog", "UPDATE-VERLAUF", "Was ist neu?" },
     }
     for index, item in ipairs(navigation) do
         local nav = CreateFrame("Button", nil, sidebar, "BackdropTemplate")
@@ -726,11 +849,20 @@ function HeliHeal:SetupOptions()
     self:CreateModernOptions()
 end
 
-function HeliHeal:ShowOptions()
+function HeliHeal:ShowOptions(suppressWhatsNew)
     if not self.optionsWindow then
         self:CreateModernOptions()
     end
     self.optionsWindow:Show()
     self.optionsWindow:Raise()
     self:RefreshOptionsUI()
+    if not suppressWhatsNew and self:ShouldShowWhatsNew() then
+        self:ShowWhatsNewModal()
+    end
+end
+
+function HeliHeal:ShowChangelogHistory()
+    self:ShowOptions(true)
+    self:SelectOptionsPage("changelog")
+    self:MarkChangelogSeen()
 end
