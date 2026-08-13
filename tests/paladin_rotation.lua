@@ -31,6 +31,10 @@ addon.talentSnapshot = {
     paladinHolyPrism = false,
     paladinQuickenedInvocation = true,
     paladinLightsConviction = true,
+    paladinAvengingWrath = false,
+    paladinAvengingCrusader = false,
+    paladinRingingHeavens = false,
+    paladinWalkIntoLight = false,
 }
 addon.IsTalentActive = function(self, key)
     return self.talentSnapshot.available and self.talentSnapshot[key] == true
@@ -45,8 +49,8 @@ local flameIndex = addon:GetSlotIndexByAbilityKey("paladin_eternal_flame")
 local dawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
 local flashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
 
-assert(addon:GetSlot(tollIndex).cooldown == 45,
-    "Quickened Invocation must reduce Divine Toll to 45 seconds")
+assert(addon:GetSlot(tollIndex).cooldown == 30,
+    "Quickened Invocation must reduce Divine Toll to 30 seconds")
 assert(addon:GetSlot(shockIndex).maxCharges == 2,
     "Light's Conviction must keep two Holy Shock charges")
 
@@ -100,7 +104,46 @@ assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).coo
 assert(addon:GetSlot(wordIndex).enabled and not addon:GetSlotIndexByAbilityKey("paladin_eternal_flame"),
     "Lightsmith must use Word of Glory instead of Eternal Flame")
 assert(namespace.AbilityLibrary:GetPresetPriorityKeys("paladin_lightsmith_raid", "standard")[3]
+        == "paladin_holy_armament",
+    "Lightsmith Raid must keep Holy Armament ahead of its normal healing priority")
+assert(namespace.AbilityLibrary:GetPresetPriorityKeys("paladin_lightsmith_raid", "standard")[5]
         == "paladin_light_of_dawn",
     "Raid standard mode must prioritize Light of Dawn as its spender")
+
+addon:SetRotationPreset("paladin_herald_mythicplus")
+addon.talentSnapshot.paladinHerald = true
+addon.talentSnapshot.paladinLightsmith = false
+addon.talentSnapshot.paladinDivineToll = true
+addon.talentSnapshot.paladinAvengingWrath = true
+addon.talentSnapshot.paladinWalkIntoLight = true
+addon.talentSnapshot.paladinAurora = false
+local wingsIndex = addon:GetSlotIndexByAbilityKey("paladin_avenging_wrath")
+assert(addon:GetSlot(wingsIndex).enabled, "Avenging Wrath must replace the unselected Avenging Crusader")
+addon:SetHolyPowerEstimate(0, true)
+addon:AcknowledgeSlot(tollIndex)
+addon:AcknowledgeSlot(shockIndex)
+assert(addon.sessionHolyPower == 4, "confirmed generators must be applied in cast order")
+assert(addon:RefundAbility("toll"), "Divine Toll must be refundable for local recovery")
+assert(addon.sessionHolyPower == 1,
+    "refunding an older generator must replay later Holy Power events instead of rolling them back")
+addon:AcknowledgeSlot(wingsIndex)
+assert(addon.sessionHolyPower == 3, "Walk Into Light must add two Holy Power after confirmed Wings")
+assert(addon:SetHolyPowerEstimate(5, true) and addon.sessionHolyPower == 5,
+    "manual Holy Power synchronization must accept exact values from zero to five")
+
+addon.talentSnapshot.paladinAurora = true
+addon:SetHolyPowerEstimate(0, true)
+addon:AcknowledgeSlot(tollIndex)
+assert(addon.sessionHolyPower == 3 and addon.pendingFreeHolyPowerSpenders == 1,
+    "Aurora must arm one guaranteed free spender after Divine Toll")
+addon:AcknowledgeSlot(flameIndex)
+assert(addon.sessionHolyPower == 3 and addon.pendingFreeHolyPowerSpenders == 0,
+    "the guaranteed Aurora spender must not subtract Holy Power")
+
+addon.talentSnapshot.paladinAurora = false
+addon:SetHolyPowerEstimate(2, true)
+addon:AcknowledgeSlot(flameIndex)
+assert(addon.sessionHolyPower == 2,
+    "a confirmed spender below three Holy Power must be inferred as a free random proc")
 
 print("paladin_rotation.lua: OK")

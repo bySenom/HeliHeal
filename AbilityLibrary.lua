@@ -31,6 +31,16 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.holyPowerGain = math.max(0, math.floor(tonumber(record.holyPowerGain) or 0))
     record.holyPowerCost = math.max(0, math.floor(tonumber(record.holyPowerCost) or 0))
     record.maxHolyPower = record.maxHolyPower and math.max(0, math.floor(tonumber(record.maxHolyPower) or 0)) or nil
+    record.holyPowerGainTalent = record.holyPowerGainTalent
+    record.holyPowerTalentGain = math.max(0, math.floor(tonumber(record.holyPowerTalentGain) or 0))
+    record.requiresTalent = record.requiresTalent
+    record.excludesTalent = record.excludesTalent
+    record.cooldownTalent = record.cooldownTalent
+    record.cooldownReduction = math.max(0, tonumber(record.cooldownReduction) or 0)
+    record.cooldownRankTalent = record.cooldownRankTalent
+    record.cooldownReductionPerRank = math.max(0, tonumber(record.cooldownReductionPerRank) or 0)
+    record.bonusChargeTalent = record.bonusChargeTalent
+    record.grantsFreeSpenderTalent = record.grantsFreeSpenderTalent
     self.abilities[key] = record
     return record
 end
@@ -96,6 +106,16 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             holyPowerGain = ability.holyPowerGain,
             holyPowerCost = ability.holyPowerCost,
             maxHolyPower = ability.maxHolyPower,
+            holyPowerGainTalent = ability.holyPowerGainTalent,
+            holyPowerTalentGain = ability.holyPowerTalentGain,
+            requiresTalent = ability.requiresTalent,
+            excludesTalent = ability.excludesTalent,
+            cooldownTalent = ability.cooldownTalent,
+            cooldownReduction = ability.cooldownReduction,
+            cooldownRankTalent = ability.cooldownRankTalent,
+            cooldownReductionPerRank = ability.cooldownReductionPerRank,
+            bonusChargeTalent = ability.bonusChargeTalent,
+            grantsFreeSpenderTalent = ability.grantsFreeSpenderTalent,
             derivedBindingFrom = ability.derivedBindingFrom,
             inputKey = bindings and bindings[bindingKey] or "",
         }
@@ -138,6 +158,16 @@ function AbilityLibrary:Resolve(slot)
         holyPowerGain = math.max(0, math.floor(tonumber(slot.holyPowerGain) or 0)),
         holyPowerCost = math.max(0, math.floor(tonumber(slot.holyPowerCost) or 0)),
         maxHolyPower = slot.maxHolyPower and math.max(0, math.floor(tonumber(slot.maxHolyPower) or 0)) or nil,
+        holyPowerGainTalent = slot.holyPowerGainTalent,
+        holyPowerTalentGain = math.max(0, math.floor(tonumber(slot.holyPowerTalentGain) or 0)),
+        requiresTalent = slot.requiresTalent,
+        excludesTalent = slot.excludesTalent,
+        cooldownTalent = slot.cooldownTalent,
+        cooldownReduction = math.max(0, tonumber(slot.cooldownReduction) or 0),
+        cooldownRankTalent = slot.cooldownRankTalent,
+        cooldownReductionPerRank = math.max(0, tonumber(slot.cooldownReductionPerRank) or 0),
+        bonusChargeTalent = slot.bonusChargeTalent,
+        grantsFreeSpenderTalent = slot.grantsFreeSpenderTalent,
         derivedBindingFrom = slot.derivedBindingFrom,
         enabled = slot.enabled ~= false and spellID > 0,
     }

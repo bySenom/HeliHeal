@@ -44,6 +44,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Divine Toll or Holy Prism appears only for the selected talent; Holy Armaments accepts both alternating spell casts through one binding.
 - Quickened Invocation reduces the local generator cooldown by 15 seconds and Light's Conviction adds the second Holy Shock charge.
 - Confirmed generators increase the local Holy Power estimate; spenders stay hidden below 3 and are forced first at 5.
+- Aurora's guaranteed free spender does not consume Holy Power; `/hh hp 0-5` manually corrects an unreadable random Divine Purpose proc.
 - Raid Standard/AoE prioritizes Light of Dawn while Mythic+ Standard/Single Target prioritizes the hero-appropriate single-target spender.
 
 ## Recovery and diagnostics

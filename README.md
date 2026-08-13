@@ -52,6 +52,7 @@ Class mechanics such as Healing Stream charges, Stormstream uses, Riptide rechar
 | `/hh lock` | Lock or unlock the display |
 | `/hh mode standard\|aoe\|single\|mana` | Change healing mode |
 | `/hh talents` | Show detected talents |
+| `/hh hp 0-5` | Manually synchronize the local Holy Power estimate |
 | `/hh sync` | Reconcile local estimates outside combat |
 | `/hh reset` | Reset local timers and charges |
 | `/hh debug` | Print a compact diagnostic report |
@@ -59,7 +60,7 @@ Class mechanics such as Healing Stream charges, Stormstream uses, Riptide rechar
 
 ## Limitations
 
-HeliHeal does not inspect health, mana, targets, auras, range, healing results, combat logs or SecretValues. It cannot automatically know when raid damage is incoming or whether a HoT was refreshed on the same target. Displayed cooldowns, charges and HoT counts remain local estimates.
+HeliHeal does not inspect health, mana, targets, auras, range, healing results, combat logs or SecretValues. It cannot automatically know when raid damage is incoming, whether a HoT was refreshed on the same target, or whether a random Divine Purpose proc is active. Guaranteed talent effects and successful free casts are included in the local model; `/hh hp 0-5` is available for manual synchronization.
 
 ## Feedback
 

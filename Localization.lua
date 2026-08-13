@@ -130,11 +130,19 @@ local enUS = {
     ["Hotkey-Entprellung arbeitet jetzt pro Taste statt global."] = "Hotkey debouncing now works per binding instead of globally.",
     ["Schnell aufeinanderfolgende unterschiedliche Fähigkeiten verlieren keine Cast-Bestätigung mehr."] = "Different abilities pressed in rapid succession no longer lose cast confirmation.",
     ["Riptide-Aufladungen bleiben dadurch mit erfolgreichen Instant-Casts synchron."] = "Riptide charges now remain synchronized with successful instant casts.",
+    ["Lokale Holy-Power-Schätzung: %d/5"] = "Local Holy Power estimate: %d/5",
+    ["Verwendung: /hh hp 0-5"] = "Usage: /hh hp 0-5",
     ["Holy Paladin Support"] = "Holy Paladin Support",
     ["Holy-Paladin-Prioritäten für Herald of the Sun und Lightsmith ergänzt."] = "Added Holy Paladin priorities for Herald of the Sun and Lightsmith.",
     ["Eigene Mythic+- und Raid-Pakete mit Standard-, AoE-, Einzelziel- und Mana-Modus hinzugefügt."] = "Added dedicated Mythic+ and Raid packs with Standard, AoE, Single Target and Mana modes.",
     ["Holy Power wird ausschließlich aus bestätigten eigenen Casts lokal geschätzt."] = "Holy Power is estimated locally from confirmed player casts only.",
     ["Divine Toll, Holy Prism, Holy Armaments und Holy-Shock-Aufladungen reagieren auf den Talent-Snapshot."] = "Divine Toll, Holy Prism, Holy Armaments and Holy Shock charges adapt to the talent snapshot.",
+    ["Paladin Talent and Holy Power Model"] = "Paladin Talent and Holy Power Model",
+    ["Divine Toll und Holy Prism verwenden mit Quickened Invocation jetzt korrekt 30 Sekunden Cooldown."] = "Divine Toll and Holy Prism now correctly use a 30-second cooldown with Quickened Invocation.",
+    ["Paladin-Talentwahl steuert Divine Toll, Holy Prism, Holy Armaments, Wings, Crusader und Aura Mastery."] = "Paladin talent choices now control Divine Toll, Holy Prism, Holy Armaments, Wings, Crusader and Aura Mastery.",
+    ["Holy Power wird als geordnete Folge bestätigter Casts berechnet und bei Refunds korrekt neu aufgebaut."] = "Holy Power is calculated as an ordered sequence of confirmed casts and replayed correctly after refunds.",
+    ["Aurora, Walk Into Light, Ringing of the Heavens und rangabhängige Cooldown-Talente werden lokal simuliert."] = "Aurora, Walk Into Light, Ringing of the Heavens and rank-based cooldown talents are simulated locally.",
+    ["Mit /hh hp 0-5 kann die lokale Schätzung bei einem nicht lesbaren Zufallsproc synchronisiert werden."] = "Use /hh hp 0-5 to synchronize the local estimate after an unreadable random proc.",
 }
 
 local deDE = {
@@ -148,6 +156,7 @@ local deDE = {
     ["Selectable Interface Language"] = "Auswählbare Oberflächensprache",
     ["Reliable Rapid Inputs"] = "Zuverlässige schnelle Eingaben",
     ["Holy Paladin Support"] = "Heiligpaladin-Unterstützung",
+    ["Paladin Talent and Holy Power Model"] = "Paladin-Talente und Holy-Power-Modell",
 }
 
 local translations = enUS

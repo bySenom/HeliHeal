@@ -138,11 +138,13 @@ function HeliHeal:GetDisplayOrder(now)
         local contextAvailable = ability and ability.abilityKey ~= "downpour" or downpourReady
         if ability and self.classToken == "PALADIN" then
             local holyPower = self.sessionHolyPower or 0
-            if (ability.holyPowerCost or 0) > holyPower then
+            local holyPowerGain = self:GetHolyPowerDelta(ability)
+            if (ability.holyPowerCost or 0) > holyPower
+                and (self.pendingFreeHolyPowerSpenders or 0) <= 0 then
                 contextAvailable = false
             elseif ability.maxHolyPower and holyPower > ability.maxHolyPower then
                 contextAvailable = false
-            elseif (ability.holyPowerGain or 0) > 0 and holyPower >= 5 then
+            elseif holyPowerGain > 0 and holyPower >= 5 then
                 contextAvailable = false
             end
         end
@@ -201,6 +203,11 @@ function HeliHeal:GetDisplayOrder(now)
 
     local preferredConsumer = self.pendingSwiftness and self.pendingSwiftness.consumerAbilityKey
     table.sort(ready, function(a, b)
+        if self.classToken == "PALADIN" and (self.pendingFreeHolyPowerSpenders or 0) > 0 then
+            local aSpender = (a.ability.holyPowerCost or 0) > 0
+            local bSpender = (b.ability.holyPowerCost or 0) > 0
+            if aSpender ~= bSpender then return aSpender end
+        end
         if self.classToken == "PALADIN" and (self.sessionHolyPower or 0) >= 5 then
             local aSpender = (a.ability.holyPowerCost or 0) > 0
             local bSpender = (b.ability.holyPowerCost or 0) > 0

@@ -25,7 +25,7 @@ local RESTORATION_SPECIALIZATIONS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 2
-local ROTATION_DATA_VERSION = 12103
+local ROTATION_DATA_VERSION = 12104
 
 local function copyTable(source)
     local result = {}
@@ -56,8 +56,11 @@ function HeliHeal:ResetRuntimeState()
     self.sessionCharges = {}
     self.sessionSpendHistory = {}
     self.sessionTimedEffects = {}
+    self.holyPowerBaseline = 0
     self.sessionHolyPower = 0
-    self.holyPowerHistory = {}
+    self.holyPowerEvents = {}
+    self.nextHolyPowerEventID = 0
+    self.pendingFreeHolyPowerSpenders = 0
     self.pendingSwiftness = nil
     self.pendingDownpour = nil
     self.pendingUnleash = nil
@@ -358,6 +361,7 @@ function HeliHeal:BuildDiagnosticReport()
         "charges=" .. countEntries(self.sessionCharges),
         "tracked=" .. countEntries(self.sessionTimedEffects),
         "holyPower=" .. tostring(self.sessionHolyPower or 0),
+        "freeSpenders=" .. tostring(self.pendingFreeHolyPowerSpenders or 0),
         "pendingInputs=" .. countEntries(self.pendingAcknowledgements),
     }, "; ")
 end
@@ -453,31 +457,95 @@ function HeliHeal:GetSlot(slotIndex)
         if self:IsTalentActive("restorationTier2") then ability.cooldown = 17 end
     elseif ability.abilityKey == "druid_rejuvenation" and self:IsTalentActive("druidGermination") then
         ability.trackedDuration = 14
-    elseif ability.abilityKey == "paladin_holy_shock" and self.talentSnapshot
-        and self.talentSnapshot.available and not self:IsTalentActive("paladinLightsConviction") then
-        ability.maxCharges = 1
-    elseif (ability.abilityKey == "paladin_divine_toll" or ability.abilityKey == "paladin_holy_prism")
-        and self.talentSnapshot and self.talentSnapshot.available then
-        ability.enabled = ability.enabled and self.classToken == "PALADIN"
-            and not self:IsTalentActive("paladinLightsmith")
-        if self:IsTalentActive("paladinQuickenedInvocation") then ability.cooldown = ability.cooldown - 15 end
-        if ability.abilityKey == "paladin_divine_toll" then
-            ability.enabled = ability.enabled and self:IsTalentActive("paladinDivineToll")
-        else
-            ability.enabled = ability.enabled and self:IsTalentActive("paladinHolyPrism")
+    end
+    if self.talentSnapshot and self.talentSnapshot.available then
+        if ability.requiresTalent then
+            ability.enabled = ability.enabled and self:IsTalentActive(ability.requiresTalent)
         end
-    elseif ability.abilityKey == "paladin_holy_armament" and self.talentSnapshot
-        and self.talentSnapshot.available then
-        ability.enabled = ability.enabled and self:IsTalentActive("paladinLightsmith")
-        if self:IsTalentActive("paladinQuickenedInvocation") then ability.cooldown = ability.cooldown - 15 end
-    elseif ability.abilityKey == "paladin_eternal_flame" and self.talentSnapshot
-        and self.talentSnapshot.available then
-        ability.enabled = ability.enabled and self:IsTalentActive("paladinHerald")
-    elseif ability.abilityKey == "paladin_word_of_glory" and self.talentSnapshot
-        and self.talentSnapshot.available then
-        ability.enabled = ability.enabled and not self:IsTalentActive("paladinHerald")
+        if ability.excludesTalent and self:IsTalentActive(ability.excludesTalent) then
+            ability.enabled = false
+        end
+        if ability.cooldownTalent and self:IsTalentActive(ability.cooldownTalent) then
+            ability.cooldown = math.max(0, ability.cooldown - ability.cooldownReduction)
+        end
+        if ability.cooldownRankTalent then
+            local rank = self.GetTalentRank and self:GetTalentRank(ability.cooldownRankTalent) or 0
+            ability.cooldown = math.max(0, ability.cooldown - (rank * ability.cooldownReductionPerRank))
+        end
+        if ability.bonusChargeTalent and self:IsTalentActive(ability.bonusChargeTalent) then
+            ability.maxCharges = ability.maxCharges + 1
+        end
     end
     return ability
+end
+
+function HeliHeal:GetHolyPowerDelta(ability)
+    if not ability then return 0, 0 end
+    local gain = math.max(0, tonumber(ability.holyPowerGain) or 0)
+    if ability.holyPowerGainTalent and self:IsTalentActive(ability.holyPowerGainTalent) then
+        gain = gain + math.max(0, tonumber(ability.holyPowerTalentGain) or 0)
+    end
+    return gain, math.max(0, tonumber(ability.holyPowerCost) or 0)
+end
+
+function HeliHeal:RecalculateHolyPower()
+    local value = math.max(0, math.min(5, tonumber(self.holyPowerBaseline) or 0))
+    local freeSpenders = 0
+    for _, event in ipairs(self.holyPowerEvents or {}) do
+        local cost = event.cost
+        if cost > 0 and (freeSpenders > 0 or event.forcedFree) then
+            cost = 0
+            if freeSpenders > 0 then freeSpenders = freeSpenders - 1 end
+        end
+        value = math.max(0, math.min(5, value - cost + event.gain))
+        if event.grantsFreeSpender then freeSpenders = math.min(1, freeSpenders + 1) end
+    end
+    self.sessionHolyPower = value
+    self.pendingFreeHolyPowerSpenders = freeSpenders
+    return value
+end
+
+function HeliHeal:RecordHolyPowerEvent(slotIndex, ability)
+    local gain, cost = self:GetHolyPowerDelta(ability)
+    if gain <= 0 and cost <= 0 then return false end
+    self.nextHolyPowerEventID = (self.nextHolyPowerEventID or 0) + 1
+    self.holyPowerEvents = self.holyPowerEvents or {}
+    self.holyPowerEvents[#self.holyPowerEvents + 1] = {
+        id = self.nextHolyPowerEventID,
+        slotIndex = slotIndex,
+        abilityKey = ability.abilityKey,
+        gain = gain,
+        cost = cost,
+        forcedFree = cost > (self.sessionHolyPower or 0)
+            and (self.pendingFreeHolyPowerSpenders or 0) <= 0,
+        grantsFreeSpender = ability.grantsFreeSpenderTalent
+            and self:IsTalentActive(ability.grantsFreeSpenderTalent) or false,
+    }
+    self:RecalculateHolyPower()
+    return true
+end
+
+function HeliHeal:RemoveLatestHolyPowerEvent(slotIndex)
+    for index = #(self.holyPowerEvents or {}), 1, -1 do
+        if self.holyPowerEvents[index].slotIndex == slotIndex then
+            table.remove(self.holyPowerEvents, index)
+            self:RecalculateHolyPower()
+            return true
+        end
+    end
+    return false
+end
+
+function HeliHeal:SetHolyPowerEstimate(value, silent)
+    value = tonumber(value)
+    if not value or value < 0 or value > 5 or value % 1 ~= 0 then return false end
+    self.holyPowerBaseline = value
+    self.holyPowerEvents = {}
+    self.nextHolyPowerEventID = 0
+    self:RecalculateHolyPower()
+    self:RefreshDisplay()
+    if not silent then self:Print(L("Lokale Holy-Power-Schätzung: %d/5", value)) end
+    return true
 end
 
 function HeliHeal:GetTrackedGoal(ability)
@@ -765,7 +833,6 @@ function HeliHeal:AcknowledgeSlot(slotIndex)
     end
 
     local now = GetTime()
-    local holyPowerBefore = self.sessionHolyPower or 0
     if slot.abilityKey == "druid_swiftmend" and self:IsTalentActive("druidPowerArchdruid") then
         self.pendingArchdruid = { expiresAt = now + 15 }
     end
@@ -808,13 +875,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex)
         self.sessionUses[slotIndex] = now
     end
 
-    if (slot.holyPowerCost or 0) > 0 or (slot.holyPowerGain or 0) > 0 then
-        self.sessionHolyPower = math.max(0, math.min(5,
-            holyPowerBefore - (slot.holyPowerCost or 0) + (slot.holyPowerGain or 0)))
-        self.holyPowerHistory = self.holyPowerHistory or {}
-        self.holyPowerHistory[slotIndex] = self.holyPowerHistory[slotIndex] or {}
-        table.insert(self.holyPowerHistory[slotIndex], holyPowerBefore)
-    end
+    self:RecordHolyPowerEvent(slotIndex, slot)
 
 
     if slot.abilityKey == "druid_regrowth" and self:IsArchdruidReady(now) then
@@ -886,10 +947,7 @@ function HeliHeal:RefundAbility(abilityName)
     local ability = slotIndex and self:GetSlot(slotIndex)
     if not ability then return false end
 
-    local holyPowerHistory = self.holyPowerHistory and self.holyPowerHistory[slotIndex]
-    if holyPowerHistory and #holyPowerHistory > 0 then
-        self.sessionHolyPower = table.remove(holyPowerHistory)
-    end
+    self:RemoveLatestHolyPowerEvent(slotIndex)
 
     local pendingTimer = self.pendingAcknowledgements and self.pendingAcknowledgements[slotIndex]
     pendingTimer = pendingTimer and (pendingTimer.timer or pendingTimer)
@@ -976,6 +1034,10 @@ function HeliHeal:HandleSlashCommand(input)
             self:CycleHealingMode()
         elseif not self:SetHealingMode(argument) then
             self:Print(L("Modi: standard, aoe, single, mana, next"))
+        end
+    elseif command == "hp" or command == "holypower" then
+        if not self:SetHolyPowerEstimate(argument) then
+            self:Print(L("Verwendung: /hh hp 0-5"))
         end
     elseif command == "talents" or command == "talente" then
         if argument:lower() == "refresh" or argument:lower() == "neu" then

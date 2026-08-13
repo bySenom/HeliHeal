@@ -407,12 +407,12 @@ function HeliHeal:BuildPrioritiesPage(parent)
     bindingHeader:SetPoint("TOPLEFT", 494, -198)
 
     page.slotRows = {}
-    for slotIndex = 1, 9 do
+    for slotIndex = 1, 11 do
         local capturedSlotIndex = slotIndex
         local row = CreateFrame("Frame", nil, page, "BackdropTemplate")
-        row:SetPoint("TOPLEFT", 28, -214 - ((slotIndex - 1) * 46))
-        row:SetPoint("TOPRIGHT", -28, -214 - ((slotIndex - 1) * 46))
-        row:SetHeight(41)
+        row:SetPoint("TOPLEFT", 28, -214 - ((slotIndex - 1) * 37))
+        row:SetPoint("TOPRIGHT", -28, -214 - ((slotIndex - 1) * 37))
+        row:SetHeight(34)
         backdrop(row, C.panel, C.borderSoft)
 
         row.priority = text(row, ("%02d"):format(slotIndex), 15, slotIndex == 1 and C.accent or C.text, "OUTLINE")
@@ -420,7 +420,7 @@ function HeliHeal:BuildPrioritiesPage(parent)
         row.priority:SetWidth(42)
 
         row.iconFrame = CreateFrame("Frame", nil, row, "BackdropTemplate")
-        row.iconFrame:SetSize(33, 33)
+        row.iconFrame:SetSize(28, 28)
         row.iconFrame:SetPoint("LEFT", 58, 0)
         backdrop(row.iconFrame, C.input, C.border)
         row.icon = row.iconFrame:CreateTexture(nil, "ARTWORK")
@@ -433,7 +433,7 @@ function HeliHeal:BuildPrioritiesPage(parent)
         row.cooldownLabel = text(row, "", 9, C.muted)
         row.cooldownLabel:SetPoint("LEFT", 112, -11)
 
-        row.key = createButton(row, "", 210, 32, false)
+        row.key = createButton(row, "", 210, 28, false)
         row.key:SetPoint("RIGHT", -9, 0)
         row.key.captureOnClick = function(button) self:BeginKeyCapture(button, capturedSlotIndex) end
         row.key:SetScript("OnClick", row.key.captureOnClick)

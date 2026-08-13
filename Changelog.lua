@@ -1,8 +1,19 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.0-alpha.1",
+    currentVersion = "0.9.1-alpha.1",
     entries = {
+        {
+            version = "0.9.1-alpha.1",
+            title = "Paladin Talent and Holy Power Model",
+            changes = {
+                "Divine Toll und Holy Prism verwenden mit Quickened Invocation jetzt korrekt 30 Sekunden Cooldown.",
+                "Paladin-Talentwahl steuert Divine Toll, Holy Prism, Holy Armaments, Wings, Crusader und Aura Mastery.",
+                "Holy Power wird als geordnete Folge bestätigter Casts berechnet und bei Refunds korrekt neu aufgebaut.",
+                "Aurora, Walk Into Light, Ringing of the Heavens und rangabhängige Cooldown-Talente werden lokal simuliert.",
+                "Mit /hh hp 0-5 kann die lokale Schätzung bei einem nicht lesbaren Zufallsproc synchronisiert werden.",
+            },
+        },
         {
             version = "0.9.0-alpha.1",
             title = "Holy Paladin Support",

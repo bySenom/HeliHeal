@@ -17,10 +17,18 @@ local TALENTS = {
     druidWildstalker = { 439926, 439530 },
     paladinHerald = { 431377, 156322 },
     paladinLightsmith = { 432459, 432472, 434132 },
-    paladinDivineToll = { 375576 },
+    paladinDivineToll = { 375576, 304971 },
     paladinHolyPrism = { 114165 },
     paladinQuickenedInvocation = { 379391 },
     paladinLightsConviction = { 414073 },
+    paladinAvengingWrath = { 31884 },
+    paladinAvengingCrusader = { 216331 },
+    paladinRingingHeavens = { 1241542 },
+    paladinWalkIntoLight = { 1263782 },
+    paladinAurora = { 439760 },
+    paladinCallOfRighteous = { 1241511 },
+    paladinUnwaveringSpirit = { 392911 },
+    paladinDivinePurpose = { 408459, 223817 },
 }
 
 local SNAPSHOT_FLAGS = {
@@ -29,6 +37,10 @@ local SNAPSHOT_FLAGS = {
     "druidGermination", "druidPowerArchdruid", "druidLifetreading", "druidKeeper", "druidWildstalker",
     "paladinHerald", "paladinLightsmith", "paladinDivineToll", "paladinHolyPrism",
     "paladinQuickenedInvocation", "paladinLightsConviction",
+    "paladinAvengingWrath", "paladinAvengingCrusader", "paladinRingingHeavens", "paladinWalkIntoLight",
+    "paladinAurora",
+    "paladinCallOfRighteous", "paladinCallOfRighteousRank", "paladinUnwaveringSpirit",
+    "paladinDivinePurpose",
 }
 
 local function isKnownSpell(spellID)
@@ -71,6 +83,7 @@ function HeliHeal:ReadActiveTalentSpells()
     if not configInfo or type(configInfo.treeIDs) ~= "table" then return nil, configID end
 
     local spells = {}
+    local ranks = {}
     local committedEntryCount = 0
     for _, treeID in ipairs(configInfo.treeIDs) do
         local nodeIDs = C_Traits.GetTreeNodes(treeID) or {}
@@ -88,6 +101,9 @@ function HeliHeal:ReadActiveTalentSpells()
                     and C_Traits.GetDefinitionInfo(entryInfo.definitionID)
                 if definitionInfo and definitionInfo.spellID then
                     spells[definitionInfo.spellID] = true
+                    local rank = type(rankInfo) == "table" and tonumber(rankInfo.rank)
+                        or tonumber(nodeInfo and nodeInfo.activeRank) or 1
+                    ranks[definitionInfo.spellID] = math.max(ranks[definitionInfo.spellID] or 0, rank or 1)
                 end
             end
         end
@@ -96,7 +112,7 @@ function HeliHeal:ReadActiveTalentSpells()
     -- committed entries. Treat that as an API-not-ready state and retain the
     -- static preset assumptions instead of hiding valid abilities.
     if committedEntryCount == 0 then return nil, configID end
-    return spells, configID
+    return spells, configID, ranks
 end
 
 function HeliHeal:RefreshTalentSnapshot(silent)
@@ -105,17 +121,23 @@ function HeliHeal:RefreshTalentSnapshot(silent)
         return false
     end
 
-    local ok, spells, configID = pcall(self.ReadActiveTalentSpells, self)
+    local ok, spells, configID, ranks = pcall(self.ReadActiveTalentSpells, self)
     if not ok then
-        spells, configID = nil, nil
+        spells, configID, ranks = nil, nil, nil
     end
     local snapshot = {
         available = spells ~= nil,
         configID = configID,
         spells = spells or {},
+        ranks = ranks or {},
     }
     for talentKey, spellIDs in pairs(TALENTS) do
         snapshot[talentKey] = spells and containsTalent(spells, spellIDs) or false
+    end
+    snapshot.paladinCallOfRighteousRank = 0
+    for _, spellID in ipairs(TALENTS.paladinCallOfRighteous) do
+        snapshot.paladinCallOfRighteousRank = math.max(snapshot.paladinCallOfRighteousRank,
+            tonumber(snapshot.ranks[spellID]) or 0)
     end
     snapshot.restorationTier2 = self.classToken == "SHAMAN" and isKnownSpell(1264866)
     snapshot.restorationTier4 = self.classToken == "SHAMAN" and isKnownSpell(1264867)
@@ -160,6 +182,13 @@ function HeliHeal:IsTalentActive(talentKey)
         and self.talentSnapshot[talentKey] == true
 end
 
+function HeliHeal:GetTalentRank(talentKey)
+    if not self.talentSnapshot or not self.talentSnapshot.available then return 0 end
+    local explicit = tonumber(self.talentSnapshot[talentKey .. "Rank"])
+    if explicit then return explicit end
+    return self.talentSnapshot[talentKey] and 1 or 0
+end
+
 function HeliHeal:GetRiptideMaxCharges(fallback)
     if not self.talentSnapshot or not self.talentSnapshot.available then
         return fallback or 2
@@ -184,10 +213,14 @@ function HeliHeal:PrintTalentSnapshot()
         return
     end
     if self.classToken == "PALADIN" then
-        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Quickened Invocation %s | Light's Conviction %s")
+        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Quickened Invocation %s | Light's Conviction %s | Wings %s | Crusader %s | Ringing %s | Walk Into Light %s | Aurora %s | Call %d/2 | Unwavering %s | Divine Purpose %s")
             :format(yesNo(snapshot.paladinHerald), yesNo(snapshot.paladinLightsmith),
                 yesNo(snapshot.paladinDivineToll), yesNo(snapshot.paladinHolyPrism),
-                yesNo(snapshot.paladinQuickenedInvocation), yesNo(snapshot.paladinLightsConviction))
+                yesNo(snapshot.paladinQuickenedInvocation), yesNo(snapshot.paladinLightsConviction),
+                yesNo(snapshot.paladinAvengingWrath), yesNo(snapshot.paladinAvengingCrusader),
+                yesNo(snapshot.paladinRingingHeavens), yesNo(snapshot.paladinWalkIntoLight),
+                yesNo(snapshot.paladinAurora), snapshot.paladinCallOfRighteousRank or 0,
+                yesNo(snapshot.paladinUnwaveringSpirit), yesNo(snapshot.paladinDivinePurpose))
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end

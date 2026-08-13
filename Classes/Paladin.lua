@@ -6,30 +6,57 @@ local library = ns.AbilityLibrary
 -- https://www.wowhead.com/guide/classes/paladin/holy/rotation-cooldowns-pve-healer
 local abilities = {
     paladin_holy_shock = {
-        spellID = 20473, name = "Holy Shock", cooldown = 6, maxCharges = 2,
+        spellID = 20473, name = "Holy Shock", cooldown = 6, maxCharges = 1,
+        bonusChargeTalent = "paladinLightsConviction",
         holyPowerGain = 1, inputLockout = 1.5,
     },
     paladin_divine_toll = {
-        spellID = 375576, name = "Divine Toll", cooldown = 60,
+        spellID = 375576, name = "Divine Toll", cooldown = 45,
         castSpellIDs = { 375576, 304971 }, holyPowerGain = 3,
-        maxHolyPower = 2, inputLockout = 1.5,
+        maxHolyPower = 2, requiresTalent = "paladinDivineToll",
+        excludesTalent = "paladinLightsmith", cooldownTalent = "paladinQuickenedInvocation",
+        cooldownReduction = 15, grantsFreeSpenderTalent = "paladinAurora", inputLockout = 1.5,
     },
     paladin_holy_prism = {
         spellID = 114165, name = "Holy Prism", cooldown = 45,
-        holyPowerGain = 3, maxHolyPower = 2, inputLockout = 1.5,
+        holyPowerGain = 3, maxHolyPower = 2, requiresTalent = "paladinHolyPrism",
+        excludesTalent = "paladinLightsmith", cooldownTalent = "paladinQuickenedInvocation",
+        cooldownReduction = 15, grantsFreeSpenderTalent = "paladinAurora", inputLockout = 1.5,
     },
     paladin_holy_armament = {
         spellID = 432459, name = "Holy Armament", cooldown = 60, maxCharges = 2,
         castSpellIDs = { 432459, 432472 }, holyPowerGain = 3, maxHolyPower = 2,
-        inputLockout = 1.5,
+        requiresTalent = "paladinLightsmith", cooldownTalent = "paladinQuickenedInvocation",
+        cooldownReduction = 15, inputLockout = 1.5,
+    },
+    paladin_avenging_wrath = {
+        spellID = 31884, name = "Avenging Wrath", cooldown = 120,
+        requiresTalent = "paladinAvengingWrath", holyPowerGainTalent = "paladinWalkIntoLight",
+        holyPowerTalentGain = 2, cooldownRankTalent = "paladinCallOfRighteous",
+        cooldownReductionPerRank = 15, inputLockout = 1.0,
+    },
+    paladin_avenging_crusader = {
+        spellID = 216331, name = "Avenging Crusader", cooldown = 60,
+        requiresTalent = "paladinAvengingCrusader", cooldownRankTalent = "paladinCallOfRighteous",
+        cooldownReductionPerRank = 7.5, inputLockout = 1.0,
+    },
+    paladin_aura_mastery = {
+        spellID = 31821, name = "Aura Mastery", cooldown = 180,
+        requiresTalent = "paladinRingingHeavens", holyPowerGain = 3,
+        grantsFreeSpenderTalent = "paladinAurora", cooldownTalent = "paladinUnwaveringSpirit",
+        cooldownReduction = 30, inputLockout = 1.5,
+    },
+    paladin_judgment = {
+        spellID = 275773, name = "Judgment", cooldown = 11,
+        holyPowerGain = 1, inputLockout = 1.5,
     },
     paladin_word_of_glory = {
         spellID = 85673, name = "Word of Glory", cooldown = 0,
-        holyPowerCost = 3, inputLockout = 1.5,
+        holyPowerCost = 3, excludesTalent = "paladinHerald", inputLockout = 1.5,
     },
     paladin_eternal_flame = {
         spellID = 156322, name = "Eternal Flame", cooldown = 0,
-        holyPowerCost = 3, inputLockout = 1.5,
+        holyPowerCost = 3, requiresTalent = "paladinHerald", inputLockout = 1.5,
     },
     paladin_light_of_dawn = {
         spellID = 85222, name = "Light of Dawn", cooldown = 0,
@@ -69,14 +96,17 @@ local function modeSlots(hero, raid)
     local primarySpender = raid and "paladin_light_of_dawn" or spender
     local secondarySpender = raid and spender or "paladin_light_of_dawn"
     return {
-        standard = list(generator, prism, "paladin_holy_shock", primarySpender,
-            secondarySpender, "paladin_holy_light", "paladin_flash_of_light"),
-        aoe = list(generator, prism, "paladin_holy_shock", "paladin_light_of_dawn",
-            spender, "paladin_holy_light", "paladin_flash_of_light"),
-        single = list(generator, prism, "paladin_holy_shock", spender,
-            "paladin_holy_light", "paladin_flash_of_light", "paladin_light_of_dawn"),
+        standard = list("paladin_avenging_wrath", "paladin_avenging_crusader", generator, prism,
+            "paladin_holy_shock", primarySpender, secondarySpender, "paladin_holy_light",
+            "paladin_flash_of_light", "paladin_judgment"),
+        aoe = list("paladin_aura_mastery", "paladin_avenging_wrath", "paladin_avenging_crusader",
+            generator, prism, "paladin_holy_shock", "paladin_light_of_dawn", spender,
+            "paladin_holy_light", "paladin_flash_of_light", "paladin_judgment"),
+        single = list("paladin_avenging_wrath", "paladin_avenging_crusader", generator, prism,
+            "paladin_holy_shock", spender, "paladin_holy_light", "paladin_flash_of_light",
+            "paladin_judgment", "paladin_light_of_dawn"),
         mana = list(generator, prism, "paladin_holy_shock", primarySpender,
-            secondarySpender, "paladin_flash_of_light", "paladin_holy_light"),
+            secondarySpender, "paladin_flash_of_light", "paladin_judgment", "paladin_holy_light"),
     }
 end
 
