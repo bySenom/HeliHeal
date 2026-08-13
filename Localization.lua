@@ -125,6 +125,7 @@ local enUS = {
     ["Neue accountweite Sprachauswahl: Clientsprache, Deutsch oder English."] = "New account-wide language selection: Client Language, German or English.",
     ["Clientsprache bleibt der Standard und folgt automatisch der WoW-Einstellung."] = "Client Language remains the default and automatically follows the WoW setting.",
     ["Ein Sprachwechsel wird gespeichert und nach einem UI-Reload vollständig angewendet."] = "Language changes are saved and fully applied after a UI reload.",
+    ["Wiederaufladezeit von Totem des Heilenden Flusses auf 17 Sekunden korrigiert."] = "Corrected Healing Stream Totem recharge time to 17 seconds.",
 }
 
 local deDE = {

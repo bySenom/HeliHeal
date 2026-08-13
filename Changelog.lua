@@ -10,6 +10,7 @@ ns.changelog = {
                 "Neue accountweite Sprachauswahl: Clientsprache, Deutsch oder English.",
                 "Clientsprache bleibt der Standard und folgt automatisch der WoW-Einstellung.",
                 "Ein Sprachwechsel wird gespeichert und nach einem UI-Reload vollständig angewendet.",
+                "Wiederaufladezeit von Totem des Heilenden Flusses auf 17 Sekunden korrigiert.",
             },
         },
         {

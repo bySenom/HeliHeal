@@ -8,7 +8,8 @@ local abilities = {
     healing_stream_combo = {
         spellID = 5394,
         name = "Healing Stream / Stormstream Totem",
-        cooldown = 30,
+        -- Midnight 12.1 recharge time per normal Healing Stream Totem charge.
+        cooldown = 17,
         inputLockout = 1.0,
         maxCharges = 2,
         maxBonusCharges = 2,

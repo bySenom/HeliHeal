@@ -24,7 +24,7 @@ local healingStream = {
     abilityKey = "healing_stream_combo",
     spellID = 5394,
     enabled = true,
-    cooldown = 30,
+    cooldown = 17,
     maxCharges = 2,
     maxBonusCharges = 2,
 }
@@ -82,13 +82,13 @@ expect(2, 1, nil, "swiftness creates effective 3/2")
 assert(addon:SpendCharge(1, healingStream, now))
 expect(2, 0, nil, "stormstream leaves normal charges untouched")
 assert(addon:SpendCharge(1, healingStream, now))
-expect(1, 0, 30, "first normal charge spent")
+expect(1, 0, 17, "first normal charge spent")
 assert(addon:SpendCharge(1, healingStream, now))
-expect(0, 0, 30, "second normal charge spent")
+expect(0, 0, 17, "second normal charge spent")
 
-now = 30
-expect(1, 0, 60, "first sequential recharge")
-now = 60
+now = 17
+expect(1, 0, 34, "first sequential recharge")
+now = 34
 expect(2, 0, nil, "second sequential recharge")
 
 now = 100

@@ -55,6 +55,7 @@ addon.Print = function() end
 local hstIndex = addon:GetSlotIndexByAbilityKey("healing_stream_combo")
 local swiftnessIndex = addon:GetSlotIndexByAbilityKey("natures_swiftness")
 local hst = addon:GetSlot(hstIndex)
+assert(hst.cooldown == 17, "Healing Stream Totem must recharge every 17 seconds")
 local state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 2 and state.bonusCharges == 0, "sequence must start at 2/2")
 
