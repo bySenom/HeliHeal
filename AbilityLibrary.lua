@@ -49,6 +49,25 @@ function AbilityLibrary:GetAbility(key)
     return self.abilities[key]
 end
 
+function AbilityLibrary:FindAbilityBySpellID(spellID, classToken)
+    spellID = tonumber(spellID)
+    if not spellID then return nil end
+    for _, ability in pairs(self.abilities) do
+        if (not classToken or ability.class == classToken)
+            and (ability.spellID == spellID or (function()
+                for _, acceptedID in ipairs(ability.castSpellIDs or {}) do
+                    if tonumber(acceptedID) == spellID then return true end
+                end
+                return false
+            end)()) then
+            local resolved = shallowCopy(ability)
+            resolved.abilityKey = ability.key
+            return resolved
+        end
+    end
+    return nil
+end
+
 function AbilityLibrary:RegisterPreset(key, data)
     assert(type(key) == "string" and key ~= "", "HeliHeal preset key must be a non-empty string")
     assert(type(data) == "table" and type(data.slots) == "table", "HeliHeal preset requires slots")

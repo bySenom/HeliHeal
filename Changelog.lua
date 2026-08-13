@@ -1,8 +1,19 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.1-alpha.1",
+    currentVersion = "0.9.2-alpha.1",
     entries = {
+        {
+            version = "0.9.2-alpha.1",
+            title = "One Button Assistant and Live Holy Power",
+            changes = {
+                "Der Blizzard One Button Assistant wird auf Standard-Aktionsleisten automatisch erkannt.",
+                "Erfolgreiche OBA-Zauber aktualisieren passende HeliHeal-Cooldowns und Aufladungen.",
+                "Die lesbare Holy Power des Spielers korrigiert die lokale Simulation nach jedem Cast.",
+                "Crusader Strike und Shield of the Righteous werden für OBA-Ressourcenänderungen berücksichtigt.",
+                "Walk Into Light erzeugt seit seiner 12.0.5-Überarbeitung keine Holy Power mehr.",
+            },
+        },
         {
             version = "0.9.1-alpha.1",
             title = "Paladin Talent and Holy Power Model",

@@ -127,7 +127,8 @@ assert(addon:RefundAbility("toll"), "Divine Toll must be refundable for local re
 assert(addon.sessionHolyPower == 1,
     "refunding an older generator must replay later Holy Power events instead of rolling them back")
 addon:AcknowledgeSlot(wingsIndex)
-assert(addon.sessionHolyPower == 3, "Walk Into Light must add two Holy Power after confirmed Wings")
+assert(addon.sessionHolyPower == 1,
+    "Walk Into Light must not generate Holy Power after its 12.0.5 redesign")
 assert(addon:SetHolyPowerEstimate(5, true) and addon.sessionHolyPower == 5,
     "manual Holy Power synchronization must accept exact values from zero to five")
 
@@ -145,5 +146,18 @@ addon:SetHolyPowerEstimate(2, true)
 addon:AcknowledgeSlot(flameIndex)
 assert(addon.sessionHolyPower == 2,
     "a confirmed spender below three Holy Power must be inferred as a free random proc")
+
+addon.pendingFreeHolyPowerSpenders = 1
+addon.holyPowerFreeSpenderBaseline = 1
+assert(addon:ApplyAuthoritativeHolyPower(4) and addon.sessionHolyPower == 4,
+    "readable player Holy Power must become the authoritative local baseline")
+assert(addon.pendingFreeHolyPowerSpenders == 1,
+    "resource synchronization must preserve a separately tracked guaranteed free spender")
+local shield = namespace.AbilityLibrary:FindAbilityBySpellID(53600, "PALADIN")
+assert(shield and shield.abilityKey == "paladin_shield_of_the_righteous",
+    "the OBA observer must resolve Shield of the Righteous outside the healing priority")
+addon:RecordHolyPowerEvent(0, shield)
+assert(addon.sessionHolyPower == 4 and addon.pendingFreeHolyPowerSpenders == 0,
+    "an OBA damage spender must consume a guaranteed free-spender state without losing Holy Power")
 
 print("paladin_rotation.lua: OK")

@@ -25,7 +25,7 @@ local RESTORATION_SPECIALIZATIONS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 2
-local ROTATION_DATA_VERSION = 12104
+local ROTATION_DATA_VERSION = 12105
 
 local function copyTable(source)
     local result = {}
@@ -57,6 +57,7 @@ function HeliHeal:ResetRuntimeState()
     self.sessionSpendHistory = {}
     self.sessionTimedEffects = {}
     self.holyPowerBaseline = 0
+    self.holyPowerFreeSpenderBaseline = 0
     self.sessionHolyPower = 0
     self.holyPowerEvents = {}
     self.nextHolyPowerEventID = 0
@@ -490,7 +491,7 @@ end
 
 function HeliHeal:RecalculateHolyPower()
     local value = math.max(0, math.min(5, tonumber(self.holyPowerBaseline) or 0))
-    local freeSpenders = 0
+    local freeSpenders = math.max(0, math.min(1, tonumber(self.holyPowerFreeSpenderBaseline) or 0))
     for _, event in ipairs(self.holyPowerEvents or {}) do
         local cost = event.cost
         if cost > 0 and (freeSpenders > 0 or event.forcedFree) then
@@ -503,6 +504,20 @@ function HeliHeal:RecalculateHolyPower()
     self.sessionHolyPower = value
     self.pendingFreeHolyPowerSpenders = freeSpenders
     return value
+end
+
+function HeliHeal:ApplyAuthoritativeHolyPower(value)
+    value = tonumber(value)
+    if not value or value < 0 or value > 5 then return false end
+    value = math.floor(value)
+    local changed = value ~= (self.sessionHolyPower or 0)
+    self.holyPowerBaseline = value
+    self.holyPowerFreeSpenderBaseline = self.pendingFreeHolyPowerSpenders or 0
+    self.holyPowerEvents = {}
+    self.nextHolyPowerEventID = 0
+    self:RecalculateHolyPower()
+    if changed then self:RefreshDisplay() end
+    return true
 end
 
 function HeliHeal:RecordHolyPowerEvent(slotIndex, ability)
@@ -540,6 +555,7 @@ function HeliHeal:SetHolyPowerEstimate(value, silent)
     value = tonumber(value)
     if not value or value < 0 or value > 5 or value % 1 ~= 0 then return false end
     self.holyPowerBaseline = value
+    self.holyPowerFreeSpenderBaseline = 0
     self.holyPowerEvents = {}
     self.nextHolyPowerEventID = 0
     self:RecalculateHolyPower()

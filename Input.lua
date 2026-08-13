@@ -11,6 +11,16 @@ local MULTI_BAR_BINDINGS = {
     MultiBar7 = "MULTIACTIONBAR7BUTTON",
 }
 
+local MULTI_BAR_ACTION_SLOTS = {
+    MULTIACTIONBAR1BUTTON = 61,
+    MULTIACTIONBAR2BUTTON = 49,
+    MULTIACTIONBAR3BUTTON = 25,
+    MULTIACTIONBAR4BUTTON = 37,
+    MULTIACTIONBAR5BUTTON = 145,
+    MULTIACTIONBAR6BUTTON = 157,
+    MULTIACTIONBAR7BUTTON = 169,
+}
+
 local MOUSE_BUTTON_KEYS = {
     LeftButton = "BUTTON1",
     RightButton = "BUTTON2",
@@ -41,6 +51,21 @@ local function isImpulseInput(inputKey)
 end
 
 local RECENT_SUCCESS_WINDOW = 0.25
+
+local function getActionSlot(bindingAction)
+    local button = bindingAction and tonumber(bindingAction:match("^ACTIONBUTTON(%d+)$"))
+    if button then
+        local page = 1
+        if C_ActionBar and type(C_ActionBar.GetActionBarPage) == "function" then
+            local ok, currentPage = pcall(C_ActionBar.GetActionBarPage)
+            if ok then page = tonumber(currentPage) or page end
+        end
+        return ((math.max(1, page) - 1) * 12) + button
+    end
+    local prefix, multiButton = bindingAction and bindingAction:match("^(MULTIACTIONBAR%dBUTTON)(%d+)$")
+    local firstSlot = prefix and MULTI_BAR_ACTION_SLOTS[prefix]
+    return firstSlot and firstSlot + tonumber(multiButton) - 1 or nil
+end
 
 function HeliHeal:GetLiveGCDRemaining(now)
     if not C_Spell or type(C_Spell.GetSpellCooldown) ~= "function" then return nil end
@@ -80,6 +105,47 @@ function HeliHeal:CancelPendingAcknowledgements()
         end
         self.pendingAcknowledgements[slotIndex] = nil
     end
+    local assisted = self.pendingAssistedCombat
+    if assisted and assisted.timer and type(assisted.timer.Cancel) == "function" then
+        assisted.timer:Cancel()
+    end
+    self.pendingAssistedCombat = nil
+end
+
+function HeliHeal:ObserveAssistedCombatBinding(bindingAction)
+    local actionSlot = getActionSlot(bindingAction)
+    if not actionSlot or not C_ActionBar or type(C_ActionBar.IsAssistedCombatAction) ~= "function" then
+        return false
+    end
+    local ok, isAssisted = pcall(C_ActionBar.IsAssistedCombatAction, actionSlot)
+    if not ok or not isAssisted then return false end
+
+    local expectedSpellID
+    if C_AssistedCombat and type(C_AssistedCombat.GetNextCastSpell) == "function" then
+        local spellOK, spellID = pcall(C_AssistedCombat.GetNextCastSpell, true)
+        if spellOK then expectedSpellID = tonumber(spellID) end
+    end
+    local generation = self.inputGeneration or 0
+    local previous = self.pendingAssistedCombat
+    if previous and previous.timer and type(previous.timer.Cancel) == "function" then
+        previous.timer:Cancel()
+    end
+    local pending = {
+        actionSlot = actionSlot,
+        expectedSpellID = expectedSpellID,
+        observedAt = GetTime(),
+        generation = generation,
+    }
+    self.pendingAssistedCombat = pending
+    if C_Timer and type(C_Timer.NewTimer) == "function" then
+        pending.timer = C_Timer.NewTimer(5, function()
+            if HeliHeal.pendingAssistedCombat == pending then
+                HeliHeal.pendingAssistedCombat = nil
+            end
+        end)
+    end
+    self:CommitRecentSpellForAssistedCombat()
+    return true
 end
 
 function HeliHeal:QueueSlotAcknowledgement(slotIndex, delay)
@@ -150,11 +216,82 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID)
     if not spellID then return false end
     self.recentSuccessfulSpells = self.recentSuccessfulSpells or {}
     self.recentSuccessfulSpells[spellID] = GetTime()
-    if self:CommitObservedSpell(spellID) then
+    if self:CommitObservedSpell(spellID) or self:CommitAssistedCombatSpell(spellID) then
         self.recentSuccessfulSpells[spellID] = nil
+        self:ScheduleHolyPowerSync()
+        return true
+    end
+    self:ScheduleHolyPowerSync()
+    return false
+end
+
+function HeliHeal:CommitAssistedCombatSpell(spellID)
+    local pending = self.pendingAssistedCombat
+    if not pending or pending.generation ~= (self.inputGeneration or 0) then
+        self.pendingAssistedCombat = nil
+        return false
+    end
+    if pending.expectedSpellID and pending.expectedSpellID ~= tonumber(spellID) then
+        return false
+    end
+    if pending.timer and type(pending.timer.Cancel) == "function" then pending.timer:Cancel() end
+    self.pendingAssistedCombat = nil
+
+    for slotIndex, configuredSlot in ipairs(self.db.profile.slots or {}) do
+        if configuredSlot.enabled and self:SlotAcceptsSpell(configuredSlot, spellID) then
+            self.inputLockedUntil[slotIndex] = GetTime()
+                + math.max(1.5, tonumber(configuredSlot.inputLockout) or 1.5)
+            self:AcknowledgeSlot(slotIndex)
+            return true
+        end
+    end
+    local observedAbility = ns.AbilityLibrary and ns.AbilityLibrary:FindAbilityBySpellID(spellID, self.classToken)
+    if observedAbility and ((observedAbility.holyPowerGain or 0) > 0
+        or (observedAbility.holyPowerCost or 0) > 0) then
+        self:RecordHolyPowerEvent(0, observedAbility)
         return true
     end
     return false
+end
+
+function HeliHeal:RejectAssistedCombatSpell(spellID)
+    local pending = self.pendingAssistedCombat
+    if not pending or (pending.expectedSpellID and pending.expectedSpellID ~= tonumber(spellID)) then
+        return false
+    end
+    if pending.timer and type(pending.timer.Cancel) == "function" then pending.timer:Cancel() end
+    self.pendingAssistedCombat = nil
+    return true
+end
+
+function HeliHeal:GetLiveHolyPower()
+    if self.classToken ~= "PALADIN" or type(UnitPower) ~= "function" then return nil end
+    local powerType = Enum and Enum.PowerType and Enum.PowerType.HolyPower or 9
+    local ok, value = pcall(function()
+        local result = tonumber(UnitPower("player", powerType))
+        if not result or result < 0 or result > 5 then return nil end
+        return math.floor(result)
+    end)
+    return ok and value or nil
+end
+
+function HeliHeal:SyncLiveHolyPower()
+    local value = self:GetLiveHolyPower()
+    if value == nil then return false end
+    return self:ApplyAuthoritativeHolyPower(value)
+end
+
+function HeliHeal:ScheduleHolyPowerSync()
+    if self.classToken ~= "PALADIN" then return end
+    local generation = self.inputGeneration or 0
+    local sync = function()
+        if generation == (HeliHeal.inputGeneration or 0) then HeliHeal:SyncLiveHolyPower() end
+    end
+    if C_Timer and type(C_Timer.After) == "function" then
+        C_Timer.After(0, sync)
+    else
+        sync()
+    end
 end
 
 function HeliHeal:CommitRecentSpellForSlot(slotIndex)
@@ -170,6 +307,39 @@ function HeliHeal:CommitRecentSpellForSlot(slotIndex)
         end
     end
     return false
+end
+
+function HeliHeal:CommitRecentSpellForAssistedCombat()
+    local pending = self.pendingAssistedCombat
+    if not pending then return false end
+    local now = GetTime()
+    local newestSpellID, newestAt
+    for spellID, succeededAt in pairs(self.recentSuccessfulSpells or {}) do
+        local age = now - succeededAt
+        if age > RECENT_SUCCESS_WINDOW or age < 0 then
+            self.recentSuccessfulSpells[spellID] = nil
+        elseif (not newestAt or succeededAt > newestAt)
+            and (not pending.expectedSpellID or pending.expectedSpellID == tonumber(spellID)) then
+            newestSpellID, newestAt = spellID, succeededAt
+        end
+    end
+    -- An instant OBA cast can succeed synchronously before the secure
+    -- ActionButtonDown post-hook. Blizzard may already expose the next spell
+    -- by then, so fall back to the newest success inside the narrow window.
+    if not newestSpellID then
+        for spellID, succeededAt in pairs(self.recentSuccessfulSpells or {}) do
+            local age = now - succeededAt
+            if age >= 0 and age <= RECENT_SUCCESS_WINDOW and (not newestAt or succeededAt > newestAt) then
+                newestSpellID, newestAt = spellID, succeededAt
+            end
+        end
+    end
+    if not newestSpellID then return false end
+    self.recentSuccessfulSpells[newestSpellID] = nil
+    pending.expectedSpellID = tonumber(newestSpellID)
+    local committed = self:CommitAssistedCombatSpell(newestSpellID)
+    if committed then self:ScheduleHolyPowerSync() end
+    return committed
 end
 
 function HeliHeal:RejectObservedSpell(spellID)
@@ -246,6 +416,8 @@ function HeliHeal:ObserveActionBinding(bindingAction)
         return
     end
 
+    if self:ObserveAssistedCombatBinding(bindingAction) then return end
+
     local key1, key2 = GetBindingKey(bindingAction)
     if key1 then
         self:ObserveInputKey(key1)
@@ -262,6 +434,7 @@ function HeliHeal:CreateInputListener()
         self.castInputListener:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
         self.castInputListener:RegisterEvent("UNIT_SPELLCAST_FAILED")
         self.castInputListener:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+        self.castInputListener:RegisterEvent("UNIT_POWER_UPDATE")
         return
     end
     -- Secure post-hooks observe Blizzard's normal action-button key path after
@@ -320,12 +493,19 @@ function HeliHeal:CreateInputListener()
     castListener:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     castListener:RegisterEvent("UNIT_SPELLCAST_FAILED")
     castListener:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-    castListener:SetScript("OnEvent", function(_, event, unit, _, spellID)
+    castListener:RegisterEvent("UNIT_POWER_UPDATE")
+    castListener:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
+        if event == "UNIT_POWER_UPDATE" then
+            local powerType = castGUID
+            if unit == "player" and powerType == "HOLY_POWER" then HeliHeal:SyncLiveHolyPower() end
+            return
+        end
         if unit ~= "player" or not spellID then return end
         if event == "UNIT_SPELLCAST_SUCCEEDED" then
             HeliHeal:RecordPlayerSpellSucceeded(spellID)
         else
             HeliHeal:RejectObservedSpell(spellID)
+            HeliHeal:RejectAssistedCombatSpell(spellID)
         end
     end)
     self.castInputListener = castListener

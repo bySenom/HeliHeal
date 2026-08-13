@@ -48,6 +48,12 @@ addon.db = {
                 inputKey = "2",
                 inputLockout = 1.5,
             },
+            {
+                spellID = 275773,
+                enabled = true,
+                inputKey = "",
+                inputLockout = 1.5,
+            },
         },
     },
 }
@@ -160,4 +166,42 @@ assert(addon:CommitObservedSpell(61295),
 assert(acknowledgements[3] == 1 and not addon.pendingAcknowledgements[3],
     "rapid Riptide must acknowledge exactly once without losing its charge spend")
 
-print("Input guard OK: hard/instant success commits, exact GCD locks, stale callbacks and failures never advance")
+C_ActionBar = {
+    GetActionBarPage = function() return 1 end,
+    IsAssistedCombatAction = function(slotID) return slotID == 1 end,
+}
+C_AssistedCombat = { GetNextCastSpell = function() return 275773 end }
+GetBindingKey = function() return "1" end
+addon.classToken = "PALADIN"
+local liveHolyPower = 2
+UnitPower = function(unit, powerType)
+    assert(unit == "player" and powerType == 9)
+    return liveHolyPower
+end
+addon.ApplyAuthoritativeHolyPower = function(self, value)
+    self.sessionHolyPower = value
+    return true
+end
+now = 80
+assert(addon:ObserveAssistedCombatBinding("ACTIONBUTTON1"),
+    "the standard action bar must recognize Blizzard's Assisted Combat action")
+assert(addon:RecordPlayerSpellSucceeded(275773),
+    "the actual spell success must confirm an Assisted Combat cast without a spell binding")
+assert(acknowledgements[4] == 1,
+    "a known Assisted Combat spell must advance its matching HeliHeal cooldown exactly once")
+assert(nextFrameCallback, "Assisted Combat success must schedule authoritative Holy Power sync")
+nextFrameCallback()
+assert(addon.sessionHolyPower == 2,
+    "readable player Holy Power must correct the local model after Assisted Combat")
+
+now = 90
+C_AssistedCombat.GetNextCastSpell = function() return 20473 end
+assert(not addon:RecordPlayerSpellSucceeded(275773),
+    "an instant OBA success before the action hook must enter the recent-success buffer")
+now = 90.02
+assert(addon:ObserveAssistedCombatBinding("ACTIONBUTTON1"),
+    "the later action post-hook must still identify the Assisted Combat button")
+assert(acknowledgements[4] == 2 and not addon.pendingAssistedCombat,
+    "the OBA post-hook must consume the actual recent instant spell, not Blizzard's next suggestion")
+
+print("Input guard OK: direct and Assisted Combat casts, exact GCD locks and live Holy Power sync")

@@ -31,8 +31,7 @@ local abilities = {
     },
     paladin_avenging_wrath = {
         spellID = 31884, name = "Avenging Wrath", cooldown = 120,
-        requiresTalent = "paladinAvengingWrath", holyPowerGainTalent = "paladinWalkIntoLight",
-        holyPowerTalentGain = 2, cooldownRankTalent = "paladinCallOfRighteous",
+        requiresTalent = "paladinAvengingWrath", cooldownRankTalent = "paladinCallOfRighteous",
         cooldownReductionPerRank = 15, inputLockout = 1.0,
     },
     paladin_avenging_crusader = {
@@ -49,6 +48,16 @@ local abilities = {
     paladin_judgment = {
         spellID = 275773, name = "Judgment", cooldown = 11,
         holyPowerGain = 1, inputLockout = 1.5,
+    },
+    -- Observed for One Button Assistant resource reconciliation. These do not
+    -- appear in HeliHeal's healing priority or binding options.
+    paladin_crusader_strike = {
+        spellID = 35395, name = "Crusader Strike", cooldown = 6,
+        holyPowerGain = 1, inputLockout = 1.5,
+    },
+    paladin_shield_of_the_righteous = {
+        spellID = 53600, name = "Shield of the Righteous", cooldown = 1,
+        holyPowerCost = 3, inputLockout = 1.0,
     },
     paladin_word_of_glory = {
         spellID = 85673, name = "Word of Glory", cooldown = 0,

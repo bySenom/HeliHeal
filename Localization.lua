@@ -138,6 +138,12 @@ local enUS = {
     ["Holy Power wird ausschließlich aus bestätigten eigenen Casts lokal geschätzt."] = "Holy Power is estimated locally from confirmed player casts only.",
     ["Divine Toll, Holy Prism, Holy Armaments und Holy-Shock-Aufladungen reagieren auf den Talent-Snapshot."] = "Divine Toll, Holy Prism, Holy Armaments and Holy Shock charges adapt to the talent snapshot.",
     ["Paladin Talent and Holy Power Model"] = "Paladin Talent and Holy Power Model",
+    ["One Button Assistant and Live Holy Power"] = "One Button Assistant and Live Holy Power",
+    ["Der Blizzard One Button Assistant wird auf Standard-Aktionsleisten automatisch erkannt."] = "Blizzard's One Button Assistant is detected automatically on standard action bars.",
+    ["Erfolgreiche OBA-Zauber aktualisieren passende HeliHeal-Cooldowns und Aufladungen."] = "Successful OBA spells update matching HeliHeal cooldowns and charges.",
+    ["Die lesbare Holy Power des Spielers korrigiert die lokale Simulation nach jedem Cast."] = "The player's readable Holy Power corrects the local simulation after every cast.",
+    ["Crusader Strike und Shield of the Righteous werden für OBA-Ressourcenänderungen berücksichtigt."] = "Crusader Strike and Shield of the Righteous are accounted for in OBA resource changes.",
+    ["Walk Into Light erzeugt seit seiner 12.0.5-Überarbeitung keine Holy Power mehr."] = "Walk Into Light no longer generates Holy Power after its 12.0.5 redesign.",
     ["Divine Toll und Holy Prism verwenden mit Quickened Invocation jetzt korrekt 30 Sekunden Cooldown."] = "Divine Toll and Holy Prism now correctly use a 30-second cooldown with Quickened Invocation.",
     ["Paladin-Talentwahl steuert Divine Toll, Holy Prism, Holy Armaments, Wings, Crusader und Aura Mastery."] = "Paladin talent choices now control Divine Toll, Holy Prism, Holy Armaments, Wings, Crusader and Aura Mastery.",
     ["Holy Power wird als geordnete Folge bestätigter Casts berechnet und bei Refunds korrekt neu aufgebaut."] = "Holy Power is calculated as an ordered sequence of confirmed casts and replayed correctly after refunds.",
@@ -157,6 +163,7 @@ local deDE = {
     ["Reliable Rapid Inputs"] = "Zuverlässige schnelle Eingaben",
     ["Holy Paladin Support"] = "Heiligpaladin-Unterstützung",
     ["Paladin Talent and Holy Power Model"] = "Paladin-Talente und Holy-Power-Modell",
+    ["One Button Assistant and Live Holy Power"] = "Ein-Knopf-Assistent und echte Holy Power",
 }
 
 local translations = enUS

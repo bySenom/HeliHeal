@@ -17,6 +17,8 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Mouse-button support over unit and raid frames
 - Successful-cast confirmation and live GCD locking
 - Local cooldown, charge and HoT estimates
+- Automatic Blizzard One Button Assistant detection on standard action bars
+- Live Holy Power synchronization for the player, with confirmed-cast fallback
 - Movable, scalable and customizable display
 - Persistent AceDB profiles
 - One-time What's New popup and local update history
@@ -60,7 +62,7 @@ Class mechanics such as Healing Stream charges, Stormstream uses, Riptide rechar
 
 ## Limitations
 
-HeliHeal does not inspect health, mana, targets, auras, range, healing results, combat logs or SecretValues. It cannot automatically know when raid damage is incoming, whether a HoT was refreshed on the same target, or whether a random Divine Purpose proc is active. Guaranteed talent effects and successful free casts are included in the local model; `/hh hp 0-5` is available for manual synchronization.
+HeliHeal does not inspect health, mana, targets, auras, range, healing results, combat logs or SecretValues. The only live combat resource it reads is the player's Blizzard-permitted secondary Holy Power value. It cannot automatically know when raid damage is incoming, whether a HoT was refreshed on the same target, or recommend an unreadable random Divine Purpose proc before it is consumed. Guaranteed talent effects and confirmed casts remain available as a fallback; `/hh hp 0-5` can manually synchronize the estimate.
 
 ## Feedback
 
