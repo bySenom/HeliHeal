@@ -22,7 +22,8 @@ HeliHeal does not cast spells, choose healing targets, inspect health values or 
 - 🖱️ Mouse buttons, extra mouse buttons and mouse-wheel bindings
 - 🎯 Physical mouse-button observation also works over unit and raid frames
 - ⏱️ Input-driven cooldown, charge and maintenance-timer simulation
-- 🕒 Waits for SpellQueueWindow plus a static base-GCD action window before advancing
+- ✅ Advances only after the expected player spell succeeds
+- 🕒 Reads only the universal GCD remainder for post-cast input locking
 - 🛡️ Key-down/key-up latch and per-ability lockout protect local charges from button spam
 - 🌧️ Shaman Downpour window derived from an observed Healing Rain input
 - 💧 Shaman Healing Stream and synthetic Stormstream charge model
@@ -66,9 +67,9 @@ With Power of the Archdruid selected, an observed Swiftmend arms a 15-second loc
 
 HeliHeal uses fixed, addon-owned priority packs. You only configure the observed input for each listed ability.
 
-When a matching action-bar or physical mouse input is detected, HeliHeal waits for the current SpellQueueWindow plus a conservative static action window of at least one 1.5-second base GCD before updating its own timer or charge state. This keeps the recommendation visible when the next key is spammed while another spell is still casting.
+When a matching action-bar or physical mouse input is detected, HeliHeal creates a pending observation. It updates its local timer or charge state only when Blizzard reports that the configured player spell succeeded. Failed, interrupted or unmatched inputs do not consume the recommendation. This keeps the next icon visible when its key is spammed too early during another cast.
 
-The addon never claims that the input resulted in a successful cast. If a spell failed because of range, movement, target validity or another condition, use `/hh refund` for a supported Shaman state or `/hh sync` to reset the complete local simulation.
+After a confirmed spell, HeliHeal samples only the universal GCD spell (`61304`) to lock repeated input for the real remaining GCD. If that value is unavailable or restricted, it safely falls back to 1.5 seconds. `/hh refund` and `/hh sync` remain available for exceptional state corrections.
 
 ## Installation
 
@@ -137,7 +138,7 @@ It deliberately does not read:
 - Healing targets or mouseover units
 - Range or target validity
 - Combat-log events
-- Successful or failed casts
+- Cast targets or healing results
 - Random combat procs
 - SecretValues
 
@@ -147,7 +148,7 @@ The addon cannot know when incoming raid damage occurs. AoE, Single Target and M
 
 ## Privacy and Midnight Compatibility
 
-HeliHeal does not collect combat data, send telemetry or communicate with an external service. Its priority engine uses no aura, health, power, target, range, combat-log or real cooldown APIs.
+HeliHeal does not collect combat data, send telemetry or communicate with an external service. Its priority engine uses no aura, health, power, target, range, combat-log or ability-cooldown APIs. Player-only spell success/failure events and the universal GCD remainder are used solely to confirm observed inputs and prevent premature recommendation changes.
 
 The talent tree is read only outside combat from Blizzard's committed active configuration and cached for the static model. Spell names and icons are resolved only as presentation metadata.
 

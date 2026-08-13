@@ -12,6 +12,7 @@ local abilities = {
         inputLockout = 1.0,
         maxCharges = 2,
         maxBonusCharges = 2,
+        castSpellIDs = { 5394, 1267089 },
         note = "Stormstream uses the Healing Stream action without consuming a normal charge. Random Riptide procs remain untracked.",
     },
     riptide = {
@@ -40,7 +41,13 @@ local abilities = {
     },
     surging_totem = { spellID = 444995, name = "Surging Totem", cooldown = 25 },
     unleash_life = { spellID = 73685, name = "Unleash Life", cooldown = 20, inputLockout = 1.5 },
-    healing_rain = { spellID = 73920, name = "Healing Rain", cooldown = 18, consumesSwiftness = true },
+    healing_rain = {
+        spellID = 73920,
+        name = "Healing Rain",
+        cooldown = 18,
+        consumesSwiftness = true,
+        castSpellIDs = { 73920, 207778 },
+    },
     downpour = {
         spellID = 207778,
         name = "Downpour",

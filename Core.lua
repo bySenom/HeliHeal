@@ -596,6 +596,7 @@ function HeliHeal:RefundAbility(abilityName)
     if not ability then return false end
 
     local pendingTimer = self.pendingAcknowledgements and self.pendingAcknowledgements[slotIndex]
+    pendingTimer = pendingTimer and (pendingTimer.timer or pendingTimer)
     if pendingTimer and type(pendingTimer.Cancel) == "function" then pendingTimer:Cancel() end
     if self.pendingAcknowledgements then self.pendingAcknowledgements[slotIndex] = nil end
     if self.inputLockedUntil then self.inputLockedUntil[slotIndex] = nil end

@@ -1,4 +1,4 @@
-# HeliHeal 0.8.1 Alpha 1 (Midnight 12.1)
+# HeliHeal 0.8.2 Alpha 1 (Midnight 12.1)
 
 ![HeliHeal logo](Media/HeliHealLogo.png)
 
@@ -6,7 +6,7 @@ HeliHeal is a static, player-driven healing priority display for World of Warcra
 
 ## Data contract
 
-HeliHeal does **not** call aura, spell cooldown, health, power, target, range, combat-log, encounter or secret-value APIs. A configured cooldown is a local timer that starts only when the player presses the configured observed input.
+HeliHeal does **not** call aura, ability-cooldown, health, power, target, range, combat-log, encounter or secret-value APIs. A configured ability cooldown remains a local timer. Player-only spell-success/failure events confirm whether an observed input actually produced the expected spell, and the universal GCD spell (`61304`) is sampled only for its remaining lockout.
 
 Talent selections are read only outside combat from the player's committed active Blizzard trait config and cached as a local build snapshot. During combat HeliHeal uses that snapshot and performs no talent-tree scan.
 
@@ -60,11 +60,11 @@ Riptide uses a six-second sequential base recharge. Its maximum local charges ar
 
 Observing Unleash Life arms a ten-second local empower state for Riptide, Chain Heal or Healing Wave. The preferred ready consumer follows the selected healing mode: Chain Heal in AoE, Riptide then Healing Wave in Single Target, and Healing Wave in Mana Saving. Standard retains its guide order with Riptide as the first valid consumer. The Season 1 two-piece changes the local Unleash Life cooldown from 20 to 17 seconds; the four-piece stores two empowered consumers. No aura is read, so a failed consumer can be corrected with `/hh refund riptide|chain|wave`.
 
-HeliHeal observes the secure post-hooks of Blizzard's `ActionButtonDown` and `MultiActionButtonDown` paths. If the configured key (for example `Shift+1`) is bound to that action-bar button, HeliHeal starts its local timer after Blizzard processes the key. It never owns or propagates the combat key event, never casts abilities and does not claim that the observed input produced a successful cast.
+HeliHeal observes the secure post-hooks of Blizzard's `ActionButtonDown` and `MultiActionButtonDown` paths. If the configured key (for example `Shift+1`) is bound to that action-bar button, HeliHeal creates a pending local observation after Blizzard processes the key. It never owns or propagates the combat key event and never casts abilities.
 
-Before acknowledging an observed input, HeliHeal waits for the player's current `SpellQueueWindow` (normally expressed in milliseconds) plus a conservative static action window of at least one 1.5-second base GCD. It reads `C_Spell.GetSpellQueueWindow()` with a `SpellQueueWindow` CVar fallback and clamps the queue component to 0–1000 ms. This keeps the recommendation visible while an input is queued or spammed during another cast. HeliHeal still does not inspect the live GCD, active cast or successful spell result.
+An observation advances the rotation only when `UNIT_SPELLCAST_SUCCEEDED` reports the configured player spell. Failed or interrupted matching casts clear the pending observation without consuming the recommendation, and an unmatched five-second timeout does the same. This keeps recommendations visible when their keys are spammed too early during another cast. After success, HeliHeal samples `C_Spell.GetSpellCooldown(61304)` on the next frame and uses the live universal GCD remainder for the input lock; restricted or unavailable values fall back safely to 1.5 seconds.
 
-Input spam is guarded by a complete press/release latch plus a per-ability static lockout. Holding a key counts once until Blizzard's matching action-button-up path, and mouse buttons remain latched until `GLOBAL_MOUSE_UP`. Repeated physical presses inside the complete `SpellQueueWindow + static action window` are ignored, preventing recommendations or local charges from advancing before the queued action has had time to execute.
+Input spam is guarded by a complete press/release latch, one pending observation per ability and the live universal GCD lock. Holding a key counts once until Blizzard's matching action-button-up path, and mouse buttons remain latched until `GLOBAL_MOUSE_UP`. Repeated physical presses cannot remove recommendations or spend local charges before the expected spell succeeds.
 
 Commands: `/hh`, `/hh talents [refresh]`, `/hh used 1`, `/hh mode standard|aoe|single|mana|next`, `/hh refund hst|riptide|downpour|rain|unleash|chain|wave`, `/hh sync`, `/hh reset`, `/hh show`, `/hh hide`, `/hh lock`.
 

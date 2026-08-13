@@ -6,8 +6,12 @@ GetTime = function() return now end
 IsControlKeyDown = function() return false end
 IsAltKeyDown = function() return false end
 IsShiftKeyDown = function() return false end
-GetCVar = function() return "400" end
-C_Spell = { GetSpellQueueWindow = function() return 400 end }
+C_Spell = {
+    GetSpellCooldown = function(spellID)
+        assert(spellID == 61304)
+        return { startTime = now, duration = 1.2, isEnabled = true, modRate = 1 }
+    end,
+}
 
 local scheduled = {}
 C_Timer = {
@@ -29,6 +33,7 @@ addon.db = {
                 enabled = true,
                 inputKey = "BUTTON5",
                 inputLockout = 1.0,
+                castSpellIDs = { 5394, 1267089 },
             },
             {
                 spellID = 1064,
@@ -51,41 +56,47 @@ end
 addon:ObserveInputKey("BUTTON5")
 addon:ObserveInputKey("BUTTON5")
 assert(#scheduled == 1, "holding/spamming down must queue only once")
-assert(math.abs(scheduled[1].delay - 1.9) < 0.001,
-    "acknowledgement must wait for 400 ms SpellQueueWindow plus a 1.5 s base GCD")
+assert(scheduled[1].delay == 5, "an unmatched observation must use the safe event timeout")
 
 addon:ReleaseInputKey("BUTTON5")
 now = 0.1
 addon:ObserveInputKey("BUTTON5")
 assert(#scheduled == 1, "repeat click inside queue plus GCD lockout must be ignored")
 
-now = 0.4
-assert(not acknowledgements[1], "SpellQueueWindow alone must not remove the recommendation")
-now = 1.9
-scheduled[1].callback()
-assert(acknowledgements[1] == 1, "first physical press must acknowledge once after the local action window")
+now = 2.0
+assert(not acknowledgements[1], "queued input must not advance before a successful cast event")
+assert(addon:CommitObservedSpell(1267089), "an accepted transformed spell ID must confirm the input")
+assert(acknowledgements[1] == 1, "the successful player spell must acknowledge exactly once")
+assert(scheduled[1].cancelled, "successful confirmation must cancel the timeout")
 
 addon:ReleaseInputKey("BUTTON5")
-now = 1.89
+now = 3.19
 addon:ObserveInputKey("BUTTON5")
-assert(#scheduled == 1, "lockout must include SpellQueueWindow plus the full base GCD")
+assert(#scheduled == 1, "the live 1.2-second GCD must keep the input locked")
 
-now = 1.91
+now = 3.21
 addon:ObserveInputKey("BUTTON5")
 assert(#scheduled == 2, "a genuinely later press must remain observable")
-assert(math.abs(scheduled[2].delay - 1.9) < 0.001, "later inputs must use the same safe commit delay")
-now = 3.81
+assert(scheduled[2].delay == 5, "later inputs must use the same event timeout")
+now = 8.21
 scheduled[2].callback()
-assert(acknowledgements[1] == 2, "later valid press must acknowledge exactly once")
+assert(acknowledgements[1] == 1, "timeout must never simulate a successful cast")
+assert(not addon.pendingAcknowledgements[1], "timeout must release the stale pending input")
 
 now = 10
 addon:ObserveInputKey("1")
-assert(#scheduled == 3 and math.abs(scheduled[3].delay - 1.9) < 0.001,
-    "a standard keyboard action binding must use queue plus GCD delay")
+assert(#scheduled == 3 and scheduled[3].delay == 5,
+    "a standard keyboard action binding must wait for cast confirmation")
 now = 10.4
 assert(not acknowledgements[2], "keyboard recommendation must remain after the queue component")
-now = 11.9
-scheduled[3].callback()
-assert(acknowledgements[2] == 1, "keyboard action may advance only after the complete local action window")
+assert(addon:CommitObservedSpell(1064), "matching keyboard spell success must be accepted")
+assert(acknowledgements[2] == 1, "keyboard action may advance only on successful cast confirmation")
 
-print("Input guard OK: queue plus GCD commit delay, spam ignored, later press accepted")
+now = 20
+addon:ReleaseInputKey("1")
+addon:ObserveInputKey("1")
+assert(addon:RejectObservedSpell(1064), "matching failed cast must reject the pending observation")
+assert(acknowledgements[2] == 1 and not addon.pendingAcknowledgements[2],
+    "failed casts must keep the recommendation and clear only the pending input")
+
+print("Input guard OK: cast success commits, live GCD locks, timeout/failure never advance")

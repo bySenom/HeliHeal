@@ -40,33 +40,38 @@ local function isImpulseInput(inputKey)
     return inputKey:match("MOUSEWHEELUP$") or inputKey:match("MOUSEWHEELDOWN$")
 end
 
-function HeliHeal:GetSpellQueueDelay()
-    local milliseconds
-    if C_Spell and type(C_Spell.GetSpellQueueWindow) == "function" then
-        milliseconds = tonumber(C_Spell.GetSpellQueueWindow())
-    end
-    if not milliseconds and type(GetCVar) == "function" then
-        milliseconds = tonumber(GetCVar("SpellQueueWindow"))
-    end
+function HeliHeal:GetLiveGCDRemaining(now)
+    if not C_Spell or type(C_Spell.GetSpellCooldown) ~= "function" then return nil end
+    local ok, info = pcall(C_Spell.GetSpellCooldown, 61304)
+    if not ok or type(info) ~= "table" then return nil end
 
-    -- SpellQueueWindow is expressed in milliseconds. Keep malformed or
-    -- extreme values from delaying the static tracker indefinitely.
-    milliseconds = math.max(0, math.min(milliseconds or 0, 1000))
-    return milliseconds / 1000
+    -- Midnight may restrict individual values. Keep every conversion and
+    -- arithmetic operation inside pcall and fall back to the static window.
+    local valid, remaining = pcall(function()
+        local startTime = tonumber(info.startTime)
+        local duration = tonumber(info.duration)
+        local modRate = tonumber(info.modRate) or 1
+        if not startTime or not duration or duration <= 0 or duration > 2.5 or modRate <= 0 then
+            return nil
+        end
+        return math.max(0, startTime + (duration / modRate) - (now or GetTime()))
+    end)
+    return valid and remaining or nil
 end
 
-function HeliHeal:GetInputCommitDelay(configuredSlot)
-    -- HeliHeal deliberately does not read the live GCD or current cast. Keep
-    -- the recommendation stable for one conservative base GCD after the
-    -- queue window instead of treating the first early/spammed input as an
-    -- immediately completed cast.
-    local actionWindow = tonumber(configuredSlot and configuredSlot.inputLockout) or 1.5
-    actionWindow = math.max(1.5, math.min(actionWindow, 4.0))
-    return self:GetSpellQueueDelay() + actionWindow
+function HeliHeal:SlotAcceptsSpell(configuredSlot, spellID)
+    spellID = tonumber(spellID)
+    if not configuredSlot or not spellID then return false end
+    if tonumber(configuredSlot.spellID) == spellID then return true end
+    for _, acceptedID in ipairs(configuredSlot.castSpellIDs or {}) do
+        if tonumber(acceptedID) == spellID then return true end
+    end
+    return false
 end
 
 function HeliHeal:CancelPendingAcknowledgements()
-    for slotIndex, timer in pairs(self.pendingAcknowledgements or {}) do
+    for slotIndex, pending in pairs(self.pendingAcknowledgements or {}) do
+        local timer = pending and pending.timer or pending
         if timer and type(timer.Cancel) == "function" then
             timer:Cancel()
         end
@@ -80,21 +85,68 @@ function HeliHeal:QueueSlotAcknowledgement(slotIndex, delay)
         return
     end
 
-    delay = delay or (self:GetSpellQueueDelay() + 1.5)
-    if delay <= 0 or not C_Timer or type(C_Timer.NewTimer) ~= "function" then
-        self:AcknowledgeSlot(slotIndex)
-        return
-    end
+    local configuredSlot = self.db.profile.slots[slotIndex]
+    if not configuredSlot then return end
+    delay = math.max(5, tonumber(delay) or 0)
+    local pending = { spellID = configuredSlot.spellID, observedAt = GetTime() }
+    self.pendingAcknowledgements[slotIndex] = pending
+
+    if not C_Timer or type(C_Timer.NewTimer) ~= "function" then return end
 
     local timer
     timer = C_Timer.NewTimer(delay, function()
-        if HeliHeal.pendingAcknowledgements[slotIndex] ~= timer then
+        if HeliHeal.pendingAcknowledgements[slotIndex] ~= pending then
             return
         end
+        -- No matching successful cast arrived. Discard only the observation;
+        -- never advance the rotation on a timeout or failed early queue input.
         HeliHeal.pendingAcknowledgements[slotIndex] = nil
-        HeliHeal:AcknowledgeSlot(slotIndex)
+        HeliHeal.inputLockedUntil[slotIndex] = nil
     end)
-    self.pendingAcknowledgements[slotIndex] = timer
+    pending.timer = timer
+end
+
+function HeliHeal:CommitObservedSpell(spellID)
+    local now = GetTime()
+    for slotIndex, pending in pairs(self.pendingAcknowledgements or {}) do
+        local configuredSlot = self.db.profile.slots[slotIndex]
+        if self:SlotAcceptsSpell(configuredSlot, spellID) then
+            if pending.timer and type(pending.timer.Cancel) == "function" then pending.timer:Cancel() end
+            self.pendingAcknowledgements[slotIndex] = nil
+            local staticWindow = math.max(1.5, tonumber(configuredSlot.inputLockout) or 1.5)
+            self.inputLockedUntil[slotIndex] = now + staticWindow
+            local function refreshGCDLock()
+                local sampledAt = GetTime()
+                local gcdRemaining = HeliHeal:GetLiveGCDRemaining(sampledAt)
+                if gcdRemaining ~= nil then
+                    HeliHeal.inputLockedUntil[slotIndex] = sampledAt + gcdRemaining
+                end
+            end
+            -- Blizzard updates the GCD cooldown immediately after the success
+            -- event. Sample on the next frame, as cast-bar addons do.
+            if C_Timer and type(C_Timer.After) == "function" then
+                C_Timer.After(0, refreshGCDLock)
+            else
+                refreshGCDLock()
+            end
+            self:AcknowledgeSlot(slotIndex)
+            return true
+        end
+    end
+    return false
+end
+
+function HeliHeal:RejectObservedSpell(spellID)
+    for slotIndex, pending in pairs(self.pendingAcknowledgements or {}) do
+        local configuredSlot = self.db.profile.slots[slotIndex]
+        if self:SlotAcceptsSpell(configuredSlot, spellID) then
+            if pending.timer and type(pending.timer.Cancel) == "function" then pending.timer:Cancel() end
+            self.pendingAcknowledgements[slotIndex] = nil
+            self.inputLockedUntil[slotIndex] = nil
+            return true
+        end
+    end
+    return false
 end
 
 function HeliHeal:ReleaseInputKey(inputKey)
@@ -136,9 +188,9 @@ function HeliHeal:ObserveInputKey(inputKey)
                 if not impulseInput then
                     self.heldInputKeys[inputKey] = true
                 end
-                local commitDelay = self:GetInputCommitDelay(configured)
-                self.inputLockedUntil[slotIndex] = now + commitDelay
-                self:QueueSlotAcknowledgement(slotIndex, commitDelay)
+                local safetyTimeout = 5
+                self.inputLockedUntil[slotIndex] = now + safetyTimeout
+                self:QueueSlotAcknowledgement(slotIndex, safetyTimeout)
             end
             return
         end
@@ -211,4 +263,18 @@ function HeliHeal:CreateInputListener()
         end
     end)
     self.mouseInputListener = mouseListener
+
+    local castListener = CreateFrame("Frame")
+    castListener:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    castListener:RegisterEvent("UNIT_SPELLCAST_FAILED")
+    castListener:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+    castListener:SetScript("OnEvent", function(_, event, unit, _, spellID)
+        if unit ~= "player" or not spellID then return end
+        if event == "UNIT_SPELLCAST_SUCCEEDED" then
+            HeliHeal:CommitObservedSpell(spellID)
+        else
+            HeliHeal:RejectObservedSpell(spellID)
+        end
+    end)
+    self.castInputListener = castListener
 end
