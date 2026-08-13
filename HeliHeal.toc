@@ -4,7 +4,7 @@
 ## Author: HeliHeal Team
 ## Version: 0.8.0
 ## SavedVariables: HeliHealDB
-## IconTexture: Interface\Icons\Spell_Holy_HolyBolt
+## IconTexture: Interface\AddOns\HeliHeal\Media\HeliHealIcon.tga
 ## X-Category: Combat
 ## X-License: MIT
 

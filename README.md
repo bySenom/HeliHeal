@@ -1,5 +1,7 @@
 # HeliHeal 0.8.0 (Midnight 12.1)
 
+![HeliHeal logo](Media/HeliHealLogo.png)
+
 HeliHeal is a static, player-driven healing priority display for World of Warcraft: Midnight. It deliberately does not inspect combat state.
 
 ## Data contract

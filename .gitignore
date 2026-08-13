@@ -15,3 +15,7 @@ release/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local image-editing intermediates
+Media/*-v2.*
+Media/HeliHealOriginal*
