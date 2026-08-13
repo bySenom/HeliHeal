@@ -1,5 +1,6 @@
 local _, ns = ...
 local HeliHeal = ns.addon
+local L = ns.L or function(value, ...) return select("#", ...) > 0 and value:format(...) or value end
 
 local DISPLAY_SLOT_COUNT = 5
 local PRIMARY_SIZE = 62
@@ -36,7 +37,7 @@ function HeliHeal:CreateDisplay()
 
     frame.title = frame:CreateFontString(nil, "OVERLAY")
     frame.title:SetFont(ns.media.font, 9, "OUTLINE")
-    frame.title:SetText("HELIHEAL  •  NEXT PRIORITY")
+    frame.title:SetText("HELIHEAL  •  " .. L("NEXT PRIORITY"))
     frame.title:SetTextColor(0.02, 0.88, 0.7, 1)
     frame.title:SetPoint("TOPLEFT", 10, -9)
 

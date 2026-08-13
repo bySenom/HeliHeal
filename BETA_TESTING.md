@@ -8,6 +8,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - `/reload` preserves profile, position, style and bindings.
 - The first `/hh` after an update shows What's New once; later openings stay quiet.
 - `/hh changelog` opens the complete local update history and does not repeat the popup.
+- `deDE` shows German UI text; `enUS`/`enGB` show English UI text and spell names follow the client locale.
 - Switching away from Restoration hides the tracker; switching back restores it.
 - Profile switching clears pending inputs without losing the selected profile's bindings.
 - Death, resurrection and loading screens do not advance recommendations.

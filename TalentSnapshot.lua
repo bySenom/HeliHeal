@@ -1,5 +1,6 @@
 local _, ns = ...
 local HeliHeal = ns.addon
+local L = ns.L or function(value, ...) return select("#", ...) > 0 and value:format(...) or value end
 
 local TALENTS = {
     echoOfTheElements = { 333919 },
@@ -160,22 +161,23 @@ end
 function HeliHeal:PrintTalentSnapshot()
     local snapshot = self.talentSnapshot
     if not snapshot or not snapshot.available then
-        self:Print("Talent-Snapshot noch nicht verfügbar; bestehende Preset-Annahmen bleiben aktiv.")
+        self:Print(L("Talent-Snapshot noch nicht verfügbar; bestehende Preset-Annahmen bleiben aktiv."))
         return
     end
-    local function yesNo(value) return value and "JA" or "nein" end
+    local function yesNo(value) return L(value and "JA" or "nein") end
     if self.classToken == "DRUID" then
-        self:Print(("Talente (Config %s): Germination %s | Power of the Archdruid %s | Lifetreading %s | Keeper %s | Wildstalker %s")
-            :format(tostring(snapshot.configID or "?"), yesNo(snapshot.druidGermination),
-                yesNo(snapshot.druidPowerArchdruid), yesNo(snapshot.druidLifetreading),
-                yesNo(snapshot.druidKeeper), yesNo(snapshot.druidWildstalker)))
+        local details = ("Germination %s | Power of the Archdruid %s | Lifetreading %s | Keeper %s | Wildstalker %s")
+            :format(yesNo(snapshot.druidGermination), yesNo(snapshot.druidPowerArchdruid),
+                yesNo(snapshot.druidLifetreading), yesNo(snapshot.druidKeeper), yesNo(snapshot.druidWildstalker))
+        self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end
-    self:Print(("Talente (Config %s): Echo %s | Elemental Reverb %s | Surging Totem %s | Unleash Life %s | Downpour %s | Double Dip %s | Mystic Knowledge %s | Set 2p %s | Set 4p %s")
-        :format(tostring(snapshot.configID or "?"), yesNo(snapshot.echoOfTheElements),
+    local details = ("Echo %s | Elemental Reverb %s | Surging Totem %s | Unleash Life %s | Downpour %s | Double Dip %s | Mystic Knowledge %s | Set 2p %s | Set 4p %s")
+        :format(yesNo(snapshot.echoOfTheElements),
             yesNo(snapshot.elementalReverb), yesNo(snapshot.surgingTotem), yesNo(snapshot.unleashLife),
             yesNo(snapshot.downpour), yesNo(snapshot.doubleDip), yesNo(snapshot.mysticKnowledge),
-            yesNo(snapshot.restorationTier2), yesNo(snapshot.restorationTier4)))
+            yesNo(snapshot.restorationTier2), yesNo(snapshot.restorationTier4))
+    self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
 end
 
 function HeliHeal:CreateTalentListener()

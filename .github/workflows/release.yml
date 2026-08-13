@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist/HeliHeal
-          cp AbilityLibrary.lua BETA_TESTING.md Changelog.lua Core.lua Defaults.lua Display.lua HeliHeal.toc Input.lua LICENSE Namespace.lua Options.lua README.md TalentSnapshot.lua dist/HeliHeal/
+          cp AbilityLibrary.lua BETA_TESTING.md Changelog.lua Core.lua Defaults.lua Display.lua HeliHeal.toc Input.lua LICENSE Localization.lua Namespace.lua Options.lua README.md TalentSnapshot.lua dist/HeliHeal/
           cp -R Classes Libs Media dist/HeliHeal/
           cd dist
           zip -r "HeliHeal-${GITHUB_REF_NAME}.zip" HeliHeal

@@ -1,5 +1,6 @@
 local _, ns = ...
 local HeliHeal = ns.addon
+local L = ns.L or function(value, ...) return select("#", ...) > 0 and value:format(...) or value end
 
 local C = {
     bg = { 0.025, 0.035, 0.045, 0.98 },
@@ -220,38 +221,38 @@ end
 function HeliHeal:BuildOverviewPage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
-    setPageHeader(page, "Übersicht", "Anzeige, Verhalten und Größe des statischen Priority-Trackers.")
+    setPageHeader(page, L("Übersicht"), L("Anzeige, Verhalten und Größe des statischen Priority-Trackers."))
 
-    local enabledRow = createSettingRow(page, -110, "Tracker anzeigen", "Blendet die HeliHeal-Prioritätsleiste ein oder aus.")
+    local enabledRow = createSettingRow(page, -110, L("Tracker anzeigen"), L("Blendet die HeliHeal-Prioritätsleiste ein oder aus."))
     local enabledToggle = createToggle(enabledRow,
         function() return self.db.profile.enabled end,
         function(value) self.db.profile.enabled = value; self:ApplyDisplaySettings() end)
     enabledToggle:SetPoint("RIGHT", -20, 0)
 
-    local lockRow = createSettingRow(page, -180, "Position sperren", "Verhindert das versehentliche Verschieben der Anzeige.")
+    local lockRow = createSettingRow(page, -180, L("Position sperren"), L("Verhindert das versehentliche Verschieben der Anzeige."))
     local lockToggle = createToggle(lockRow,
         function() return self.db.profile.locked end,
         function(value) self.db.profile.locked = value; self:ApplyDisplaySettings() end)
     lockToggle:SetPoint("RIGHT", -20, 0)
 
-    local scaleRow = createSettingRow(page, -250, "UI-Skalierung", "Skaliert die vollständige Priority-Anzeige.")
+    local scaleRow = createSettingRow(page, -250, L("UI-Skalierung"), L("Skaliert die vollständige Priority-Anzeige."))
     local scaleSlider = createSlider(scaleRow, 0.6, 1.8, 0.05,
         function() return self.db.profile.scale end,
         function(value) self.db.profile.scale = value; self:ApplyDisplaySettings() end,
         function(value) return ("%.0f%%"):format(value * 100) end)
     scaleSlider:SetPoint("RIGHT", -74, 0)
 
-    local spacingRow = createSettingRow(page, -320, "Icon-Abstand", "Bestimmt den Abstand zwischen Empfehlung und Folgeslots.")
+    local spacingRow = createSettingRow(page, -320, L("Icon-Abstand"), L("Bestimmt den Abstand zwischen Empfehlung und Folgeslots."))
     local spacingSlider = createSlider(spacingRow, 0, 24, 1,
         function() return self.db.profile.spacing end,
         function(value) self.db.profile.spacing = value; self:RefreshDisplay() end,
         function(value) return ("%d px"):format(value) end)
     spacingSlider:SetPoint("RIGHT", -74, 0)
 
-    local reset = createButton(page, "LOKALE TIMER ZURÜCKSETZEN", 210, 38, false)
+    local reset = createButton(page, L("LOKALE TIMER ZURÜCKSETZEN"), 210, 38, false)
     reset:SetPoint("BOTTOMLEFT", 28, 28)
     reset:SetScript("OnClick", function() self:ResetSession() end)
-    local center = createButton(page, "ANZEIGE ZENTRIEREN", 180, 38, true)
+    local center = createButton(page, L("ANZEIGE ZENTRIEREN"), 180, 38, true)
     center:SetPoint("LEFT", reset, "RIGHT", 12, 0)
     center:SetScript("OnClick", function()
         local profile = self.db.profile
@@ -265,7 +266,7 @@ end
 
 function HeliHeal:BeginKeyCapture(button, slotIndex)
     if InCombatLockdown and InCombatLockdown() then
-        self:Print("Inputs können während des Kampfes nicht neu belegt werden.")
+        self:Print(L("Inputs können während des Kampfes nicht neu belegt werden."))
         return
     end
 
@@ -275,7 +276,7 @@ function HeliHeal:BeginKeyCapture(button, slotIndex)
 
     self.suspendInput = true
     self.keyCaptureButton = button
-    button.label:SetText("TASTE DRÜCKEN …")
+    button.label:SetText(L("TASTE DRÜCKEN …"))
     button:SetBackdropBorderColor(unpackColor(C.accent))
     button:SetScript("OnClick", nil)
     button:EnableKeyboard(true)
@@ -332,7 +333,7 @@ function HeliHeal:BuildPrioritiesPage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
     local className = self.classToken == "DRUID" and "Restoration Druid 12.1" or "Restoration Shaman 12.1"
-    setPageHeader(page, className, "Standard bleibt das Guide-Paket; Kontextmodi verändern nur dessen lokale Reihenfolge.")
+    setPageHeader(page, className, L("Standard bleibt das Guide-Paket; Kontextmodi verändern nur dessen lokale Reihenfolge."))
 
     page.presetButtons = {}
     local presets = self.classToken == "DRUID" and {
@@ -360,8 +361,8 @@ function HeliHeal:BuildPrioritiesPage(parent)
     local modes = {
         { "standard", "STANDARD" },
         { "aoe", "AOE" },
-        { "single", "EINZELZIEL" },
-        { "mana", "MANA SPAREN" },
+        { "single", L("EINZELZIEL") },
+        { "mana", L("MANA SPAREN") },
     }
     for index, mode in ipairs(modes) do
         local modeKey = mode[1]
@@ -373,9 +374,9 @@ function HeliHeal:BuildPrioritiesPage(parent)
 
     local priorityHeader = text(page, "PRIO", 9, C.muted, "OUTLINE")
     priorityHeader:SetPoint("TOPLEFT", 34, -198)
-    local abilityHeader = text(page, "FESTE GUIDE-FÄHIGKEIT", 9, C.muted, "OUTLINE")
+    local abilityHeader = text(page, L("FESTE GUIDE-FÄHIGKEIT"), 9, C.muted, "OUTLINE")
     abilityHeader:SetPoint("TOPLEFT", 126, -198)
-    local bindingHeader = text(page, "BEOBACHTETER ACTIONBAR-HOTKEY", 9, C.muted, "OUTLINE")
+    local bindingHeader = text(page, L("BEOBACHTETER ACTIONBAR-HOTKEY"), 9, C.muted, "OUTLINE")
     bindingHeader:SetPoint("TOPLEFT", 494, -198)
 
     page.slotRows = {}
@@ -418,16 +419,16 @@ end
 function HeliHeal:BuildStylePage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
-    setPageHeader(page, "HUD-Elemente", "Reduziere die Anzeige auf das Wesentliche oder aktiviere einzelne Details.")
+    setPageHeader(page, L("HUD-Elemente"), L("Reduziere die Anzeige auf das Wesentliche oder aktiviere einzelne Details."))
 
     local definitions = {
-        { "Panel-Hintergrund", "Dunkler gemeinsamer Hintergrund um alle Icons.", "showPanelBackground" },
-        { "HeliHeal-Header", "Zeigt die Überschrift über der Priority-Leiste.", "showHeader" },
-        { "Fähigkeitsname", "Blendet den Namen der Fähigkeit am Icon ein.", "showAbilityName" },
-        { "Prioritätsbadge", "Zeigt P1 bis P5 direkt auf dem jeweiligen Icon.", "showPriorityBadge" },
-        { "Icon-Rahmen", "Schmaler Rahmen und Schatten um jedes Spell-Icon.", "showIconBorder" },
-        { "Hotkey", "Zeigt den beobachteten Input unter dem Icon.", "showHotkey" },
-        { "Cooldown-Zahl", "Zeigt den lokal simulierten Cooldown mittig auf dem Icon.", "showCooldown" },
+        { L("Panel-Hintergrund"), L("Dunkler gemeinsamer Hintergrund um alle Icons."), "showPanelBackground" },
+        { L("HeliHeal-Header"), L("Zeigt die Überschrift über der Priority-Leiste."), "showHeader" },
+        { L("Fähigkeitsname"), L("Blendet den Namen der Fähigkeit am Icon ein."), "showAbilityName" },
+        { L("Prioritätsbadge"), L("Zeigt P1 bis P5 direkt auf dem jeweiligen Icon."), "showPriorityBadge" },
+        { L("Icon-Rahmen"), L("Schmaler Rahmen und Schatten um jedes Spell-Icon."), "showIconBorder" },
+        { L("Hotkey"), L("Zeigt den beobachteten Input unter dem Icon."), "showHotkey" },
+        { L("Cooldown-Zahl"), L("Zeigt den lokal simulierten Cooldown mittig auf dem Icon."), "showCooldown" },
     }
 
     page.refreshers = {}
@@ -449,22 +450,22 @@ end
 function HeliHeal:BuildProfilesPage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
-    setPageHeader(page, "Profile & Reset", "Separate Konfigurationen über AceDB verwalten oder sicher zurücksetzen.")
+    setPageHeader(page, L("Profile & Reset"), L("Separate Konfigurationen über AceDB verwalten oder sicher zurücksetzen."))
 
     local profileCard = CreateFrame("Frame", nil, page, "BackdropTemplate")
     profileCard:SetPoint("TOPLEFT", 28, -116)
     profileCard:SetPoint("TOPRIGHT", -28, -116)
     profileCard:SetHeight(150)
     backdrop(profileCard, C.panel, C.borderSoft)
-    local profileCaption = text(profileCard, "AKTIVES PROFIL", 10, C.accent, "OUTLINE")
+    local profileCaption = text(profileCard, L("AKTIVES PROFIL"), 10, C.accent, "OUTLINE")
     profileCaption:SetPoint("TOPLEFT", 20, -18)
     page.profileName = text(profileCard, "", 22, C.text, "OUTLINE")
     page.profileName:SetPoint("TOPLEFT", profileCaption, "BOTTOMLEFT", 0, -12)
-    local switchLabel = text(profileCard, "Profilname eingeben, um ein Profil anzulegen oder zu wechseln:", 10, C.muted)
+    local switchLabel = text(profileCard, L("Profilname eingeben, um ein Profil anzulegen oder zu wechseln:"), 10, C.muted)
     switchLabel:SetPoint("BOTTOMLEFT", 20, 50)
-    page.profileInput = createEditBox(profileCard, 260, "Profilname")
+    page.profileInput = createEditBox(profileCard, 260, L("Profilname"))
     page.profileInput:SetPoint("BOTTOMLEFT", 20, 12)
-    local switch = createButton(profileCard, "PROFIL ÖFFNEN", 150, 34, true)
+    local switch = createButton(profileCard, L("PROFIL ÖFFNEN"), 150, 34, true)
     switch:SetPoint("LEFT", page.profileInput, "RIGHT", 10, 0)
     switch:SetScript("OnClick", function()
         local name = page.profileInput:GetText():match("^%s*(.-)%s*$")
@@ -476,18 +477,18 @@ function HeliHeal:BuildProfilesPage(parent)
     end)
     page.profileInput:SetScript("OnEnterPressed", function() switch:Click() end)
 
-    local safety = createSettingRow(page, -294, "Cooldown-Simulation zurücksetzen", "Entfernt nur die lokalen Laufzeittimer; deine Fähigkeiten bleiben erhalten.")
-    local resetSession = createButton(safety, "TIMER RESET", 130, 32, false)
+    local safety = createSettingRow(page, -294, L("Cooldown-Simulation zurücksetzen"), L("Entfernt nur die lokalen Laufzeittimer; deine Fähigkeiten bleiben erhalten."))
+    local resetSession = createButton(safety, L("TIMER RESET"), 130, 32, false)
     resetSession:SetPoint("RIGHT", -16, 0)
     resetSession:SetScript("OnClick", function() self:ResetSession() end)
 
-    local resetSlots = createSettingRow(page, -364, "Alle Klassen-Hotkeys löschen", "Entfernt nur deine hinterlegten Inputs; das feste 12.1-Prioritätspaket bleibt erhalten.")
-    local resetPriorities = createButton(resetSlots, "HOTKEYS RESET", 160, 32, false)
+    local resetSlots = createSettingRow(page, -364, L("Alle Klassen-Hotkeys löschen"), L("Entfernt nur deine hinterlegten Inputs; das feste 12.1-Prioritätspaket bleibt erhalten."))
+    local resetPriorities = createButton(resetSlots, L("HOTKEYS RESET"), 160, 32, false)
     resetPriorities:SetPoint("RIGHT", -16, 0)
     resetPriorities:SetScript("OnClick", function() self:ResetSlots() end)
 
-    local resetProfile = createSettingRow(page, -434, "Komplettes Profil zurücksetzen", "Setzt Anzeige, Position und Prioritäten des aktiven Profils zurück.")
-    local resetAll = createButton(resetProfile, "PROFIL RESET", 130, 32, false)
+    local resetProfile = createSettingRow(page, -434, L("Komplettes Profil zurücksetzen"), L("Setzt Anzeige, Position und Prioritäten des aktiven Profils zurück."))
+    local resetAll = createButton(resetProfile, L("PROFIL RESET"), 130, 32, false)
     resetAll:SetPoint("RIGHT", -16, 0)
     resetAll:SetScript("OnClick", function() self.db:ResetProfile() end)
 
@@ -502,7 +503,7 @@ end
 local function changelogText(entry)
     local lines = {}
     for _, change in ipairs(entry.changes or {}) do
-        lines[#lines + 1] = "• " .. change
+        lines[#lines + 1] = "• " .. L(change)
     end
     return table.concat(lines, "\n")
 end
@@ -510,7 +511,7 @@ end
 function HeliHeal:BuildChangelogPage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
-    setPageHeader(page, "Update-Verlauf", "Alle wichtigen Änderungen bleiben lokal und jederzeit einsehbar.")
+    setPageHeader(page, L("Update-Verlauf"), L("Alle wichtigen Änderungen bleiben lokal und jederzeit einsehbar."))
 
     local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 28, -108)
@@ -530,7 +531,7 @@ function HeliHeal:BuildChangelogPage(parent)
 
         local version = text(card, "v" .. entry.version, 13, index == 1 and C.accent or C.text, "OUTLINE")
         version:SetPoint("TOPLEFT", 18, -15)
-        local titleLabel = text(card, entry.title, 10, C.muted)
+        local titleLabel = text(card, L(entry.title), 10, C.muted)
         titleLabel:SetPoint("LEFT", version, "RIGHT", 12, 0)
         local body = text(card, changelogText(entry), 10, C.text)
         body:SetPoint("TOPLEFT", version, "BOTTOMLEFT", 0, -12)
@@ -573,7 +574,7 @@ function HeliHeal:ShowWhatsNewModal()
         backdrop(card, C.bg, C.accentDark, 2)
         modal.card = card
 
-        local caption = text(card, "NEU IN HELIHEAL", 10, C.accent, "OUTLINE")
+        local caption = text(card, L("NEU IN HELIHEAL"), 10, C.accent, "OUTLINE")
         caption:SetPoint("TOPLEFT", 28, -26)
         card.versionLabel = text(card, "", 25, C.text, "OUTLINE")
         card.versionLabel:SetPoint("TOPLEFT", caption, "BOTTOMLEFT", 0, -10)
@@ -593,13 +594,13 @@ function HeliHeal:ShowWhatsNewModal()
         card.body:SetJustifyH("LEFT")
         card.body:SetJustifyV("TOP")
 
-        local history = createButton(card, "UPDATE-VERLAUF", 180, 36, false)
+        local history = createButton(card, L("UPDATE-VERLAUF"), 180, 36, false)
         history:SetPoint("BOTTOMLEFT", 28, 24)
         history:SetScript("OnClick", function()
             HeliHeal:HideWhatsNewModal(true)
             HeliHeal:SelectOptionsPage("changelog")
         end)
-        local done = createButton(card, "VERSTANDEN", 150, 36, true)
+        local done = createButton(card, L("VERSTANDEN"), 150, 36, true)
         done:SetPoint("BOTTOMRIGHT", -28, 24)
         done:SetScript("OnClick", function() HeliHeal:HideWhatsNewModal(true) end)
 
@@ -612,7 +613,7 @@ function HeliHeal:ShowWhatsNewModal()
 
     modal.version = entry.version
     modal.card.versionLabel:SetText("v" .. entry.version)
-    modal.card.titleLabel:SetText(entry.title)
+    modal.card.titleLabel:SetText(L(entry.title))
     modal.card.body:SetText(changelogText(entry))
     modal:Show()
 end
@@ -668,7 +669,7 @@ function HeliHeal:CreateModernOptions()
     separator:SetPoint("TOPRIGHT", -18, -96)
     separator:SetHeight(1)
 
-    local section = text(sidebar, "KONFIGURATION", 9, C.accent, "OUTLINE")
+    local section = text(sidebar, L("KONFIGURATION"), 9, C.accent, "OUTLINE")
     section:SetPoint("TOPLEFT", 22, -122)
 
     window.pagesHost = CreateFrame("Frame", nil, window)
@@ -685,11 +686,11 @@ function HeliHeal:CreateModernOptions()
 
     window.navButtons = {}
     local navigation = {
-        { "overview", "ÜBERSICHT", "Anzeige & Verhalten" },
-        { "style", "HUD-ELEMENTE", "Icon, Hotkey & Cooldown" },
-        { "priorities", "PRIORITÄTEN", "Fähigkeiten & Inputs" },
-        { "profiles", "PROFILE & RESET", "Konfiguration verwalten" },
-        { "changelog", "UPDATE-VERLAUF", "Was ist neu?" },
+        { "overview", L("ÜBERSICHT"), L("Anzeige & Verhalten") },
+        { "style", L("HUD-ELEMENTE"), L("Icon, Hotkey & Cooldown") },
+        { "priorities", L("PRIORITÄTEN"), L("Fähigkeiten & Inputs") },
+        { "profiles", L("PROFILE & RESET"), L("Konfiguration verwalten") },
+        { "changelog", L("UPDATE-VERLAUF"), L("Was ist neu?") },
     }
     for index, item in ipairs(navigation) do
         local nav = CreateFrame("Button", nil, sidebar, "BackdropTemplate")
@@ -728,9 +729,9 @@ function HeliHeal:CreateModernOptions()
     statusDot:SetColorTexture(unpackColor(C.accent))
     statusDot:SetSize(7, 7)
     statusDot:SetPoint("BOTTOMLEFT", 22, 48)
-    local status = text(sidebar, "SECURE INPUT TRACKER", 9, C.muted, "OUTLINE")
+    local status = text(sidebar, L("SECURE INPUT TRACKER"), 9, C.muted, "OUTLINE")
     status:SetPoint("LEFT", statusDot, "RIGHT", 8, 0)
-    local privacy = text(sidebar, "NO COMBAT DATA", 9, C.dim)
+    local privacy = text(sidebar, L("NO COMBAT DATA"), 9, C.dim)
     privacy:SetPoint("TOPLEFT", status, "BOTTOMLEFT", 0, -7)
 
     local bottom = CreateFrame("Frame", nil, window, "BackdropTemplate")
@@ -738,9 +739,9 @@ function HeliHeal:CreateModernOptions()
     bottom:SetPoint("BOTTOMRIGHT", -1, 1)
     bottom:SetHeight(57)
     backdrop(bottom, C.sidebar, C.borderSoft)
-    local help = text(bottom, "/hh öffnet dieses Fenster  •  ESC schließt es", 10, C.muted)
+    local help = text(bottom, L("/hh öffnet dieses Fenster  •  ESC schließt es"), 10, C.muted)
     help:SetPoint("LEFT", 22, 0)
-    local close = createButton(bottom, "SCHLIESSEN", 150, 36, true)
+    local close = createButton(bottom, L("SCHLIESSEN"), 150, 36, true)
     close:SetPoint("RIGHT", -18, 0)
     close:SetScript("OnClick", function() window:Hide() end)
 
@@ -811,13 +812,13 @@ function HeliHeal:RefreshOptionsUI()
             row.abilityName:SetText(ability.name)
             if ability.trackedDuration > 0 then
                 local goal = self:GetTrackedGoal(ability)
-                row.cooldownLabel:SetText(("Lokale Laufzeit: %ss • Ziel: %d"):format(ability.trackedDuration, goal))
+                row.cooldownLabel:SetText(L("Lokale Laufzeit: %ss • Ziel: %d", ability.trackedDuration, goal))
             else
-                row.cooldownLabel:SetText(ability.cooldown > 0 and (("Lokaler CD: %ss"):format(ability.cooldown)) or "Filler • kein lokaler CD")
+                row.cooldownLabel:SetText(ability.cooldown > 0 and L("Lokaler CD: %ss", ability.cooldown) or L("Filler • kein lokaler CD"))
             end
             local conflict = conflictsByAbility[slot.abilityKey]
             if conflict then
-                row.cooldownLabel:SetText(row.cooldownLabel:GetText() .. " • HOTKEY DOPPELT")
+                row.cooldownLabel:SetText(row.cooldownLabel:GetText() .. " • " .. L("HOTKEY DOPPELT"))
                 row.cooldownLabel:SetTextColor(unpackColor(C.danger))
                 row:SetBackdropBorderColor(unpackColor(C.danger))
             else
@@ -825,13 +826,13 @@ function HeliHeal:RefreshOptionsUI()
                 row:SetBackdropBorderColor(unpackColor(C.borderSoft))
             end
             if slot.derivedBindingFrom then
-                row.key.label:SetText("WIE HEALING RAIN")
+                row.key.label:SetText(L("WIE HEALING RAIN"))
                 row.key:SetScript("OnClick", nil)
                 row.key:SetBackdropBorderColor(unpackColor(C.borderSoft))
                 row.key.label:SetTextColor(unpackColor(C.muted))
             else
-                local keyLabel = slot.inputKey and slot.inputKey ~= "" and slot.inputKey or "HOTKEY HINTERLEGEN"
-                row.key.label:SetText(conflict and (keyLabel .. " • DOPPELT") or keyLabel)
+                local keyLabel = slot.inputKey and slot.inputKey ~= "" and slot.inputKey or L("HOTKEY HINTERLEGEN")
+                row.key.label:SetText(conflict and (keyLabel .. " • " .. L("DOPPELT")) or keyLabel)
                 row.key:SetScript("OnClick", row.key.captureOnClick)
                 row.key:SetBackdropBorderColor(unpackColor(conflict and C.danger or C.border))
                 row.key.label:SetTextColor(unpackColor(conflict and C.danger or C.muted))

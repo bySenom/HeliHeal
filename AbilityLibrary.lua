@@ -1,4 +1,5 @@
 local _, ns = ...
+local L = ns.L or function(value, ...) return select("#", ...) > 0 and value:format(...) or value end
 
 local AbilityLibrary = {
     abilities = {},
@@ -106,16 +107,15 @@ function AbilityLibrary:Resolve(slot)
     if spellID > 0 and C_Spell and C_Spell.GetSpellInfo then
         local info = C_Spell.GetSpellInfo(spellID)
         if info then
-            if not name or name == "" then
-                name = info.name
-            end
+            -- Blizzard spell metadata is already localized for every client.
+            name = info.name or name
             icon = info.iconID or icon
         end
     end
 
     return {
         spellID = spellID,
-        name = (name and name ~= "") and name or (spellID > 0 and ("Spell " .. spellID) or "Nicht belegt"),
+        name = (name and name ~= "") and name or (spellID > 0 and ("Spell " .. spellID) or L("Nicht belegt")),
         icon = tonumber(icon) or ns.media.fallbackIcon,
         cooldown = math.max(0, tonumber(slot.cooldown) or 0),
         abilityKey = slot.abilityKey,

@@ -10,6 +10,7 @@ ns.changelog = {
                 "Einmaliges What's-New-Fenster beim ersten /hh nach einem Update.",
                 "Accountweiter Gesehen-Status statt wiederholter Hinweise pro Charakter oder Profil.",
                 "Neue Update-History-Seite und direkter Zugriff über /hh changelog.",
+                "Automatische deutsche oder englische Oberfläche passend zur WoW-Clientsprache.",
             },
         },
         {

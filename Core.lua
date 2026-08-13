@@ -1,4 +1,5 @@
 local _, ns = ...
+local L = ns.L or function(value, ...) return select("#", ...) > 0 and value:format(...) or value end
 
 local HeliHeal = LibStub("AceAddon-3.0"):NewAddon("HeliHeal", "AceConsole-3.0")
 ns.addon = HeliHeal
@@ -7,8 +8,8 @@ local HEALING_MODES = { "standard", "aoe", "single", "mana" }
 local HEALING_MODE_LABELS = {
     standard = "Standard",
     aoe = "AoE",
-    single = "Einzelziel",
-    mana = "Mana sparen",
+    single = L("Einzelziel"),
+    mana = L("Mana sparen"),
 }
 local HEALING_MODE_ALIASES = {
     standard = "standard", normal = "standard",
@@ -239,7 +240,7 @@ function HeliHeal:SetAbilityBinding(slotIndex, inputKey)
     if self.RefreshOptionsUI then self:RefreshOptionsUI() end
     local conflict = self:GetBindingConflictForAbility(bindingKey)
     if conflict then
-        self:Print(("Hotkey %s ist mehrfach belegt: %s"):format(conflict.inputKey, table.concat(conflict.names, ", ")))
+        self:Print(L("Hotkey %s ist mehrfach belegt: %s", conflict.inputKey, table.concat(conflict.names, ", ")))
     end
 end
 
@@ -254,7 +255,8 @@ function HeliHeal:GetBindingConflicts()
             end
             if not group.abilityKeys[slot.abilityKey] then
                 group.abilityKeys[slot.abilityKey] = true
-                group.names[#group.names + 1] = slot.name or slot.abilityKey
+                local resolved = ns.AbilityLibrary:Resolve(slot)
+                group.names[#group.names + 1] = resolved.name or slot.abilityKey
             end
         end
     end
@@ -304,7 +306,7 @@ function HeliHeal:ReconcileOutOfCombatState(silent)
     if not self:IsUnleashReady(now) then self.unleashConsumptionHistory = {} end
     self:IsArchdruidReady(now)
     self:RefreshDisplay()
-    if not silent then self:Print("Lokalen Zustand außerhalb des Kampfes abgeglichen.") end
+    if not silent then self:Print(L("Lokalen Zustand außerhalb des Kampfes abgeglichen.")) end
     return true
 end
 
@@ -333,6 +335,8 @@ function HeliHeal:BuildDiagnosticReport()
     return table.concat({
         "version=" .. tostring(version),
         "client=" .. tostring(build),
+        "locale=" .. tostring(ns.locale or "?"),
+        "localeFallback=" .. tostring(ns.localeFallback == true),
         "class=" .. tostring(self.classToken or "?"),
         "spec=" .. tostring(self.specializationID or "?"),
         "supported=" .. tostring(self.supportedClass == true),
@@ -390,7 +394,7 @@ function HeliHeal:SetHealingMode(mode, silent)
     self.db.profile.healingMode = mode
     self:RefreshDisplay()
     if self.RefreshOptionsUI then self:RefreshOptionsUI() end
-    if not silent then self:Print("Heilmodus: " .. HEALING_MODE_LABELS[mode]) end
+    if not silent then self:Print(L("Heilmodus: %s", HEALING_MODE_LABELS[mode])) end
     return true
 end
 
@@ -710,7 +714,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex)
     slotIndex = tonumber(slotIndex)
     local slot = slotIndex and self:GetSlot(slotIndex)
     if not slot or not slot.enabled then
-        self:Print(("Prioritätsplatz %s ist nicht belegt."):format(tostring(slotIndex or "?")))
+        self:Print(L("Prioritätsplatz %s ist nicht belegt.", tostring(slotIndex or "?")))
         return
     end
 
@@ -811,7 +815,7 @@ function HeliHeal:RefundAbility(abilityName)
             self.pendingDownpour = { uses = 1, maxUses = maxUses, expiresAt = now + 16 }
         end
         self:RefreshDisplay()
-        self:Print("Downpour lokal wiederhergestellt.")
+        self:Print(L("Downpour lokal wiederhergestellt."))
         return true
     end
 
@@ -860,14 +864,14 @@ function HeliHeal:RefundAbility(abilityName)
     end
     self:RestoreUnleashConsumption(key, GetTime())
     self:RefreshDisplay()
-    self:Print((ability.name or key) .. " lokal zurückerstattet.")
+    self:Print(L("%s lokal zurückerstattet.", ability.name or key))
     return true
 end
 
 function HeliHeal:ResetSession()
     self:ResetRuntimeState()
     self:RefreshDisplay()
-    self:Print("Lokale Cooldown-Simulation zurückgesetzt.")
+    self:Print(L("Lokale Cooldown-Simulation zurückgesetzt."))
 end
 
 function HeliHeal:ResetSlots()
@@ -897,13 +901,13 @@ function HeliHeal:HandleSlashCommand(input)
         self:ShowChangelogHistory()
     elseif command == "refund" or command == "zurueck" then
         if not self:RefundAbility(argument) then
-            self:Print("Unbekannte Fähigkeit. Beispiele: /hh refund hst, riptide, downpour, rain")
+            self:Print(L("Unbekannte Fähigkeit. Beispiele: /hh refund hst, riptide, downpour, rain"))
         end
     elseif command == "mode" or command == "modus" then
         if argument:lower() == "next" or argument:lower() == "weiter" then
             self:CycleHealingMode()
         elseif not self:SetHealingMode(argument) then
-            self:Print("Modi: standard, aoe, single, mana, next")
+            self:Print(L("Modi: standard, aoe, single, mana, next"))
         end
     elseif command == "talents" or command == "talente" then
         if argument:lower() == "refresh" or argument:lower() == "neu" then
@@ -920,7 +924,7 @@ function HeliHeal:HandleSlashCommand(input)
     elseif command == "lock" then
         self.db.profile.locked = not self.db.profile.locked
         self:ApplyDisplaySettings()
-        self:Print(self.db.profile.locked and "Anzeige gesperrt." or "Anzeige entsperrt.")
+        self:Print(L(self.db.profile.locked and "Anzeige gesperrt." or "Anzeige entsperrt."))
     else
         self:OpenOptions()
     end
