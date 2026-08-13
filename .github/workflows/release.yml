@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Lua
         run: sudo apt-get update && sudo apt-get install -y lua5.1 zip
@@ -42,6 +44,29 @@ jobs:
           zip -r "HeliHeal-${GITHUB_REF_NAME}.zip" HeliHeal
           sha256sum "HeliHeal-${GITHUB_REF_NAME}.zip" > "HeliHeal-${GITHUB_REF_NAME}.zip.sha256"
 
+      - name: Build release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          previous_tag="$(git tag --sort=-version:refname | grep -Fxv "${GITHUB_REF_NAME}" | head -n 1 || true)"
+          {
+            echo "HeliHeal ${GITHUB_REF_NAME#v} for World of Warcraft: Midnight 12.1."
+            echo
+            echo "## Changes"
+            if [[ -n "${previous_tag}" ]]; then
+              git log --no-merges --pretty='- %s' "${previous_tag}..${GITHUB_REF_NAME}"
+            else
+              echo "- Initial release."
+            fi
+            echo
+            echo "## Validation"
+            echo "- All automated Lua tests passed."
+            echo "- The tag matches the version declared in HeliHeal.toc."
+            echo "- The packaged addon contains only runtime files and documentation."
+            echo
+            echo "This is an alpha prerelease intended for in-game testing."
+          } > dist/release-notes.md
+
       - name: Publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
@@ -51,5 +76,5 @@ jobs:
             "dist/HeliHeal-${GITHUB_REF_NAME}.zip" \
             "dist/HeliHeal-${GITHUB_REF_NAME}.zip.sha256" \
             --title "HeliHeal ${GITHUB_REF_NAME#v}" \
-            --generate-notes \
+            --notes-file dist/release-notes.md \
             --prerelease
