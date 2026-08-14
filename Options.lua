@@ -191,7 +191,7 @@ local function createDropdownSelector(parent, menuParent, values, getValue, setV
     dismiss:Hide()
 
     local menu = CreateFrame("Frame", nil, menuParent, "BackdropTemplate")
-    menu:SetSize(230, (#values * 32) + 8)
+    menu:SetSize(230, 40)
     menu:SetFrameLevel(menuParent:GetFrameLevel() + 41)
     menu:SetClampedToScreen(true)
     backdrop(menu, C.sidebar, C.accentDark)
@@ -205,28 +205,46 @@ local function createDropdownSelector(parent, menuParent, values, getValue, setV
     end
     dismiss:SetScript("OnClick", closeMenu)
 
-    for index, option in ipairs(values) do
-        local optionButton = CreateFrame("Button", nil, menu, "BackdropTemplate")
-        optionButton:SetPoint("TOPLEFT", 4, -4 - ((index - 1) * 32))
-        optionButton:SetPoint("TOPRIGHT", -4, -4 - ((index - 1) * 32))
-        optionButton:SetHeight(30)
-        backdrop(optionButton, C.input, C.input)
-        optionButton.label = text(optionButton, option.label, 11, C.text, option.flags or "OUTLINE")
-        optionButton.label:SetFont(option.font or FONT, 11, option.flags or "OUTLINE")
-        optionButton.label:SetPoint("LEFT", 10, 0)
-        optionButton:SetScript("OnClick", function()
-            setValue(option.value)
-            selector:Refresh()
-            closeMenu()
-        end)
-        optionButton:SetScript("OnEnter", function(self)
-            self:SetBackdropColor(unpackColor(C.panelHover))
-            self.label:SetTextColor(unpackColor(C.text))
-        end)
-        optionButton:SetScript("OnLeave", function(self)
-            selector:RefreshMenu()
-        end)
-        menu.options[index] = optionButton
+    function selector:SetValues(newValues)
+        values = newValues or {}
+        menu:SetHeight(math.max(40, (#values * 32) + 8))
+        for index, option in ipairs(values) do
+            local optionButton = menu.options[index]
+            if not optionButton then
+                optionButton = CreateFrame("Button", nil, menu, "BackdropTemplate")
+                optionButton:SetHeight(30)
+                backdrop(optionButton, C.input, C.input)
+                optionButton.label = text(optionButton, "", 11, C.text, "OUTLINE")
+                optionButton.label:SetPoint("LEFT", 10, 0)
+                optionButton:SetScript("OnClick", function(self)
+                    setValue(self.option.value)
+                    selector:Refresh()
+                    closeMenu()
+                end)
+                optionButton:SetScript("OnEnter", function(self)
+                    self:SetBackdropColor(unpackColor(C.panelHover))
+                    self.label:SetTextColor(unpackColor(C.text))
+                end)
+                optionButton:SetScript("OnLeave", function()
+                    selector:RefreshMenu()
+                end)
+                menu.options[index] = optionButton
+            end
+            optionButton.option = option
+            optionButton:ClearAllPoints()
+            optionButton:SetPoint("TOPLEFT", 4, -4 - ((index - 1) * 32))
+            optionButton:SetPoint("TOPRIGHT", -4, -4 - ((index - 1) * 32))
+            optionButton.label:SetText(option.label)
+            optionButton.label:SetFont(option.font or FONT, 11, option.flags or "OUTLINE")
+            optionButton:Show()
+        end
+        for index = #values + 1, #menu.options do
+            menu.options[index]:Hide()
+        end
+        self:SetEnabled(#values > 0)
+        self:SetAlpha(#values > 0 and 1 or 0.45)
+        self.arrow:SetShown(#values > 0)
+        self:Refresh()
     end
 
     function selector:RefreshMenu()
@@ -250,8 +268,9 @@ local function createDropdownSelector(parent, menuParent, values, getValue, setV
                 return
             end
         end
-        self.label:SetText(values[1].label)
-        self.label:SetFont(values[1].font or FONT, 11, values[1].flags or "OUTLINE")
+        local fallback = values[1]
+        self.label:SetText(fallback and fallback.label or L("KEINE PROFILE"))
+        self.label:SetFont(fallback and fallback.font or FONT, 11, fallback and fallback.flags or "OUTLINE")
         self:RefreshMenu()
     end
 
@@ -276,8 +295,9 @@ local function createDropdownSelector(parent, menuParent, values, getValue, setV
     end)
     selector:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(unpackColor(C.accent)) end)
     selector:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(unpackColor(C.border)) end)
+    selector:SetScript("OnSizeChanged", function(_, width) menu:SetWidth(width) end)
     selector:SetScript("OnHide", closeMenu)
-    selector:Refresh()
+    selector:SetValues(values)
     return selector
 end
 
@@ -607,6 +627,30 @@ function HeliHeal:BuildStylePage(parent)
     page:SetAllPoints()
     setPageHeader(page, L("HUD-Elemente"), L("Reduziere die Anzeige auf das Wesentliche oder aktiviere einzelne Details."))
 
+    page.categoryButtons = {}
+    for index, category in ipairs({
+        { "visibility", L("SICHTBARKEIT") },
+        { "typography", L("TEXT") },
+        { "sizing", L("GRÖSSE & POSITION") },
+        { "colors", L("FARBEN") },
+    }) do
+        local categoryKey = category[1]
+        local tab = createButton(page, category[2], 142, 32, false)
+        tab:SetPoint("TOPLEFT", 20 + ((index - 1) * 150), -104)
+        tab:SetScript("OnClick", function() page:SelectCategory(categoryKey) end)
+        tab:SetScript("OnEnter", function(button)
+            button:SetBackdropBorderColor(unpackColor(C.accent))
+            button.label:SetTextColor(unpackColor(C.text))
+        end)
+        tab:SetScript("OnLeave", function(button)
+            local active = HeliHeal.selectedStyleCategory == categoryKey
+            button:SetBackdropColor(unpackColor(active and C.accentDark or C.input))
+            button:SetBackdropBorderColor(unpackColor(active and C.accent or C.border))
+            button.label:SetTextColor(unpackColor(active and C.text or C.muted))
+        end)
+        page.categoryButtons[categoryKey] = tab
+    end
+
     local definitions = {
         { L("Panel-Hintergrund"), L("Dunkler gemeinsamer Hintergrund um alle Icons."), "showPanelBackground" },
         { L("HeliHeal-Header"), L("Zeigt die Überschrift über der Priority-Leiste."), "showHeader" },
@@ -619,7 +663,7 @@ function HeliHeal:BuildStylePage(parent)
     }
 
     local scroll = CreateFrame("ScrollFrame", nil, page)
-    scroll:SetPoint("TOPLEFT", 0, -104)
+    scroll:SetPoint("TOPLEFT", 0, -146)
     scroll:SetPoint("BOTTOMRIGHT", -24, 12)
     scroll:EnableMouseWheel(true)
 
@@ -631,7 +675,7 @@ function HeliHeal:BuildStylePage(parent)
     local track = page:CreateTexture(nil, "BACKGROUND")
     track:SetTexture(WHITE)
     track:SetColorTexture(unpackColor(C.borderSoft))
-    track:SetPoint("TOPRIGHT", -13, -110)
+    track:SetPoint("TOPRIGHT", -13, -152)
     track:SetPoint("BOTTOMRIGHT", -13, 18)
     track:SetWidth(3)
 
@@ -677,6 +721,7 @@ function HeliHeal:BuildStylePage(parent)
     end
 
     page.refreshers = {}
+    page.categoryRows = { visibility = {}, typography = {}, sizing = {}, colors = {} }
     for index, definition in ipairs(definitions) do
         local row = createSettingRow(content, -6 - ((index - 1) * 68), definition[1], definition[2])
         local settingKey = definition[3]
@@ -690,21 +735,17 @@ function HeliHeal:BuildStylePage(parent)
         bindWheel(row)
         bindWheel(toggle)
         page.refreshers[#page.refreshers + 1] = toggle
+        page.categoryRows.visibility[#page.categoryRows.visibility + 1] = row
     end
 
-    local nextY = -6 - (#definitions * 68)
-    local styleSection = text(content, L("SCHRIFT, GRÖSSE & FARBEN"), 10, C.accent, "OUTLINE")
-    styleSection:SetPoint("TOPLEFT", 20, nextY - 10)
-    nextY = nextY - 38
-
-    local function addControlRow(titleText, descriptionText, control)
-        local row = createSettingRow(content, nextY, titleText, descriptionText)
+    local function addControlRow(category, titleText, descriptionText, control)
+        local row = createSettingRow(content, 0, titleText, descriptionText)
         control:SetParent(row)
         control:SetPoint("RIGHT", -20, 0)
         bindWheel(row)
         bindWheel(control)
         page.refreshers[#page.refreshers + 1] = control
-        nextY = nextY - 68
+        page.categoryRows[category][#page.categoryRows[category] + 1] = row
         return row
     end
 
@@ -716,7 +757,7 @@ function HeliHeal:BuildStylePage(parent)
     local fontSelector = createDropdownSelector(content, page, fontOptions,
         function() return self.db.profile.hudFont end,
         function(value) self.db.profile.hudFont = value; self:RefreshDisplay() end)
-    addControlRow(L("HUD-Schriftart"), L("Wählt die Schriftart für alle Texte im Priority-HUD."), fontSelector)
+    addControlRow("typography", L("HUD-Schriftart"), L("Wählt die Schriftart für alle Texte im Priority-HUD."), fontSelector)
 
     local outlineSelector = createDropdownSelector(content, page, {
         { value = "NONE", label = L("Ohne Kontur"), flags = "" },
@@ -724,49 +765,49 @@ function HeliHeal:BuildStylePage(parent)
         { value = "THICKOUTLINE", label = L("Starke Kontur"), flags = "THICKOUTLINE" },
     }, function() return self.db.profile.hudFontOutline end,
         function(value) self.db.profile.hudFontOutline = value; self:RefreshDisplay() end)
-    addControlRow(L("Textkontur"), L("Legt die Lesbarkeit aller Texte auf den Spell-Icons fest."), outlineSelector)
+    addControlRow("typography", L("Textkontur"), L("Legt die Lesbarkeit aller Texte auf den Spell-Icons fest."), outlineSelector)
 
     local primarySize = createSlider(content, 48, 96, 1,
         function() return self.db.profile.primaryIconSize end,
         function(value) self.db.profile.primaryIconSize = value; self:RefreshDisplay() end,
         function(value) return ("%d px"):format(value) end)
-    addControlRow(L("Haupt-Icon-Größe"), L("Größe der aktuell empfohlenen Fähigkeit."), primarySize)
+    addControlRow("sizing", L("Haupt-Icon-Größe"), L("Größe der aktuell empfohlenen Fähigkeit."), primarySize)
 
     local secondarySize = createSlider(content, 32, 72, 1,
         function() return self.db.profile.secondaryIconSize end,
         function(value) self.db.profile.secondaryIconSize = value; self:RefreshDisplay() end,
         function(value) return ("%d px"):format(value) end)
-    addControlRow(L("Folge-Icon-Größe"), L("Größe der vier nachfolgenden Empfehlungen."), secondarySize)
+    addControlRow("sizing", L("Folge-Icon-Größe"), L("Größe der vier nachfolgenden Empfehlungen."), secondarySize)
 
     local roleSize = createSlider(content, 7, 18, 1,
         function() return self.db.profile.roleLabelSize end,
         function(value) self.db.profile.roleLabelSize = value; self:RefreshDisplay() end,
         function(value) return ("%d px"):format(value) end)
-    addControlRow(L("Rollen-Textgröße"), L("Größe von AOE, SINGLE, BURST und SAVE."), roleSize)
+    addControlRow("typography", L("Rollen-Textgröße"), L("Größe von AOE, SINGLE, BURST und SAVE."), roleSize)
 
     local roleOffset = createSlider(content, -12, 12, 1,
         function() return self.db.profile.roleLabelOffsetY end,
         function(value) self.db.profile.roleLabelOffsetY = value; self:RefreshDisplay() end,
         function(value) return ("%+d px"):format(value) end)
-    addControlRow(L("Rollen-Position"), L("Verschiebt den Rollen-Hinweis vertikal im Icon."), roleOffset)
+    addControlRow("sizing", L("Rollen-Position"), L("Verschiebt den Rollen-Hinweis vertikal im Icon."), roleOffset)
 
     local hotkeySize = createSlider(content, 7, 16, 1,
         function() return self.db.profile.hotkeyFontSize end,
         function(value) self.db.profile.hotkeyFontSize = value; self:RefreshDisplay() end,
         function(value) return ("%d px"):format(value) end)
-    addControlRow(L("Hotkey-Textgröße"), L("Größe der Tastenbezeichnung unter dem Icon."), hotkeySize)
+    addControlRow("typography", L("Hotkey-Textgröße"), L("Größe der Tastenbezeichnung unter dem Icon."), hotkeySize)
 
     local cooldownSize = createSlider(content, 10, 24, 1,
         function() return self.db.profile.cooldownFontSize end,
         function(value) self.db.profile.cooldownFontSize = value; self:RefreshDisplay() end,
         function(value) return ("%d px"):format(value) end)
-    addControlRow(L("Cooldown-Textgröße"), L("Größe des lokalen Timers und der Aufladungsanzeige."), cooldownSize)
+    addControlRow("typography", L("Cooldown-Textgröße"), L("Größe des lokalen Timers und der Aufladungsanzeige."), cooldownSize)
 
     local nameSize = createSlider(content, 7, 16, 1,
         function() return self.db.profile.abilityNameFontSize end,
         function(value) self.db.profile.abilityNameFontSize = value; self:RefreshDisplay() end,
         function(value) return ("%d px"):format(value) end)
-    addControlRow(L("Namens-Textgröße"), L("Größe von Fähigkeitsname und optionalem Header."), nameSize)
+    addControlRow("typography", L("Namens-Textgröße"), L("Größe von Fähigkeitsname und optionalem Header."), nameSize)
 
     local function colorValue(key)
         return self.db.profile[key] or ns.defaults.profile[key]
@@ -780,18 +821,19 @@ function HeliHeal:BuildStylePage(parent)
 
     local accentColor = createColorSwatch(content, 112, L("AKZENT"),
         function() return colorValue("accentColor") end, colorSetter("accentColor"))
-    addControlRow(L("HUD-Akzentfarbe"), L("Farbe für aktive Rahmen, Header und Prioritätsbadge."), accentColor)
+    addControlRow("colors", L("HUD-Akzentfarbe"), L("Farbe für aktive Rahmen, Header und Prioritätsbadge."), accentColor)
 
     local hotkeyColor = createColorSwatch(content, 112, L("HOTKEY"),
         function() return colorValue("hotkeyColor") end, colorSetter("hotkeyColor"))
-    addControlRow(L("Hotkey-Farbe"), L("Textfarbe der beobachteten Tastenbelegung."), hotkeyColor)
+    addControlRow("colors", L("Hotkey-Farbe"), L("Textfarbe der beobachteten Tastenbelegung."), hotkeyColor)
 
     local cooldownColor = createColorSwatch(content, 112, L("TIMER"),
         function() return colorValue("cooldownColor") end, colorSetter("cooldownColor"))
-    addControlRow(L("Cooldown-Farbe"), L("Textfarbe für Timer, Aufladungen und Abdeckungszähler."), cooldownColor)
+    addControlRow("colors", L("Cooldown-Farbe"), L("Textfarbe für Timer, Aufladungen und Abdeckungszähler."), cooldownColor)
 
-    local roleRow = createSettingRow(content, nextY, L("Rollenfarben"), L("Eigene Farben für jeden Heilungs-Kontext."))
+    local roleRow = createSettingRow(content, 0, L("Rollenfarben"), L("Eigene Farben für jeden Heilungs-Kontext."))
     bindWheel(roleRow)
+    page.categoryRows.colors[#page.categoryRows.colors + 1] = roleRow
     local previousSwatch
     for _, role in ipairs({ "AOE", "SINGLE", "BURST", "SAVE" }) do
         local roleKey = role
@@ -816,10 +858,9 @@ function HeliHeal:BuildStylePage(parent)
         page.refreshers[#page.refreshers + 1] = swatch
         previousSwatch = swatch
     end
-    nextY = nextY - 68
-
-    local resetRow = createSettingRow(content, nextY, L("HUD-Optik zurücksetzen"), L("Setzt nur Schrift, Größen und Farben auf HeliHeal-Standard zurück."))
+    local resetRow = createSettingRow(content, 0, L("HUD-Optik zurücksetzen"), L("Setzt nur Schrift, Größen und Farben auf HeliHeal-Standard zurück."))
     bindWheel(resetRow)
+    page.categoryRows.colors[#page.categoryRows.colors + 1] = resetRow
     local resetAppearance = createButton(resetRow, L("OPTIK RESET"), 150, 32, false)
     resetAppearance:SetPoint("RIGHT", -20, 0)
     bindWheel(resetAppearance)
@@ -841,10 +882,28 @@ function HeliHeal:BuildStylePage(parent)
         self:RefreshDisplay()
         self:RefreshOptionsUI()
     end)
-    nextY = nextY - 68
-
-    content:SetHeight(math.abs(nextY) + 8)
-    updateScroll()
+    function page:SelectCategory(category)
+        if not self.categoryRows[category] then category = "visibility" end
+        HeliHeal.selectedStyleCategory = category
+        for categoryKey, rows in pairs(self.categoryRows) do
+            for _, row in ipairs(rows) do row:SetShown(categoryKey == category) end
+            local tab = self.categoryButtons[categoryKey]
+            local active = categoryKey == category
+            tab:SetBackdropColor(unpackColor(active and C.accentDark or C.input))
+            tab:SetBackdropBorderColor(unpackColor(active and C.accent or C.border))
+            tab.label:SetTextColor(unpackColor(active and C.text or C.muted))
+        end
+        local rows = self.categoryRows[category]
+        for index, row in ipairs(rows) do
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", 20, -6 - ((index - 1) * 68))
+            row:SetPoint("TOPRIGHT", -20, -6 - ((index - 1) * 68))
+        end
+        content:SetHeight(math.max(1, (#rows * 68) + 6))
+        scroll:SetVerticalScroll(0)
+        updateScroll()
+    end
+    page:SelectCategory(self.selectedStyleCategory or "visibility")
     page.scroll = scroll
     page.updateScroll = updateScroll
     return page
@@ -856,47 +915,143 @@ function HeliHeal:BuildProfilesPage(parent)
     setPageHeader(page, L("Profile & Reset"), L("Separate Konfigurationen über AceDB verwalten oder sicher zurücksetzen."))
 
     local profileCard = CreateFrame("Frame", nil, page, "BackdropTemplate")
-    profileCard:SetPoint("TOPLEFT", 28, -116)
-    profileCard:SetPoint("TOPRIGHT", -28, -116)
-    profileCard:SetHeight(150)
+    profileCard:SetPoint("TOPLEFT", 20, -110)
+    profileCard:SetPoint("TOPRIGHT", -20, -110)
+    profileCard:SetHeight(252)
     backdrop(profileCard, C.panel, C.borderSoft)
     local profileCaption = text(profileCard, L("AKTIVES PROFIL"), 10, C.accent, "OUTLINE")
     profileCaption:SetPoint("TOPLEFT", 20, -18)
     page.profileName = text(profileCard, "", 22, C.text, "OUTLINE")
     page.profileName:SetPoint("TOPLEFT", profileCaption, "BOTTOMLEFT", 0, -12)
-    local switchLabel = text(profileCard, L("Profilname eingeben, um ein Profil anzulegen oder zu wechseln:"), 10, C.muted)
-    switchLabel:SetPoint("BOTTOMLEFT", 20, 50)
-    page.profileInput = createEditBox(profileCard, 260, L("Profilname"))
-    page.profileInput:SetPoint("BOTTOMLEFT", 20, 12)
-    local switch = createButton(profileCard, L("PROFIL ÖFFNEN"), 150, 34, true)
-    switch:SetPoint("LEFT", page.profileInput, "RIGHT", 10, 0)
-    switch:SetScript("OnClick", function()
+
+    local existingLabel = text(profileCard, L("VORHANDENE PROFILE"), 9, C.muted, "OUTLINE")
+    existingLabel:SetPoint("TOPLEFT", 420, -20)
+    local profileOptions = {}
+    local profileSelector = createDropdownSelector(profileCard, page, profileOptions,
+        function() return self.db:GetCurrentProfile() end,
+        function(value) self.db:SetProfile(value) end)
+    profileSelector:SetSize(330, 34)
+    profileSelector:SetPoint("TOPLEFT", existingLabel, "BOTTOMLEFT", 0, -8)
+    page.profileSelector = profileSelector
+
+    local createLabel = text(profileCard, L("NEUES PROFIL"), 9, C.muted, "OUTLINE")
+    createLabel:SetPoint("TOPLEFT", 20, -112)
+    page.profileInput = createEditBox(profileCard, 270, L("Profilname"))
+    page.profileInput:SetPoint("TOPLEFT", createLabel, "BOTTOMLEFT", 0, -8)
+    local create = createButton(profileCard, L("LEER ERSTELLEN"), 142, 34, false)
+    create:SetPoint("LEFT", page.profileInput, "RIGHT", 10, 0)
+    local duplicate = createButton(profileCard, L("AKTUELLES KOPIEREN"), 174, 34, true)
+    duplicate:SetPoint("LEFT", create, "RIGHT", 8, 0)
+
+    local function requestedProfileName()
         local name = page.profileInput:GetText():match("^%s*(.-)%s*$")
-        if name ~= "" then
-            self.db:SetProfile(name)
-            page.profileInput:SetText("")
-            page.profileInput:ClearFocus()
+        return name ~= "" and name or nil
+    end
+    local function profileExists(name)
+        for _, profileName in ipairs(self.db:GetProfiles()) do
+            if profileName == name then return true end
         end
+        return false
+    end
+    local function clearProfileInput()
+        page.profileInput:SetText("")
+        page.profileInput:ClearFocus()
+    end
+    create:SetScript("OnClick", function()
+        local name = requestedProfileName()
+        if not name then return end
+        if profileExists(name) then self:Print(L("Profil '%s' existiert bereits.", name)); return end
+        self.db:SetProfile(name)
+        clearProfileInput()
     end)
-    page.profileInput:SetScript("OnEnterPressed", function() switch:Click() end)
+    duplicate:SetScript("OnClick", function()
+        local name = requestedProfileName()
+        if not name then return end
+        if profileExists(name) then self:Print(L("Profil '%s' existiert bereits.", name)); return end
+        local sourceProfile = self.db:GetCurrentProfile()
+        self.db:SetProfile(name)
+        self.db:CopyProfile(sourceProfile)
+        clearProfileInput()
+    end)
+    page.profileInput:SetScript("OnEnterPressed", function() duplicate:Click() end)
 
-    local safety = createSettingRow(page, -294, L("Cooldown-Simulation zurücksetzen"), L("Entfernt nur die lokalen Laufzeittimer; deine Fähigkeiten bleiben erhalten."))
-    local resetSession = createButton(safety, L("TIMER RESET"), 130, 32, false)
-    resetSession:SetPoint("RIGHT", -16, 0)
-    resetSession:SetScript("OnClick", function() self:ResetSession() end)
+    local deleteLabel = text(profileCard, L("NICHT AKTIVES PROFIL LÖSCHEN"), 9, C.muted, "OUTLINE")
+    deleteLabel:SetPoint("TOPLEFT", 20, -192)
+    local deleteSelection
+    local deleteSelector = createDropdownSelector(profileCard, page, {},
+        function() return deleteSelection end,
+        function(value)
+            deleteSelection = value
+            page.pendingDeleteProfile = nil
+            page.deleteButton.label:SetText(L("PROFIL LÖSCHEN"))
+        end)
+    deleteSelector:SetSize(270, 34)
+    deleteSelector:SetPoint("TOPLEFT", deleteLabel, "BOTTOMLEFT", 0, -8)
+    page.deleteSelector = deleteSelector
+    page.deleteButton = createButton(profileCard, L("PROFIL LÖSCHEN"), 180, 34, false)
+    page.deleteButton:SetPoint("LEFT", deleteSelector, "RIGHT", 10, 0)
+    page.deleteButton:SetScript("OnClick", function(button)
+        if not deleteSelection then return end
+        if page.pendingDeleteProfile ~= deleteSelection then
+            page.pendingDeleteProfile = deleteSelection
+            button.label:SetText(L("LÖSCHEN BESTÄTIGEN"))
+            button:SetBackdropBorderColor(unpackColor(C.danger))
+            return
+        end
+        self.db:DeleteProfile(deleteSelection)
+        deleteSelection = nil
+        page.pendingDeleteProfile = nil
+        button.label:SetText(L("PROFIL LÖSCHEN"))
+        button:SetBackdropBorderColor(unpackColor(C.border))
+        page:RefreshProfiles()
+    end)
 
-    local resetSlots = createSettingRow(page, -364, L("Alle Klassen-Hotkeys löschen"), L("Entfernt nur deine hinterlegten Inputs; das feste 12.1-Prioritätspaket bleibt erhalten."))
-    local resetPriorities = createButton(resetSlots, L("HOTKEYS RESET"), 160, 32, false)
-    resetPriorities:SetPoint("RIGHT", -16, 0)
-    resetPriorities:SetScript("OnClick", function() self:ResetSlots() end)
+    local maintenance = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    maintenance:SetPoint("TOPLEFT", 20, -376)
+    maintenance:SetPoint("TOPRIGHT", -20, -376)
+    maintenance:SetHeight(154)
+    backdrop(maintenance, C.panel, C.borderSoft)
+    local maintenanceCaption = text(maintenance, L("WARTUNG & RESET"), 10, C.accent, "OUTLINE")
+    maintenanceCaption:SetPoint("TOPLEFT", 20, -16)
+    local actions = {
+        { L("TIMER RESET"), L("Nur lokale Timer"), function() self:ResetSession() end },
+        { L("HOTKEYS RESET"), L("Alle Klassen-Hotkeys"), function() self:ResetSlots() end },
+        { L("PROFIL RESET"), L("Aktives Profil"), function() self.db:ResetProfile() end },
+    }
+    for index, action in ipairs(actions) do
+        local callback = action[3]
+        local actionButton = createButton(maintenance, action[1], 190, 34, index == 1)
+        actionButton:SetPoint("TOPLEFT", 20 + ((index - 1) * 235), -52)
+        actionButton:SetScript("OnClick", callback)
+        local description = text(maintenance, action[2], 9, C.muted)
+        description:SetPoint("TOP", actionButton, "BOTTOM", 0, -9)
+    end
 
-    local resetProfile = createSettingRow(page, -434, L("Komplettes Profil zurücksetzen"), L("Setzt Anzeige, Position und Prioritäten des aktiven Profils zurück."))
-    local resetAll = createButton(resetProfile, L("PROFIL RESET"), 130, 32, false)
-    resetAll:SetPoint("RIGHT", -16, 0)
-    resetAll:SetScript("OnClick", function() self.db:ResetProfile() end)
+    function page:RefreshProfiles()
+        local profiles = HeliHeal.db:GetProfiles({})
+        table.sort(profiles, function(a, b) return a:lower() < b:lower() end)
+        local options = {}
+        local deleteOptions = {}
+        local current = HeliHeal.db:GetCurrentProfile()
+        for _, profileName in ipairs(profiles) do
+            options[#options + 1] = { value = profileName, label = profileName }
+            if profileName ~= current then deleteOptions[#deleteOptions + 1] = { value = profileName, label = profileName } end
+        end
+        page.profileName:SetText(current)
+        profileSelector:SetValues(options)
+        local stillValid = false
+        for _, option in ipairs(deleteOptions) do if option.value == deleteSelection then stillValid = true break end end
+        if not stillValid then deleteSelection = deleteOptions[1] and deleteOptions[1].value or nil end
+        deleteSelector:SetValues(deleteOptions)
+        page.deleteButton:SetEnabled(deleteSelection ~= nil)
+        page.deleteButton:SetAlpha(deleteSelection and 1 or 0.45)
+        page.pendingDeleteProfile = nil
+        page.deleteButton.label:SetText(L("PROFIL LÖSCHEN"))
+    end
+    page:RefreshProfiles()
 
     local reload = createButton(page, "RELOAD UI", 140, 38, true)
-    reload:SetPoint("BOTTOMLEFT", 28, 28)
+    reload:SetPoint("BOTTOMLEFT", 20, 18)
     reload:SetScript("OnClick", function()
         if C_UI and C_UI.Reload then C_UI.Reload() else ReloadUI() end
     end)
@@ -1190,6 +1345,7 @@ function HeliHeal:RefreshOptionsUI()
     for _, control in ipairs(window.pages.style.refreshers or {}) do
         control:Refresh()
     end
+    if window.pages.profiles.RefreshProfiles then window.pages.profiles:RefreshProfiles() end
 
     local prioritiesPage = window.pages.priorities
     for presetKey, button in pairs(prioritiesPage.presetButtons or {}) do

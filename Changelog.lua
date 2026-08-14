@@ -14,6 +14,8 @@ ns.changelog = {
                 "Schriftart, Textkontur, Icon- und Textgrößen können jetzt live angepasst werden.",
                 "Akzent-, Hotkey-, Cooldown- und einzelne Rollenfarben sind vollständig konfigurierbar.",
                 "Schriftart und Textkontur verwenden jetzt echte Dropdown-Menüs mit Live-Vorschau.",
+                "HUD-Einstellungen sind jetzt in Sichtbarkeit, Text, Größe und Farben gegliedert.",
+                "Die Profilseite zeigt vorhandene Profile und unterstützt Wechseln, Erstellen, Kopieren und sicheres Löschen.",
             },
         },
         {
