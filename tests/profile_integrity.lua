@@ -23,7 +23,7 @@ local profile = {
 }
 addon.db = { profile = profile }
 assert(addon:MigrateProfile(profile), "legacy profile must migrate exactly once")
-assert(profile.schemaVersion == 2 and profile.rotationDataVersion == 12107,
+assert(profile.schemaVersion == 2 and profile.rotationDataVersion == 12108,
     "migration must stamp the schema and rotation data versions")
 assert(profile.bindings.healing_stream_combo == "BUTTON5" and profile.healingMode == "aoe",
     "migration must preserve and normalize legacy bindings and modes")
@@ -32,6 +32,10 @@ assert(not addon:MigrateProfile(profile), "current profiles must not migrate rep
 profile.rotationPreset = "shaman_totemic_mythicplus"
 profile.bindings = { healing_stream_combo = "BUTTON5", riptide = "BUTTON5", healing_rain = "SHIFT-5" }
 profile.slots = namespace.AbilityLibrary:BuildPresetSlots(profile.rotationPreset, profile.bindings)
+local chainIndex = addon:GetSlotIndexByAbilityKey("chain_heal")
+local waveIndex = addon:GetSlotIndexByAbilityKey("healing_wave")
+assert(addon:GetSlot(chainIndex).roleLabel == "AOE" and addon:GetSlot(waveIndex).roleLabel == "SINGLE",
+    "Shaman filler role labels must survive preset resolution")
 local conflicts = addon:GetBindingConflicts()
 assert(#conflicts == 1 and conflicts[1].inputKey == "BUTTON5",
     "two independent abilities on one key must be reported")

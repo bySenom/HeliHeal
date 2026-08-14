@@ -133,6 +133,8 @@ local enUS = {
     ["Lokale Holy-Power-Schätzung: %d/5"] = "Local Holy Power estimate: %d/5",
     ["Verwendung: /hh hp 0-5"] = "Usage: /hh hp 0-5",
     ["Gespeichertes Zaubertempo: %.1f%%"] = "Cached spell haste: %.1f%%",
+    ["Rollen-Hinweis"] = "Role label",
+    ["Zeigt AOE, SINGLE, BURST oder SAVE mittig auf passenden Heilfähigkeiten."] = "Shows AOE, SINGLE, BURST or SAVE in the center of matching healing abilities.",
     ["Holy Paladin Support"] = "Holy Paladin Support",
     ["Holy-Paladin-Prioritäten für Herald of the Sun und Lightsmith ergänzt."] = "Added Holy Paladin priorities for Herald of the Sun and Lightsmith.",
     ["Eigene Mythic+- und Raid-Pakete mit Standard-, AoE-, Einzelziel- und Mana-Modus hinzugefügt."] = "Added dedicated Mythic+ and Raid packs with Standard, AoE, Single Target and Mana modes.",
@@ -143,6 +145,10 @@ local enUS = {
     ["Reliable Major Cooldown Confirmation"] = "Reliable Major Cooldown Confirmation",
     ["Compact Talent-Aware Priority List"] = "Compact Talent-Aware Priority List",
     ["Haste-Aware Paladin Recharge"] = "Haste-Aware Paladin Recharge",
+    ["Context Labels for Filler Heals"] = "Context Labels for Filler Heals",
+    ["Passende Heilfähigkeiten zeigen jetzt AOE, SINGLE, BURST oder SAVE mittig auf dem Icon."] = "Matching healing abilities now show AOE, SINGLE, BURST or SAVE in the center of the icon.",
+    ["Holy Light wird als mana-effizientes SAVE und Flash of Light als schnelles BURST gekennzeichnet."] = "Holy Light is labeled as the mana-efficient SAVE option and Flash of Light as the fast BURST option.",
+    ["Die Rollen-Hinweise sind standardmäßig aktiv und in den HUD-Optionen abschaltbar."] = "Role labels are enabled by default and can be disabled in the HUD options.",
     ["Heiliger Schock verwendet jetzt die durch Zaubertempo reduzierte Wiederaufladezeit."] = "Holy Shock now uses its spell-haste-reduced recharge time.",
     ["Richturteil und Kreuzfahrerstoß verwenden dasselbe Tempo-Modell."] = "Judgment and Crusader Strike use the same haste model.",
     ["Zaubertempo wird nur außerhalb des Kampfes sicher gespeichert und im Kampf nicht als SecretValue verarbeitet."] = "Spell haste is cached safely only outside combat and is not processed as a SecretValue in combat.",
@@ -182,6 +188,7 @@ local deDE = {
     ["Reliable Major Cooldown Confirmation"] = "Zuverlässige Bestätigung großer Cooldowns",
     ["Compact Talent-Aware Priority List"] = "Kompakte talentabhängige Prioritätsliste",
     ["Haste-Aware Paladin Recharge"] = "Tempoabhängige Paladin-Wiederaufladung",
+    ["Context Labels for Filler Heals"] = "Kontext-Hinweise für direkte Heilungen",
 }
 
 local translations = enUS

@@ -58,8 +58,8 @@ local abilities = {
         inputLockout = 1.5,
         derivedBindingFrom = "healing_rain",
     },
-    chain_heal = { spellID = 1064, name = "Chain Heal", cooldown = 0, inputLockout = 1.5, consumesSwiftness = true },
-    healing_wave = { spellID = 77472, name = "Healing Wave", cooldown = 0, inputLockout = 1.5, consumesSwiftness = true },
+    chain_heal = { spellID = 1064, name = "Chain Heal", cooldown = 0, roleLabel = "AOE", inputLockout = 1.5, consumesSwiftness = true },
+    healing_wave = { spellID = 77472, name = "Healing Wave", cooldown = 0, roleLabel = "SINGLE", inputLockout = 1.5, consumesSwiftness = true },
 }
 
 for key, ability in pairs(abilities) do

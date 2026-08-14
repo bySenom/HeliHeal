@@ -51,12 +51,17 @@ local tollIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_toll")
 local shockIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_shock")
 local flameIndex = addon:GetSlotIndexByAbilityKey("paladin_eternal_flame")
 local dawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
+local holyLightIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_light")
 local flashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
 
 assert(addon:GetSlot(tollIndex).cooldown == 30,
     "Quickened Invocation must reduce Divine Toll to 30 seconds")
 assert(addon:GetSlot(shockIndex).maxCharges == 2,
     "Light's Conviction must keep two Holy Shock charges")
+assert(addon:GetSlot(dawnIndex).roleLabel == "AOE"
+    and addon:GetSlot(holyLightIndex).roleLabel == "SAVE"
+    and addon:GetSlot(flashIndex).roleLabel == "BURST",
+    "Paladin contextual heal labels must survive preset resolution")
 assert(addon:GetSlot(shockIndex).cooldown == 5,
     "20 percent cached spell haste must reduce Holy Shock recharge from six to five seconds")
 local judgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")

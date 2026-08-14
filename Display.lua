@@ -6,6 +6,12 @@ local DISPLAY_SLOT_COUNT = 5
 local PRIMARY_SIZE = 62
 local SECONDARY_SIZE = 46
 local WHITE = "Interface\\Buttons\\WHITE8X8"
+local ROLE_COLORS = {
+    AOE = { 0.2, 0.82, 1.0 },
+    SINGLE = { 0.35, 1.0, 0.62 },
+    BURST = { 1.0, 0.55, 0.18 },
+    SAVE = { 0.15, 0.95, 0.72 },
+}
 
 local function formatRemaining(seconds)
     if seconds >= 10 then
@@ -103,6 +109,10 @@ function HeliHeal:CreateDisplay()
         button.remaining:SetFont(ns.media.font, 14, "OUTLINE")
         button.remaining:SetPoint("CENTER")
         button.remaining:SetTextColor(1, 0.86, 0.32)
+
+        button.roleLabel = button:CreateFontString(nil, "OVERLAY")
+        button.roleLabel:SetFont(ns.media.font, 9, "OUTLINE")
+        button.roleLabel:SetPoint("CENTER")
 
         button.name = button:CreateFontString(nil, "OVERLAY")
         button.name:SetFont(ns.media.font, 9, "OUTLINE")
@@ -309,6 +319,11 @@ function HeliHeal:RefreshDisplay()
             button.key:SetText(configuredSlot.inputKey or ("P" .. item.slotIndex))
             button.keyBadge:SetWidth(math.max(46, button.key:GetStringWidth() + 16))
             button.priorityBadge:SetText(("P%d"):format(item.priorityRank))
+            local roleLabel = profile.showRoleLabel and item.ability.roleLabel or nil
+            local roleColor = roleLabel and ROLE_COLORS[roleLabel]
+            button.roleLabel:SetFont(ns.media.font, displayIndex == 1 and 10 or 8, "OUTLINE")
+            button.roleLabel:SetText(roleLabel or "")
+            if roleColor then button.roleLabel:SetTextColor(roleColor[1], roleColor[2], roleColor[3]) end
             if item.trackedText then
                 button.remaining:SetText(item.trackedText)
             elseif item.remaining > 0 then
@@ -320,6 +335,8 @@ function HeliHeal:RefreshDisplay()
             end
             button.keyBadge:SetShown(profile.showHotkey)
             button.remaining:SetShown(profile.showCooldown)
+            button.roleLabel:SetShown(roleLabel ~= nil and item.remaining <= 0
+                and not item.trackedText and not (item.charges and item.charges > 1))
             button.name:SetShown(profile.showAbilityName)
             button.priorityBadge:SetShown(profile.showPriorityBadge)
 

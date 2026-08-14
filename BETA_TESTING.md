@@ -24,6 +24,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Holy Paladin: use Judgment, Crusader Strike and Shield of the Righteous through the One Button Assistant; `/hh diagnostics` must follow the real 0-5 Holy Power value.
 - Cast Shift-bound Avenging Wrath: the recommendation must disappear immediately after `UNIT_SPELLCAST_SUCCEEDED`, even though Wings is off the GCD.
 - Outside combat, verify Holy Shock's local recharge matches `6 / (1 + spell haste)`; entering combat must retain that safe snapshot.
+- Verify Light of Dawn/Holy Light/Flash of Light show `AOE`/`SAVE`/`BURST`, while Chain Heal/Healing Wave show `AOE`/`SINGLE`.
 - Instant casts such as Riptide and Rejuvenation advance without an extra 1.5-second delay.
 
 ## Restoration Shaman

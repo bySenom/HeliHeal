@@ -69,15 +69,15 @@ local abilities = {
     },
     paladin_light_of_dawn = {
         spellID = 85222, name = "Light of Dawn", cooldown = 0,
-        holyPowerCost = 3, inputLockout = 1.5,
+        holyPowerCost = 3, roleLabel = "AOE", inputLockout = 1.5,
     },
     paladin_holy_light = {
         spellID = 82326, name = "Holy Light", cooldown = 0,
-        holyPowerGain = 1, inputLockout = 1.5,
+        holyPowerGain = 1, roleLabel = "SAVE", inputLockout = 1.5,
     },
     paladin_flash_of_light = {
         spellID = 19750, name = "Flash of Light", cooldown = 0,
-        holyPowerGain = 1, inputLockout = 1.5,
+        holyPowerGain = 1, roleLabel = "BURST", inputLockout = 1.5,
     },
 }
 

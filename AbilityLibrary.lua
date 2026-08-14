@@ -43,6 +43,7 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.grantsFreeSpenderTalent = record.grantsFreeSpenderTalent
     record.confirmOnPlayerSuccess = record.confirmOnPlayerSuccess == true
     record.hastedCooldown = record.hastedCooldown == true
+    record.roleLabel = type(record.roleLabel) == "string" and record.roleLabel:upper() or nil
     self.abilities[key] = record
     return record
 end
@@ -139,6 +140,7 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             grantsFreeSpenderTalent = ability.grantsFreeSpenderTalent,
             confirmOnPlayerSuccess = ability.confirmOnPlayerSuccess,
             hastedCooldown = ability.hastedCooldown,
+            roleLabel = ability.roleLabel,
             derivedBindingFrom = ability.derivedBindingFrom,
             inputKey = bindings and bindings[bindingKey] or "",
         }
@@ -193,6 +195,7 @@ function AbilityLibrary:Resolve(slot)
         grantsFreeSpenderTalent = slot.grantsFreeSpenderTalent,
         confirmOnPlayerSuccess = slot.confirmOnPlayerSuccess == true,
         hastedCooldown = slot.hastedCooldown == true,
+        roleLabel = type(slot.roleLabel) == "string" and slot.roleLabel:upper() or nil,
         derivedBindingFrom = slot.derivedBindingFrom,
         enabled = slot.enabled ~= false and spellID > 0,
     }
