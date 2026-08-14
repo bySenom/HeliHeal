@@ -3,15 +3,43 @@ local HeliHeal = ns.addon
 local L = ns.L or function(value, ...) return select("#", ...) > 0 and value:format(...) or value end
 
 local DISPLAY_SLOT_COUNT = 5
-local PRIMARY_SIZE = 62
-local SECONDARY_SIZE = 46
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local ROLE_COLORS = {
+local DEFAULT_ROLE_COLORS = {
     AOE = { 0.2, 0.82, 1.0 },
     SINGLE = { 0.35, 1.0, 0.62 },
     BURST = { 1.0, 0.55, 0.18 },
     SAVE = { 0.15, 0.95, 0.72 },
 }
+local DEFAULT_ACCENT = { 0.02, 0.88, 0.7 }
+local DEFAULT_HOTKEY = { 0.92, 0.98, 0.97 }
+local DEFAULT_COOLDOWN = { 1.0, 0.86, 0.32 }
+
+local function clamp(value, minimum, maximum, fallback)
+    value = tonumber(value) or fallback
+    return math.max(minimum, math.min(maximum, value))
+end
+
+local function getColor(value, fallback)
+    if type(value) ~= "table" then return fallback end
+    return {
+        clamp(value[1], 0, 1, fallback[1]),
+        clamp(value[2], 0, 1, fallback[2]),
+        clamp(value[3], 0, 1, fallback[3]),
+    }
+end
+
+local function getHudFont(profile)
+    local fonts = ns.media.fonts or {}
+    local entry = fonts[profile.hudFont] or fonts.friz
+    return entry and entry.path or ns.media.font
+end
+
+local function getFontFlags(profile)
+    local value = profile.hudFontOutline
+    if value == "NONE" then return "" end
+    if value == "THICKOUTLINE" then return "THICKOUTLINE" end
+    return "OUTLINE"
+end
 
 local function formatRemaining(seconds)
     if seconds >= 10 then
@@ -272,11 +300,21 @@ function HeliHeal:RefreshDisplay()
     local now = GetTime()
     local order = self:GetDisplayOrder(now)
     local profile = self.db.profile
+    local primarySize = clamp(profile.primaryIconSize, 48, 96, 62)
+    local secondarySize = clamp(profile.secondaryIconSize, 32, 72, 46)
+    local hudFont = getHudFont(profile)
+    local fontFlags = getFontFlags(profile)
+    local hotkeyFontSize = clamp(profile.hotkeyFontSize, 7, 16, 9)
+    local abilityNameFontSize = clamp(profile.abilityNameFontSize, 7, 16, 9)
+    local accent = getColor(profile.accentColor, DEFAULT_ACCENT)
+    local hotkeyColor = getColor(profile.hotkeyColor, DEFAULT_HOTKEY)
+    local cooldownColor = getColor(profile.cooldownColor, DEFAULT_COOLDOWN)
     local spacing = profile.spacing
     local totalWidth = 0
     local sidePadding = profile.showPanelBackground and 10 or 2
-    local bottomPadding = profile.showHotkey and 19 or 2
-    local topPadding = 2 + (profile.showHeader and 22 or 0) + (profile.showAbilityName and 15 or 0)
+    local bottomPadding = profile.showHotkey and math.max(19, hotkeyFontSize + 10) or 2
+    local topPadding = 2 + (profile.showHeader and (abilityNameFontSize + 13) or 0)
+        + (profile.showAbilityName and (abilityNameFontSize + 6) or 0)
 
     if profile.showPanelBackground then
         self.frame:SetBackdropColor(0.018, 0.026, 0.034, 0.92)
@@ -285,15 +323,18 @@ function HeliHeal:RefreshDisplay()
         self.frame:SetBackdropColor(0, 0, 0, 0)
         self.frame:SetBackdropBorderColor(0, 0, 0, 0)
     end
+    self.frame.accent:SetColorTexture(accent[1], accent[2], accent[3], 1)
     self.frame.accent:SetShown(profile.showPanelBackground)
     self.frame.title:SetShown(profile.showHeader)
+    self.frame.title:SetFont(hudFont, abilityNameFontSize, fontFlags)
+    self.frame.title:SetTextColor(accent[1], accent[2], accent[3], 1)
     self.frame.title:SetText("HELIHEAL  •  " .. self:GetHealingModeLabel():upper())
 
     for displayIndex = 1, DISPLAY_SLOT_COUNT do
         local button = self.frame.slots[displayIndex]
         local item = order[displayIndex]
         if item then
-            local size = displayIndex == 1 and PRIMARY_SIZE or SECONDARY_SIZE
+            local size = displayIndex == 1 and primarySize or secondarySize
             button:SetSize(size, size)
             button:ClearAllPoints()
             if displayIndex == 1 then
@@ -317,13 +358,24 @@ function HeliHeal:RefreshDisplay()
             button.name:SetText(item.ability.name)
             local configuredSlot = self.db.profile.slots[item.slotIndex]
             button.key:SetText(configuredSlot.inputKey or ("P" .. item.slotIndex))
+            button.key:SetFont(hudFont, hotkeyFontSize, fontFlags)
+            button.key:SetTextColor(hotkeyColor[1], hotkeyColor[2], hotkeyColor[3], 1)
+            button.keyBadge:SetHeight(math.max(18, hotkeyFontSize + 8))
             button.keyBadge:SetWidth(math.max(46, button.key:GetStringWidth() + 16))
+            button.priorityBadge:SetFont(hudFont, hotkeyFontSize, fontFlags)
+            button.priorityBadge:SetTextColor(accent[1], accent[2], accent[3], 1)
             button.priorityBadge:SetText(("P%d"):format(item.priorityRank))
             local roleLabel = profile.showRoleLabel and item.ability.roleLabel or nil
-            local roleColor = roleLabel and ROLE_COLORS[roleLabel]
-            button.roleLabel:SetFont(ns.media.font, displayIndex == 1 and 10 or 8, "OUTLINE")
+            local roleColor = roleLabel and getColor(profile.roleColors and profile.roleColors[roleLabel], DEFAULT_ROLE_COLORS[roleLabel])
+            local roleSize = clamp(profile.roleLabelSize, 7, 18, 10)
+            button.roleLabel:SetFont(hudFont, displayIndex == 1 and roleSize or math.max(7, roleSize - 2), fontFlags)
+            button.roleLabel:ClearAllPoints()
+            button.roleLabel:SetPoint("CENTER", 0, clamp(profile.roleLabelOffsetY, -12, 12, 0))
             button.roleLabel:SetText(roleLabel or "")
             if roleColor then button.roleLabel:SetTextColor(roleColor[1], roleColor[2], roleColor[3]) end
+            button.remaining:SetFont(hudFont, clamp(profile.cooldownFontSize, 10, 24, 14), fontFlags)
+            button.remaining:SetTextColor(cooldownColor[1], cooldownColor[2], cooldownColor[3], 1)
+            button.name:SetFont(hudFont, abilityNameFontSize, fontFlags)
             if item.trackedText then
                 button.remaining:SetText(item.trackedText)
             elseif item.remaining > 0 then
@@ -347,8 +399,8 @@ function HeliHeal:RefreshDisplay()
             else
                 button.cooldown:Clear()
                 if displayIndex == 1 then
-                    button:SetBackdropBorderColor(0.02, 0.88, 0.7, profile.showIconBorder and 1 or 0)
-                    button.keyBadge:SetBackdropBorderColor(0.02, 0.88, 0.7, 1)
+                    button:SetBackdropBorderColor(accent[1], accent[2], accent[3], profile.showIconBorder and 1 or 0)
+                    button.keyBadge:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
                 else
                     button:SetBackdropBorderColor(0.22, 0.3, 0.34, profile.showIconBorder and 1 or 0)
                     button.keyBadge:SetBackdropBorderColor(0.16, 0.24, 0.27, 1)
@@ -364,6 +416,6 @@ function HeliHeal:RefreshDisplay()
     if #order == 0 then
         self.frame:SetSize(profile.showPanelBackground and 280 or 1, profile.showPanelBackground and 76 or 1)
     else
-        self.frame:SetSize(totalWidth + (sidePadding * 2), PRIMARY_SIZE + topPadding + bottomPadding)
+        self.frame:SetSize(totalWidth + (sidePadding * 2), primarySize + topPadding + bottomPadding)
     end
 end

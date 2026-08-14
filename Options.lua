@@ -175,6 +175,88 @@ local function createSlider(parent, minValue, maxValue, step, getValue, setValue
     return slider
 end
 
+local function createCycleSelector(parent, values, getValue, setValue)
+    local selector = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    selector:SetSize(230, 34)
+    selector:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    backdrop(selector, C.input, C.border)
+    selector.label = text(selector, "", 11, C.text, "OUTLINE")
+    selector.label:SetPoint("CENTER")
+
+    function selector:Refresh()
+        local selected = getValue()
+        for _, option in ipairs(values) do
+            if option.value == selected then
+                self.label:SetText("‹  " .. option.label .. "  ›")
+                return
+            end
+        end
+        self.label:SetText("‹  " .. values[1].label .. "  ›")
+    end
+
+    selector:SetScript("OnClick", function(self, mouseButton)
+        local current = getValue()
+        local index = 1
+        for optionIndex, option in ipairs(values) do
+            if option.value == current then index = optionIndex break end
+        end
+        index = mouseButton == "RightButton" and index - 1 or index + 1
+        if index < 1 then index = #values elseif index > #values then index = 1 end
+        setValue(values[index].value)
+        self:Refresh()
+    end)
+    selector:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(unpackColor(C.accent)) end)
+    selector:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(unpackColor(C.border)) end)
+    selector:Refresh()
+    return selector
+end
+
+local function createColorSwatch(parent, width, caption, getColor, setColor)
+    local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    button:SetSize(width or 112, 34)
+    backdrop(button, C.input, C.border)
+    button.swatch = button:CreateTexture(nil, "ARTWORK")
+    button.swatch:SetPoint("LEFT", 6, 0)
+    button.swatch:SetSize(22, 22)
+    button.label = text(button, caption or L("FARBE"), 9, C.text, "OUTLINE")
+    button.label:SetPoint("LEFT", button.swatch, "RIGHT", 7, 0)
+
+    function button:Refresh()
+        local color = getColor() or { 1, 1, 1 }
+        self.swatch:SetColorTexture(color[1] or 1, color[2] or 1, color[3] or 1, 1)
+    end
+
+    button:SetScript("OnClick", function(self)
+        local color = getColor() or { 1, 1, 1 }
+        local original = { color[1] or 1, color[2] or 1, color[3] or 1 }
+        local function apply()
+            local red, green, blue = ColorPickerFrame:GetColorRGB()
+            setColor(red, green, blue)
+            self:Refresh()
+        end
+        local function cancel()
+            setColor(original[1], original[2], original[3])
+            self:Refresh()
+        end
+        if ColorPickerFrame.SetupColorPickerAndShow then
+            ColorPickerFrame:SetupColorPickerAndShow({
+                r = original[1], g = original[2], b = original[3],
+                swatchFunc = apply,
+                cancelFunc = cancel,
+            })
+        else
+            ColorPickerFrame.func = apply
+            ColorPickerFrame.cancelFunc = cancel
+            ColorPickerFrame:SetColorRGB(original[1], original[2], original[3])
+            ColorPickerFrame:Show()
+        end
+    end)
+    button:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(unpackColor(C.accent)) end)
+    button:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(unpackColor(C.border)) end)
+    button:Refresh()
+    return button
+end
+
 local function setPageHeader(page, titleText, subtitleText)
     local titleLabel = text(page, titleText, 26, C.text, "OUTLINE")
     titleLabel:SetPoint("TOPLEFT", 28, -26)
@@ -473,7 +555,7 @@ function HeliHeal:BuildStylePage(parent)
 
     local content = CreateFrame("Frame", nil, scroll)
     content:SetWidth(1)
-    content:SetHeight((#definitions * 68) + 6)
+    content:SetHeight(1)
     scroll:SetScrollChild(content)
 
     local track = page:CreateTexture(nil, "BACKGROUND")
@@ -519,6 +601,11 @@ function HeliHeal:BuildStylePage(parent)
         updateScroll()
     end)
 
+    local function bindWheel(control)
+        control:EnableMouseWheel(true)
+        control:SetScript("OnMouseWheel", scrollByWheel)
+    end
+
     page.refreshers = {}
     for index, definition in ipairs(definitions) do
         local row = createSettingRow(content, -6 - ((index - 1) * 68), definition[1], definition[2])
@@ -530,12 +617,164 @@ function HeliHeal:BuildStylePage(parent)
                 self:RefreshDisplay()
             end)
         toggle:SetPoint("RIGHT", -20, 0)
-        row:EnableMouseWheel(true)
-        row:SetScript("OnMouseWheel", scrollByWheel)
-        toggle:EnableMouseWheel(true)
-        toggle:SetScript("OnMouseWheel", scrollByWheel)
+        bindWheel(row)
+        bindWheel(toggle)
         page.refreshers[#page.refreshers + 1] = toggle
     end
+
+    local nextY = -6 - (#definitions * 68)
+    local styleSection = text(content, L("SCHRIFT, GRÖSSE & FARBEN"), 10, C.accent, "OUTLINE")
+    styleSection:SetPoint("TOPLEFT", 20, nextY - 10)
+    nextY = nextY - 38
+
+    local function addControlRow(titleText, descriptionText, control)
+        local row = createSettingRow(content, nextY, titleText, descriptionText)
+        control:SetParent(row)
+        control:SetPoint("RIGHT", -20, 0)
+        bindWheel(row)
+        bindWheel(control)
+        page.refreshers[#page.refreshers + 1] = control
+        nextY = nextY - 68
+        return row
+    end
+
+    local fontOptions = {}
+    for _, key in ipairs(ns.media.fontOrder or {}) do
+        local entry = ns.media.fonts and ns.media.fonts[key]
+        if entry then fontOptions[#fontOptions + 1] = { value = key, label = entry.name } end
+    end
+    local fontSelector = createCycleSelector(content, fontOptions,
+        function() return self.db.profile.hudFont end,
+        function(value) self.db.profile.hudFont = value; self:RefreshDisplay() end)
+    addControlRow(L("HUD-Schriftart"), L("Linksklick nächste, Rechtsklick vorherige Schriftart."), fontSelector)
+
+    local outlineSelector = createCycleSelector(content, {
+        { value = "NONE", label = L("Ohne Kontur") },
+        { value = "OUTLINE", label = L("Normale Kontur") },
+        { value = "THICKOUTLINE", label = L("Starke Kontur") },
+    }, function() return self.db.profile.hudFontOutline end,
+        function(value) self.db.profile.hudFontOutline = value; self:RefreshDisplay() end)
+    addControlRow(L("Textkontur"), L("Legt die Lesbarkeit aller Texte auf den Spell-Icons fest."), outlineSelector)
+
+    local primarySize = createSlider(content, 48, 96, 1,
+        function() return self.db.profile.primaryIconSize end,
+        function(value) self.db.profile.primaryIconSize = value; self:RefreshDisplay() end,
+        function(value) return ("%d px"):format(value) end)
+    addControlRow(L("Haupt-Icon-Größe"), L("Größe der aktuell empfohlenen Fähigkeit."), primarySize)
+
+    local secondarySize = createSlider(content, 32, 72, 1,
+        function() return self.db.profile.secondaryIconSize end,
+        function(value) self.db.profile.secondaryIconSize = value; self:RefreshDisplay() end,
+        function(value) return ("%d px"):format(value) end)
+    addControlRow(L("Folge-Icon-Größe"), L("Größe der vier nachfolgenden Empfehlungen."), secondarySize)
+
+    local roleSize = createSlider(content, 7, 18, 1,
+        function() return self.db.profile.roleLabelSize end,
+        function(value) self.db.profile.roleLabelSize = value; self:RefreshDisplay() end,
+        function(value) return ("%d px"):format(value) end)
+    addControlRow(L("Rollen-Textgröße"), L("Größe von AOE, SINGLE, BURST und SAVE."), roleSize)
+
+    local roleOffset = createSlider(content, -12, 12, 1,
+        function() return self.db.profile.roleLabelOffsetY end,
+        function(value) self.db.profile.roleLabelOffsetY = value; self:RefreshDisplay() end,
+        function(value) return ("%+d px"):format(value) end)
+    addControlRow(L("Rollen-Position"), L("Verschiebt den Rollen-Hinweis vertikal im Icon."), roleOffset)
+
+    local hotkeySize = createSlider(content, 7, 16, 1,
+        function() return self.db.profile.hotkeyFontSize end,
+        function(value) self.db.profile.hotkeyFontSize = value; self:RefreshDisplay() end,
+        function(value) return ("%d px"):format(value) end)
+    addControlRow(L("Hotkey-Textgröße"), L("Größe der Tastenbezeichnung unter dem Icon."), hotkeySize)
+
+    local cooldownSize = createSlider(content, 10, 24, 1,
+        function() return self.db.profile.cooldownFontSize end,
+        function(value) self.db.profile.cooldownFontSize = value; self:RefreshDisplay() end,
+        function(value) return ("%d px"):format(value) end)
+    addControlRow(L("Cooldown-Textgröße"), L("Größe des lokalen Timers und der Aufladungsanzeige."), cooldownSize)
+
+    local nameSize = createSlider(content, 7, 16, 1,
+        function() return self.db.profile.abilityNameFontSize end,
+        function(value) self.db.profile.abilityNameFontSize = value; self:RefreshDisplay() end,
+        function(value) return ("%d px"):format(value) end)
+    addControlRow(L("Namens-Textgröße"), L("Größe von Fähigkeitsname und optionalem Header."), nameSize)
+
+    local function colorValue(key)
+        return self.db.profile[key] or ns.defaults.profile[key]
+    end
+    local function colorSetter(key)
+        return function(red, green, blue)
+            self.db.profile[key] = { red, green, blue }
+            self:RefreshDisplay()
+        end
+    end
+
+    local accentColor = createColorSwatch(content, 112, L("AKZENT"),
+        function() return colorValue("accentColor") end, colorSetter("accentColor"))
+    addControlRow(L("HUD-Akzentfarbe"), L("Farbe für aktive Rahmen, Header und Prioritätsbadge."), accentColor)
+
+    local hotkeyColor = createColorSwatch(content, 112, L("HOTKEY"),
+        function() return colorValue("hotkeyColor") end, colorSetter("hotkeyColor"))
+    addControlRow(L("Hotkey-Farbe"), L("Textfarbe der beobachteten Tastenbelegung."), hotkeyColor)
+
+    local cooldownColor = createColorSwatch(content, 112, L("TIMER"),
+        function() return colorValue("cooldownColor") end, colorSetter("cooldownColor"))
+    addControlRow(L("Cooldown-Farbe"), L("Textfarbe für Timer, Aufladungen und Abdeckungszähler."), cooldownColor)
+
+    local roleRow = createSettingRow(content, nextY, L("Rollenfarben"), L("Eigene Farben für jeden Heilungs-Kontext."))
+    bindWheel(roleRow)
+    local previousSwatch
+    for _, role in ipairs({ "AOE", "SINGLE", "BURST", "SAVE" }) do
+        local roleKey = role
+        local swatch = createColorSwatch(roleRow, 86, roleKey,
+            function() return (self.db.profile.roleColors or ns.defaults.profile.roleColors)[roleKey] end,
+            function(red, green, blue)
+                local current = self.db.profile.roleColors or ns.defaults.profile.roleColors
+                local updated = {}
+                for existingRole, source in pairs(current) do
+                    updated[existingRole] = { source[1], source[2], source[3] }
+                end
+                updated[roleKey] = { red, green, blue }
+                self.db.profile.roleColors = updated
+                self:RefreshDisplay()
+            end)
+        if previousSwatch then
+            swatch:SetPoint("RIGHT", previousSwatch, "LEFT", -7, 0)
+        else
+            swatch:SetPoint("RIGHT", -16, 0)
+        end
+        bindWheel(swatch)
+        page.refreshers[#page.refreshers + 1] = swatch
+        previousSwatch = swatch
+    end
+    nextY = nextY - 68
+
+    local resetRow = createSettingRow(content, nextY, L("HUD-Optik zurücksetzen"), L("Setzt nur Schrift, Größen und Farben auf HeliHeal-Standard zurück."))
+    bindWheel(resetRow)
+    local resetAppearance = createButton(resetRow, L("OPTIK RESET"), 150, 32, false)
+    resetAppearance:SetPoint("RIGHT", -20, 0)
+    bindWheel(resetAppearance)
+    resetAppearance:SetScript("OnClick", function()
+        local profile = self.db.profile
+        local defaults = ns.defaults.profile
+        for _, key in ipairs({ "hudFont", "hudFontOutline", "primaryIconSize", "secondaryIconSize",
+            "roleLabelSize", "roleLabelOffsetY", "hotkeyFontSize", "cooldownFontSize", "abilityNameFontSize" }) do
+            profile[key] = defaults[key]
+        end
+        for _, key in ipairs({ "accentColor", "hotkeyColor", "cooldownColor" }) do
+            local source = defaults[key]
+            profile[key] = { source[1], source[2], source[3] }
+        end
+        profile.roleColors = {}
+        for role, source in pairs(defaults.roleColors) do
+            profile.roleColors[role] = { source[1], source[2], source[3] }
+        end
+        self:RefreshDisplay()
+        self:RefreshOptionsUI()
+    end)
+    nextY = nextY - 68
+
+    content:SetHeight(math.abs(nextY) + 8)
+    updateScroll()
     page.scroll = scroll
     page.updateScroll = updateScroll
     return page

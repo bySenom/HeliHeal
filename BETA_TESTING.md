@@ -26,6 +26,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Outside combat, verify Holy Shock's local recharge matches `6 / (1 + spell haste)`; entering combat must retain that safe snapshot.
 - Verify Light of Dawn/Holy Light/Flash of Light show `AOE`/`SAVE`/`BURST`, while Chain Heal/Healing Wave show `AOE`/`SINGLE`.
 - Open `/hh` > HUD Elements and verify the mouse wheel reaches every row without overlapping the fixed bottom bar.
+- Change HUD font, outline, icon/text sizes and every color swatch; verify the preview updates immediately and Appearance Reset restores defaults.
 - Instant casts such as Riptide and Rejuvenation advance without an extra 1.5-second delay.
 
 ## Restoration Shaman

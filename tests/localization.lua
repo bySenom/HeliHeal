@@ -13,6 +13,8 @@ assert(not german.localeFallback, "deDE must be a native HeliHeal locale")
 
 local english = loadLocale("enUS")
 assert(english.L("Übersicht") == "Overview", "enUS must translate the German source key")
+assert(english.L("HUD-Schriftart") == "HUD font" and english.L("Rollenfarben") == "Role colors",
+    "appearance customization controls must be localized for English clients")
 assert(english.L("Heilmodus: %s", "AoE") == "Healing mode: AoE",
     "formatted localization values must preserve arguments")
 assert(not english.localeFallback, "enUS must be a native HeliHeal locale")

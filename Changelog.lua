@@ -11,6 +11,8 @@ ns.changelog = {
                 "Holy Light wird als mana-effizientes SAVE und Flash of Light als schnelles BURST gekennzeichnet.",
                 "Die Rollen-Hinweise sind standardmäßig aktiv und in den HUD-Optionen abschaltbar.",
                 "Die HUD-Optionen unterstützen jetzt Mausrad-Scrolling mit einem dezenten Scroll-Indikator.",
+                "Schriftart, Textkontur, Icon- und Textgrößen können jetzt live angepasst werden.",
+                "Akzent-, Hotkey-, Cooldown- und einzelne Rollenfarben sind vollständig konfigurierbar.",
             },
         },
         {
