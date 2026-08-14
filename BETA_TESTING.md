@@ -27,6 +27,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Verify Light of Dawn/Holy Light/Flash of Light show `AOE`/`SAVE`/`BURST`, while Chain Heal/Healing Wave show `AOE`/`SINGLE`.
 - Open `/hh` > HUD Elements and verify the mouse wheel reaches every row without overlapping the fixed bottom bar.
 - Change HUD font, outline, icon/text sizes and every color swatch; verify the preview updates immediately and Appearance Reset restores defaults.
+- Open the Font and Text Outline dropdowns; verify all choices are visible, the active choice is highlighted and clicking outside closes the menu.
 - Instant casts such as Riptide and Rejuvenation advance without an extra 1.5-second delay.
 
 ## Restoration Shaman

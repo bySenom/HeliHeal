@@ -13,6 +13,7 @@ ns.changelog = {
                 "Die HUD-Optionen unterstützen jetzt Mausrad-Scrolling mit einem dezenten Scroll-Indikator.",
                 "Schriftart, Textkontur, Icon- und Textgrößen können jetzt live angepasst werden.",
                 "Akzent-, Hotkey-, Cooldown- und einzelne Rollenfarben sind vollständig konfigurierbar.",
+                "Schriftart und Textkontur verwenden jetzt echte Dropdown-Menüs mit Live-Vorschau.",
             },
         },
         {

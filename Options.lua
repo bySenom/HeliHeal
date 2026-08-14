@@ -175,38 +175,108 @@ local function createSlider(parent, minValue, maxValue, step, getValue, setValue
     return slider
 end
 
-local function createCycleSelector(parent, values, getValue, setValue)
+local function createDropdownSelector(parent, menuParent, values, getValue, setValue)
     local selector = CreateFrame("Button", nil, parent, "BackdropTemplate")
     selector:SetSize(230, 34)
-    selector:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     backdrop(selector, C.input, C.border)
     selector.label = text(selector, "", 11, C.text, "OUTLINE")
-    selector.label:SetPoint("CENTER")
+    selector.label:SetPoint("LEFT", 12, 0)
+    selector.label:SetPoint("RIGHT", -34, 0)
+    selector.arrow = text(selector, "▾", 13, C.accent, "OUTLINE")
+    selector.arrow:SetPoint("RIGHT", -12, 1)
+
+    local dismiss = CreateFrame("Button", nil, menuParent)
+    dismiss:SetAllPoints()
+    dismiss:SetFrameLevel(menuParent:GetFrameLevel() + 40)
+    dismiss:Hide()
+
+    local menu = CreateFrame("Frame", nil, menuParent, "BackdropTemplate")
+    menu:SetSize(230, (#values * 32) + 8)
+    menu:SetFrameLevel(menuParent:GetFrameLevel() + 41)
+    menu:SetClampedToScreen(true)
+    backdrop(menu, C.sidebar, C.accentDark)
+    menu:Hide()
+    menu.options = {}
+
+    local function closeMenu()
+        menu:Hide()
+        dismiss:Hide()
+        selector.arrow:SetText("▾")
+    end
+    dismiss:SetScript("OnClick", closeMenu)
+
+    for index, option in ipairs(values) do
+        local optionButton = CreateFrame("Button", nil, menu, "BackdropTemplate")
+        optionButton:SetPoint("TOPLEFT", 4, -4 - ((index - 1) * 32))
+        optionButton:SetPoint("TOPRIGHT", -4, -4 - ((index - 1) * 32))
+        optionButton:SetHeight(30)
+        backdrop(optionButton, C.input, C.input)
+        optionButton.label = text(optionButton, option.label, 11, C.text, option.flags or "OUTLINE")
+        optionButton.label:SetFont(option.font or FONT, 11, option.flags or "OUTLINE")
+        optionButton.label:SetPoint("LEFT", 10, 0)
+        optionButton:SetScript("OnClick", function()
+            setValue(option.value)
+            selector:Refresh()
+            closeMenu()
+        end)
+        optionButton:SetScript("OnEnter", function(self)
+            self:SetBackdropColor(unpackColor(C.panelHover))
+            self.label:SetTextColor(unpackColor(C.text))
+        end)
+        optionButton:SetScript("OnLeave", function(self)
+            selector:RefreshMenu()
+        end)
+        menu.options[index] = optionButton
+    end
+
+    function selector:RefreshMenu()
+        local selected = getValue()
+        for index, option in ipairs(values) do
+            local active = option.value == selected
+            local optionButton = menu.options[index]
+            optionButton:SetBackdropColor(unpackColor(active and C.accentDark or C.input))
+            optionButton:SetBackdropBorderColor(unpackColor(active and C.accent or C.input))
+            optionButton.label:SetTextColor(unpackColor(active and C.accent or C.text))
+        end
+    end
 
     function selector:Refresh()
         local selected = getValue()
         for _, option in ipairs(values) do
             if option.value == selected then
-                self.label:SetText("‹  " .. option.label .. "  ›")
+                self.label:SetText(option.label)
+                self.label:SetFont(option.font or FONT, 11, option.flags or "OUTLINE")
+                self:RefreshMenu()
                 return
             end
         end
-        self.label:SetText("‹  " .. values[1].label .. "  ›")
+        self.label:SetText(values[1].label)
+        self.label:SetFont(values[1].font or FONT, 11, values[1].flags or "OUTLINE")
+        self:RefreshMenu()
     end
 
-    selector:SetScript("OnClick", function(self, mouseButton)
-        local current = getValue()
-        local index = 1
-        for optionIndex, option in ipairs(values) do
-            if option.value == current then index = optionIndex break end
+    selector:SetScript("OnClick", function(self)
+        if menu:IsShown() then
+            closeMenu()
+            return
         end
-        index = mouseButton == "RightButton" and index - 1 or index + 1
-        if index < 1 then index = #values elseif index > #values then index = 1 end
-        setValue(values[index].value)
-        self:Refresh()
+        menu:ClearAllPoints()
+        local menuHeight = menu:GetHeight()
+        local selectorBottom = self:GetBottom()
+        local parentBottom = menuParent:GetBottom()
+        if selectorBottom and parentBottom and (selectorBottom - parentBottom) >= (menuHeight + 8) then
+            menu:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -4)
+        else
+            menu:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 0, 4)
+        end
+        self:RefreshMenu()
+        dismiss:Show()
+        menu:Show()
+        self.arrow:SetText("▴")
     end)
     selector:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(unpackColor(C.accent)) end)
     selector:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(unpackColor(C.border)) end)
+    selector:SetScript("OnHide", closeMenu)
     selector:Refresh()
     return selector
 end
@@ -641,17 +711,17 @@ function HeliHeal:BuildStylePage(parent)
     local fontOptions = {}
     for _, key in ipairs(ns.media.fontOrder or {}) do
         local entry = ns.media.fonts and ns.media.fonts[key]
-        if entry then fontOptions[#fontOptions + 1] = { value = key, label = entry.name } end
+        if entry then fontOptions[#fontOptions + 1] = { value = key, label = entry.name, font = entry.path } end
     end
-    local fontSelector = createCycleSelector(content, fontOptions,
+    local fontSelector = createDropdownSelector(content, page, fontOptions,
         function() return self.db.profile.hudFont end,
         function(value) self.db.profile.hudFont = value; self:RefreshDisplay() end)
-    addControlRow(L("HUD-Schriftart"), L("Linksklick nächste, Rechtsklick vorherige Schriftart."), fontSelector)
+    addControlRow(L("HUD-Schriftart"), L("Wählt die Schriftart für alle Texte im Priority-HUD."), fontSelector)
 
-    local outlineSelector = createCycleSelector(content, {
-        { value = "NONE", label = L("Ohne Kontur") },
-        { value = "OUTLINE", label = L("Normale Kontur") },
-        { value = "THICKOUTLINE", label = L("Starke Kontur") },
+    local outlineSelector = createDropdownSelector(content, page, {
+        { value = "NONE", label = L("Ohne Kontur"), flags = "" },
+        { value = "OUTLINE", label = L("Normale Kontur"), flags = "OUTLINE" },
+        { value = "THICKOUTLINE", label = L("Starke Kontur"), flags = "THICKOUTLINE" },
     }, function() return self.db.profile.hudFontOutline end,
         function(value) self.db.profile.hudFontOutline = value; self:RefreshDisplay() end)
     addControlRow(L("Textkontur"), L("Legt die Lesbarkeit aller Texte auf den Spell-Icons fest."), outlineSelector)
