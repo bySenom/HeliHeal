@@ -149,6 +149,7 @@ local enUS = {
     ["Passende Heilfähigkeiten zeigen jetzt AOE, SINGLE, BURST oder SAVE mittig auf dem Icon."] = "Matching healing abilities now show AOE, SINGLE, BURST or SAVE in the center of the icon.",
     ["Holy Light wird als mana-effizientes SAVE und Flash of Light als schnelles BURST gekennzeichnet."] = "Holy Light is labeled as the mana-efficient SAVE option and Flash of Light as the fast BURST option.",
     ["Die Rollen-Hinweise sind standardmäßig aktiv und in den HUD-Optionen abschaltbar."] = "Role labels are enabled by default and can be disabled in the HUD options.",
+    ["Die HUD-Optionen unterstützen jetzt Mausrad-Scrolling mit einem dezenten Scroll-Indikator."] = "HUD options now support mouse-wheel scrolling with a subtle scroll indicator.",
     ["Heiliger Schock verwendet jetzt die durch Zaubertempo reduzierte Wiederaufladezeit."] = "Holy Shock now uses its spell-haste-reduced recharge time.",
     ["Richturteil und Kreuzfahrerstoß verwenden dasselbe Tempo-Modell."] = "Judgment and Crusader Strike use the same haste model.",
     ["Zaubertempo wird nur außerhalb des Kampfes sicher gespeichert und im Kampf nicht als SecretValue verarbeitet."] = "Spell haste is cached safely only outside combat and is not processed as a SecretValue in combat.",

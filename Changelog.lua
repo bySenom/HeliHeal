@@ -10,6 +10,7 @@ ns.changelog = {
                 "Passende Heilfähigkeiten zeigen jetzt AOE, SINGLE, BURST oder SAVE mittig auf dem Icon.",
                 "Holy Light wird als mana-effizientes SAVE und Flash of Light als schnelles BURST gekennzeichnet.",
                 "Die Rollen-Hinweise sind standardmäßig aktiv und in den HUD-Optionen abschaltbar.",
+                "Die HUD-Optionen unterstützen jetzt Mausrad-Scrolling mit einem dezenten Scroll-Indikator.",
             },
         },
         {

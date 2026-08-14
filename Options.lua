@@ -466,9 +466,62 @@ function HeliHeal:BuildStylePage(parent)
         { L("Cooldown-Zahl"), L("Zeigt den lokal simulierten Cooldown mittig auf dem Icon."), "showCooldown" },
     }
 
+    local scroll = CreateFrame("ScrollFrame", nil, page)
+    scroll:SetPoint("TOPLEFT", 0, -104)
+    scroll:SetPoint("BOTTOMRIGHT", -24, 12)
+    scroll:EnableMouseWheel(true)
+
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetWidth(1)
+    content:SetHeight((#definitions * 68) + 6)
+    scroll:SetScrollChild(content)
+
+    local track = page:CreateTexture(nil, "BACKGROUND")
+    track:SetTexture(WHITE)
+    track:SetColorTexture(unpackColor(C.borderSoft))
+    track:SetPoint("TOPRIGHT", -13, -110)
+    track:SetPoint("BOTTOMRIGHT", -13, 18)
+    track:SetWidth(3)
+
+    local thumb = page:CreateTexture(nil, "ARTWORK")
+    thumb:SetTexture(WHITE)
+    thumb:SetColorTexture(unpackColor(C.accent))
+    thumb:SetWidth(3)
+
+    local function updateScroll()
+        local viewportHeight = math.max(1, scroll:GetHeight())
+        local contentHeight = math.max(viewportHeight, content:GetHeight())
+        local maxScroll = math.max(0, contentHeight - viewportHeight)
+        local current = math.max(0, math.min(maxScroll, scroll:GetVerticalScroll()))
+        if current ~= scroll:GetVerticalScroll() then scroll:SetVerticalScroll(current) end
+        local trackHeight = math.max(1, track:GetHeight())
+        local thumbHeight = math.max(40, trackHeight * (viewportHeight / contentHeight))
+        local travel = math.max(0, trackHeight - thumbHeight)
+        thumb:SetHeight(thumbHeight)
+        thumb:ClearAllPoints()
+        thumb:SetPoint("TOP", track, "TOP", 0, maxScroll > 0 and -(current / maxScroll) * travel or 0)
+        track:SetShown(maxScroll > 0)
+        thumb:SetShown(maxScroll > 0)
+    end
+
+    local function scrollByWheel(_, delta)
+        local maxScroll = math.max(0, content:GetHeight() - scroll:GetHeight())
+        scroll:SetVerticalScroll(math.max(0, math.min(maxScroll, scroll:GetVerticalScroll() - (delta * 54))))
+        updateScroll()
+    end
+    scroll:SetScript("OnMouseWheel", scrollByWheel)
+    scroll:SetScript("OnSizeChanged", function(_, width)
+        content:SetWidth(width)
+        updateScroll()
+    end)
+    scroll:SetScript("OnShow", function()
+        content:SetWidth(math.max(1, scroll:GetWidth()))
+        updateScroll()
+    end)
+
     page.refreshers = {}
     for index, definition in ipairs(definitions) do
-        local row = createSettingRow(page, -112 - ((index - 1) * 68), definition[1], definition[2])
+        local row = createSettingRow(content, -6 - ((index - 1) * 68), definition[1], definition[2])
         local settingKey = definition[3]
         local toggle = createToggle(row,
             function() return self.db.profile[settingKey] end,
@@ -477,8 +530,14 @@ function HeliHeal:BuildStylePage(parent)
                 self:RefreshDisplay()
             end)
         toggle:SetPoint("RIGHT", -20, 0)
+        row:EnableMouseWheel(true)
+        row:SetScript("OnMouseWheel", scrollByWheel)
+        toggle:EnableMouseWheel(true)
+        toggle:SetScript("OnMouseWheel", scrollByWheel)
         page.refreshers[#page.refreshers + 1] = toggle
     end
+    page.scroll = scroll
+    page.updateScroll = updateScroll
     return page
 end
 
