@@ -1,8 +1,19 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.6-beta.1",
+    currentVersion = "0.9.7-beta.1",
     entries = {
+        {
+            version = "0.9.7-beta.1",
+            title = "Reliable Cast Tracking and Runtime Efficiency",
+            changes = {
+                "Breite Hotkey-Badges vergrößern den Icon-Abstand automatisch und überlappen nicht mehr.",
+                "Zwischengespeicherte Fähigkeiten und wiederverwendete HUD-Tabellen reduzieren den laufenden Speicheraufbau deutlich.",
+                "Natur- und Ahnen-Schnelligkeit werden nach einem erfolgreichen Off-GCD-Cast direkt bestätigt und sofort ausgeblendet.",
+                "Leben entfesseln wird ebenfalls direkt über den erfolgreichen Spieler-Cast bestätigt.",
+                "Ein verwendeter zufälliger Stormstream-Proc wird an seiner Cast-ID erkannt und verbraucht keine normale Healing-Stream-Aufladung.",
+            },
+        },
         {
             version = "0.9.6-beta.1",
             title = "First Beta: Customizable HUD and Profiles",
@@ -16,11 +27,6 @@ ns.changelog = {
                 "Schriftart und Textkontur verwenden jetzt echte Dropdown-Menüs mit Live-Vorschau.",
                 "HUD-Einstellungen sind jetzt in Sichtbarkeit, Text, Größe und Farben gegliedert.",
                 "Die Profilseite zeigt vorhandene Profile und unterstützt Wechseln, Erstellen, Kopieren und sicheres Löschen.",
-                "Breite Hotkey-Badges vergrößern den Icon-Abstand automatisch und überlappen nicht mehr.",
-                "Zwischengespeicherte Fähigkeiten und wiederverwendete HUD-Tabellen reduzieren den laufenden Speicheraufbau deutlich.",
-                "Natur- und Ahnen-Schnelligkeit werden nach einem erfolgreichen Off-GCD-Cast direkt bestätigt und sofort ausgeblendet.",
-                "Leben entfesseln wird ebenfalls direkt über den erfolgreichen Spieler-Cast bestätigt.",
-                "Ein verwendeter zufälliger Stormstream-Proc wird an seiner Cast-ID erkannt und verbraucht keine normale Healing-Stream-Aufladung.",
             },
         },
         {

@@ -197,6 +197,7 @@ local enUS = {
     ["Haste-Aware Paladin Recharge"] = "Haste-Aware Paladin Recharge",
     ["Context Labels for Filler Heals"] = "Context Labels for Filler Heals",
     ["First Beta: Customizable HUD and Profiles"] = "First Beta: Customizable HUD and Profiles",
+    ["Reliable Cast Tracking and Runtime Efficiency"] = "Reliable Cast Tracking and Runtime Efficiency",
     ["Passende Heilfähigkeiten zeigen jetzt AOE, SINGLE, BURST oder SAVE mittig auf dem Icon."] = "Matching healing abilities now show AOE, SINGLE, BURST or SAVE in the center of the icon.",
     ["Holy Light wird als mana-effizientes SAVE und Flash of Light als schnelles BURST gekennzeichnet."] = "Holy Light is labeled as the mana-efficient SAVE option and Flash of Light as the fast BURST option.",
     ["Die Rollen-Hinweise sind standardmäßig aktiv und in den HUD-Optionen abschaltbar."] = "Role labels are enabled by default and can be disabled in the HUD options.",
@@ -252,6 +253,7 @@ local deDE = {
     ["Haste-Aware Paladin Recharge"] = "Tempoabhängige Paladin-Wiederaufladung",
     ["Context Labels for Filler Heals"] = "Kontext-Hinweise für direkte Heilungen",
     ["First Beta: Customizable HUD and Profiles"] = "Erste Beta: Anpassbares HUD und Profile",
+    ["Reliable Cast Tracking and Runtime Efficiency"] = "Zuverlässige Cast-Erkennung und Speichereffizienz",
 }
 
 local translations = enUS
