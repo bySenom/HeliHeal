@@ -32,4 +32,17 @@ addon.db.profile = { name = "another profile" }
 assert(not addon:ShouldShowWhatsNew(),
     "seen state must remain account-wide and independent from AceDB profiles")
 
+local releaseNotes = assert(io.open("CHANGELOG.md", "rb")):read("*a")
+assert(releaseNotes:find("# HeliHeal 0.9.7 Beta 1", 1, true)
+    and releaseNotes:find("## Changes", 1, true),
+    "public release notes must use a readable Markdown structure")
+assert(not releaseNotes:find("Author:", 1, true)
+    and not releaseNotes:find("@gmail.com", 1, true),
+    "public release notes must never expose Git author metadata or personal email addresses")
+
+local packageMeta = assert(io.open(".pkgmeta", "rb")):read("*a")
+assert(packageMeta:find("filename: CHANGELOG.md", 1, true)
+    and packageMeta:find("markup-type: markdown", 1, true),
+    "CurseForge packaging must use the maintained Markdown changelog")
+
 print("Changelog OK: current entry, one-time popup state and account-wide persistence")

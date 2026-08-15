@@ -48,24 +48,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          previous_tag="$(git tag --sort=-version:refname | grep -Fxv "${GITHUB_REF_NAME}" | head -n 1 || true)"
-          {
-            echo "HeliHeal ${GITHUB_REF_NAME#v} for World of Warcraft: Midnight 12.1."
-            echo
-            echo "## Changes"
-            if [[ -n "${previous_tag}" ]]; then
-              git log --no-merges --pretty='- %s' "${previous_tag}..${GITHUB_REF_NAME}"
-            else
-              echo "- Initial release."
-            fi
-            echo
-            echo "## Validation"
-            echo "- All automated Lua tests passed."
-            echo "- The tag matches the version declared in HeliHeal.toc."
-            echo "- The packaged addon contains only runtime files and documentation."
-            echo
-            echo "This is a beta prerelease intended for in-game testing and feedback."
-          } > dist/release-notes.md
+          test -s CHANGELOG.md
+          cp CHANGELOG.md dist/release-notes.md
 
       - name: Publish prerelease
         env:
