@@ -1,0 +1,5 @@
+package-as: HeliHeal
+
+ignore:
+  - tests
+  - BETA_TESTING.md
