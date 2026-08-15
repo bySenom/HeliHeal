@@ -15,6 +15,10 @@ local english = loadLocale("enUS")
 assert(english.L("Übersicht") == "Overview", "enUS must translate the German source key")
 assert(english.L("HUD-Schriftart") == "HUD font" and english.L("Rollenfarben") == "Role colors",
     "appearance customization controls must be localized for English clients")
+assert(english.L("Haupt-Icon-Breite") == "Primary icon width"
+    and english.L("Hotkey-Mindestbreite") == "Hotkey minimum width"
+    and english.L("Header-Textgröße") == "Header text size",
+    "per-element dimension and position controls must be localized")
 assert(english.L("VORHANDENE PROFILE") == "EXISTING PROFILES"
     and english.L("SICHTBARKEIT") == "VISIBILITY",
     "profile management and HUD category navigation must be localized")

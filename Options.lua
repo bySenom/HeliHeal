@@ -630,13 +630,14 @@ function HeliHeal:BuildStylePage(parent)
     page.categoryButtons = {}
     for index, category in ipairs({
         { "visibility", L("SICHTBARKEIT") },
-        { "typography", L("TEXT") },
-        { "sizing", L("GRÖSSE & POSITION") },
+        { "icons", L("ICONS & LAYOUT") },
+        { "hotkey", L("HOTKEY") },
+        { "text", L("TEXT") },
         { "colors", L("FARBEN") },
     }) do
         local categoryKey = category[1]
-        local tab = createButton(page, category[2], 142, 32, false)
-        tab:SetPoint("TOPLEFT", 20 + ((index - 1) * 150), -104)
+        local tab = createButton(page, category[2], 132, 32, false)
+        tab:SetPoint("TOPLEFT", 20 + ((index - 1) * 140), -104)
         tab:SetScript("OnClick", function() page:SelectCategory(categoryKey) end)
         tab:SetScript("OnEnter", function(button)
             button:SetBackdropBorderColor(unpackColor(C.accent))
@@ -721,7 +722,7 @@ function HeliHeal:BuildStylePage(parent)
     end
 
     page.refreshers = {}
-    page.categoryRows = { visibility = {}, typography = {}, sizing = {}, colors = {} }
+    page.categoryRows = { visibility = {}, icons = {}, hotkey = {}, text = {}, colors = {} }
     for index, definition in ipairs(definitions) do
         local row = createSettingRow(content, -6 - ((index - 1) * 68), definition[1], definition[2])
         local settingKey = definition[3]
@@ -749,6 +750,22 @@ function HeliHeal:BuildStylePage(parent)
         return row
     end
 
+    local function addSlider(category, titleText, descriptionText, key, minValue, maxValue, step, formatter)
+        local slider = createSlider(content, minValue, maxValue, step,
+            function() return self.db.profile[key] end,
+            function(value)
+                self.db.profile[key] = value
+                self:RefreshDisplay()
+            end,
+            formatter)
+        addControlRow(category, L(titleText), L(descriptionText), slider)
+        return slider
+    end
+
+    local function pixels(value) return ("%d px"):format(value) end
+    local function signedPixels(value) return ("%+d px"):format(value) end
+    local function percent(value) return ("%d%%"):format(math.floor((value * 100) + 0.5)) end
+
     local fontOptions = {}
     for _, key in ipairs(ns.media.fontOrder or {}) do
         local entry = ns.media.fonts and ns.media.fonts[key]
@@ -757,7 +774,7 @@ function HeliHeal:BuildStylePage(parent)
     local fontSelector = createDropdownSelector(content, page, fontOptions,
         function() return self.db.profile.hudFont end,
         function(value) self.db.profile.hudFont = value; self:RefreshDisplay() end)
-    addControlRow("typography", L("HUD-Schriftart"), L("Wählt die Schriftart für alle Texte im Priority-HUD."), fontSelector)
+    addControlRow("text", L("HUD-Schriftart"), L("Wählt die Schriftart für alle Texte im Priority-HUD."), fontSelector)
 
     local outlineSelector = createDropdownSelector(content, page, {
         { value = "NONE", label = L("Ohne Kontur"), flags = "" },
@@ -765,49 +782,82 @@ function HeliHeal:BuildStylePage(parent)
         { value = "THICKOUTLINE", label = L("Starke Kontur"), flags = "THICKOUTLINE" },
     }, function() return self.db.profile.hudFontOutline end,
         function(value) self.db.profile.hudFontOutline = value; self:RefreshDisplay() end)
-    addControlRow("typography", L("Textkontur"), L("Legt die Lesbarkeit aller Texte auf den Spell-Icons fest."), outlineSelector)
+    addControlRow("text", L("Textkontur"), L("Legt die Lesbarkeit aller Texte auf den Spell-Icons fest."), outlineSelector)
 
-    local primarySize = createSlider(content, 48, 96, 1,
-        function() return self.db.profile.primaryIconSize end,
-        function(value) self.db.profile.primaryIconSize = value; self:RefreshDisplay() end,
-        function(value) return ("%d px"):format(value) end)
-    addControlRow("sizing", L("Haupt-Icon-Größe"), L("Größe der aktuell empfohlenen Fähigkeit."), primarySize)
+    addSlider("icons", "Haupt-Icon-Breite", "Breite der aktuell empfohlenen Fähigkeit.",
+        "primaryIconWidth", 32, 160, 1, pixels)
+    addSlider("icons", "Haupt-Icon-Höhe", "Höhe der aktuell empfohlenen Fähigkeit.",
+        "primaryIconHeight", 32, 160, 1, pixels)
+    addSlider("icons", "Haupt-Icon-Zoom", "Vergrößert oder verkleinert den sichtbaren Ausschnitt im Haupt-Icon.",
+        "primaryIconZoom", 0.7, 1.6, 0.05, percent)
+    addSlider("icons", "Haupt-Icon X", "Verschiebt das Haupt-Icon horizontal innerhalb des HUDs.",
+        "primaryIconOffsetX", -40, 40, 1, signedPixels)
+    addSlider("icons", "Haupt-Icon Y", "Verschiebt das Haupt-Icon vertikal innerhalb des HUDs.",
+        "primaryIconOffsetY", -40, 40, 1, signedPixels)
+    addSlider("icons", "Folge-Icon-Breite", "Breite der vier nachfolgenden Empfehlungen.",
+        "secondaryIconWidth", 24, 128, 1, pixels)
+    addSlider("icons", "Folge-Icon-Höhe", "Höhe der vier nachfolgenden Empfehlungen.",
+        "secondaryIconHeight", 24, 128, 1, pixels)
+    addSlider("icons", "Folge-Icon-Zoom", "Vergrößert oder verkleinert den sichtbaren Ausschnitt der Folge-Icons.",
+        "secondaryIconZoom", 0.7, 1.6, 0.05, percent)
+    addSlider("icons", "Folge-Icons X", "Verschiebt die gesamte Gruppe der Folge-Icons horizontal.",
+        "secondaryIconOffsetX", -40, 40, 1, signedPixels)
+    addSlider("icons", "Folge-Icons Y", "Verschiebt die gesamte Gruppe der Folge-Icons vertikal.",
+        "secondaryIconOffsetY", -40, 40, 1, signedPixels)
+    addSlider("icons", "Icon-Innenabstand", "Abstand zwischen Icon-Textur und ihrem Rahmen.",
+        "iconInset", 0, 12, 1, pixels)
+    addSlider("icons", "Panel-Innenabstand X", "Horizontaler Innenraum des HUD-Hintergrunds.",
+        "panelPaddingX", 0, 40, 1, pixels)
+    addSlider("icons", "Panel-Innenabstand Y", "Vertikaler Innenraum des HUD-Hintergrunds.",
+        "panelPaddingY", 0, 40, 1, pixels)
+    addSlider("icons", "Panel-Deckkraft", "Deckkraft des gemeinsamen HUD-Hintergrunds.",
+        "panelBackgroundAlpha", 0, 1, 0.05, percent)
 
-    local secondarySize = createSlider(content, 32, 72, 1,
-        function() return self.db.profile.secondaryIconSize end,
-        function(value) self.db.profile.secondaryIconSize = value; self:RefreshDisplay() end,
-        function(value) return ("%d px"):format(value) end)
-    addControlRow("sizing", L("Folge-Icon-Größe"), L("Größe der vier nachfolgenden Empfehlungen."), secondarySize)
+    addSlider("hotkey", "Hotkey-Textgröße", "Größe der Tastenbezeichnung unter dem Icon.",
+        "hotkeyFontSize", 7, 20, 1, pixels)
+    addSlider("hotkey", "Hotkey X", "Verschiebt jede Hotkey-Box horizontal relativ zu ihrem Icon.",
+        "hotkeyOffsetX", -80, 80, 1, signedPixels)
+    addSlider("hotkey", "Hotkey Y", "Verschiebt jede Hotkey-Box vertikal relativ zu ihrem Icon.",
+        "hotkeyOffsetY", -40, 40, 1, signedPixels)
+    addSlider("hotkey", "Hotkey-Box-Höhe", "Mindesthöhe der Hotkey-Box.",
+        "hotkeyBadgeHeight", 12, 44, 1, pixels)
+    addSlider("hotkey", "Hotkey-Mindestbreite", "Kleinste Breite der Hotkey-Box; längere Bindings wachsen automatisch.",
+        "hotkeyBadgeMinWidth", 20, 180, 1, pixels)
+    addSlider("hotkey", "Hotkey-Textabstand", "Zusätzlicher horizontaler Platz um den Hotkey-Text.",
+        "hotkeyBadgePadding", 0, 60, 1, pixels)
 
-    local roleSize = createSlider(content, 7, 18, 1,
-        function() return self.db.profile.roleLabelSize end,
-        function(value) self.db.profile.roleLabelSize = value; self:RefreshDisplay() end,
-        function(value) return ("%d px"):format(value) end)
-    addControlRow("typography", L("Rollen-Textgröße"), L("Größe von AOE, SINGLE, BURST und SAVE."), roleSize)
-
-    local roleOffset = createSlider(content, -12, 12, 1,
-        function() return self.db.profile.roleLabelOffsetY end,
-        function(value) self.db.profile.roleLabelOffsetY = value; self:RefreshDisplay() end,
-        function(value) return ("%+d px"):format(value) end)
-    addControlRow("sizing", L("Rollen-Position"), L("Verschiebt den Rollen-Hinweis vertikal im Icon."), roleOffset)
-
-    local hotkeySize = createSlider(content, 7, 16, 1,
-        function() return self.db.profile.hotkeyFontSize end,
-        function(value) self.db.profile.hotkeyFontSize = value; self:RefreshDisplay() end,
-        function(value) return ("%d px"):format(value) end)
-    addControlRow("typography", L("Hotkey-Textgröße"), L("Größe der Tastenbezeichnung unter dem Icon."), hotkeySize)
-
-    local cooldownSize = createSlider(content, 10, 24, 1,
-        function() return self.db.profile.cooldownFontSize end,
-        function(value) self.db.profile.cooldownFontSize = value; self:RefreshDisplay() end,
-        function(value) return ("%d px"):format(value) end)
-    addControlRow("typography", L("Cooldown-Textgröße"), L("Größe des lokalen Timers und der Aufladungsanzeige."), cooldownSize)
-
-    local nameSize = createSlider(content, 7, 16, 1,
-        function() return self.db.profile.abilityNameFontSize end,
-        function(value) self.db.profile.abilityNameFontSize = value; self:RefreshDisplay() end,
-        function(value) return ("%d px"):format(value) end)
-    addControlRow("typography", L("Namens-Textgröße"), L("Größe von Fähigkeitsname und optionalem Header."), nameSize)
+    addSlider("text", "Cooldown-Textgröße", "Größe des lokalen Timers und der Aufladungsanzeige.",
+        "cooldownFontSize", 10, 30, 1, pixels)
+    addSlider("text", "Cooldown X", "Verschiebt Timer und Aufladungen horizontal im Icon.",
+        "cooldownOffsetX", -80, 80, 1, signedPixels)
+    addSlider("text", "Cooldown Y", "Verschiebt Timer und Aufladungen vertikal im Icon.",
+        "cooldownOffsetY", -80, 80, 1, signedPixels)
+    addSlider("text", "Rollen-Textgröße", "Größe von AOE, SINGLE, BURST und SAVE.",
+        "roleLabelSize", 7, 24, 1, pixels)
+    addSlider("text", "Rollen-Position X", "Verschiebt den Rollen-Hinweis horizontal im Icon.",
+        "roleLabelOffsetX", -80, 80, 1, signedPixels)
+    addSlider("text", "Rollen-Position Y", "Verschiebt den Rollen-Hinweis vertikal im Icon.",
+        "roleLabelOffsetY", -80, 80, 1, signedPixels)
+    addSlider("text", "Prioritäts-Textgröße", "Größe der P1-bis-P5-Anzeige.",
+        "priorityFontSize", 7, 20, 1, pixels)
+    addSlider("text", "Priorität X", "Verschiebt das Prioritätsbadge horizontal.",
+        "priorityOffsetX", -80, 80, 1, signedPixels)
+    addSlider("text", "Priorität Y", "Verschiebt das Prioritätsbadge vertikal.",
+        "priorityOffsetY", -80, 80, 1, signedPixels)
+    addSlider("text", "Namens-Textgröße", "Größe des Fähigkeitsnamens.",
+        "abilityNameFontSize", 7, 20, 1, pixels)
+    addSlider("text", "Namens-Breite", "Maximale Breite des Fähigkeitsnamens.",
+        "abilityNameWidth", 40, 240, 1, pixels)
+    addSlider("text", "Name X", "Verschiebt den Fähigkeitsnamen horizontal.",
+        "abilityNameOffsetX", -100, 100, 1, signedPixels)
+    addSlider("text", "Name Y", "Verschiebt den Fähigkeitsnamen vertikal.",
+        "abilityNameOffsetY", -40, 60, 1, signedPixels)
+    addSlider("text", "Header-Textgröße", "Größe der HeliHeal-Überschrift.",
+        "headerFontSize", 7, 20, 1, pixels)
+    addSlider("text", "Header X", "Verschiebt die HeliHeal-Überschrift horizontal.",
+        "headerOffsetX", -80, 80, 1, signedPixels)
+    addSlider("text", "Header Y", "Verschiebt die HeliHeal-Überschrift vertikal.",
+        "headerOffsetY", -50, 30, 1, signedPixels)
 
     local function colorValue(key)
         return self.db.profile[key] or ns.defaults.profile[key]
@@ -821,7 +871,23 @@ function HeliHeal:BuildStylePage(parent)
 
     local accentColor = createColorSwatch(content, 112, L("AKZENT"),
         function() return colorValue("accentColor") end, colorSetter("accentColor"))
-    addControlRow("colors", L("HUD-Akzentfarbe"), L("Farbe für aktive Rahmen, Header und Prioritätsbadge."), accentColor)
+    addControlRow("colors", L("HUD-Akzentfarbe"), L("Farbe für aktive Icon-Rahmen und die obere Akzentlinie."), accentColor)
+
+    local panelColor = createColorSwatch(content, 112, L("PANEL"),
+        function() return colorValue("panelBackgroundColor") end, colorSetter("panelBackgroundColor"))
+    addControlRow("colors", L("Panel-Farbe"), L("Hintergrundfarbe des gemeinsamen HUD-Panels."), panelColor)
+
+    local panelBorderColor = createColorSwatch(content, 112, L("RAHMEN"),
+        function() return colorValue("panelBorderColor") end, colorSetter("panelBorderColor"))
+    addControlRow("colors", L("Panel-Rahmenfarbe"), L("Farbe der äußeren Panel-Kante."), panelBorderColor)
+
+    local iconBackgroundColor = createColorSwatch(content, 112, L("ICON"),
+        function() return colorValue("iconBackgroundColor") end, colorSetter("iconBackgroundColor"))
+    addControlRow("colors", L("Icon-Hintergrundfarbe"), L("Farbe hinter den einzelnen Fähigkeitstexturen."), iconBackgroundColor)
+
+    local hotkeyBackgroundColor = createColorSwatch(content, 112, L("HOTKEY BG"),
+        function() return colorValue("hotkeyBackgroundColor") end, colorSetter("hotkeyBackgroundColor"))
+    addControlRow("colors", L("Hotkey-Hintergrundfarbe"), L("Hintergrundfarbe jeder Hotkey-Box."), hotkeyBackgroundColor)
 
     local hotkeyColor = createColorSwatch(content, 112, L("HOTKEY"),
         function() return colorValue("hotkeyColor") end, colorSetter("hotkeyColor"))
@@ -830,6 +896,18 @@ function HeliHeal:BuildStylePage(parent)
     local cooldownColor = createColorSwatch(content, 112, L("TIMER"),
         function() return colorValue("cooldownColor") end, colorSetter("cooldownColor"))
     addControlRow("colors", L("Cooldown-Farbe"), L("Textfarbe für Timer, Aufladungen und Abdeckungszähler."), cooldownColor)
+
+    local abilityNameColor = createColorSwatch(content, 112, L("NAME"),
+        function() return colorValue("abilityNameColor") end, colorSetter("abilityNameColor"))
+    addControlRow("colors", L("Namens-Farbe"), L("Textfarbe der Fähigkeitsnamen."), abilityNameColor)
+
+    local headerColor = createColorSwatch(content, 112, L("HEADER"),
+        function() return colorValue("headerColor") end, colorSetter("headerColor"))
+    addControlRow("colors", L("Header-Farbe"), L("Textfarbe der HeliHeal-Überschrift."), headerColor)
+
+    local priorityColor = createColorSwatch(content, 112, L("PRIO"),
+        function() return colorValue("priorityColor") end, colorSetter("priorityColor"))
+    addControlRow("colors", L("Prioritäts-Farbe"), L("Textfarbe der P1-bis-P5-Anzeige."), priorityColor)
 
     local roleRow = createSettingRow(content, 0, L("Rollenfarben"), L("Eigene Farben für jeden Heilungs-Kontext."))
     bindWheel(roleRow)
@@ -858,7 +936,7 @@ function HeliHeal:BuildStylePage(parent)
         page.refreshers[#page.refreshers + 1] = swatch
         previousSwatch = swatch
     end
-    local resetRow = createSettingRow(content, 0, L("HUD-Optik zurücksetzen"), L("Setzt nur Schrift, Größen und Farben auf HeliHeal-Standard zurück."))
+    local resetRow = createSettingRow(content, 0, L("HUD-Optik zurücksetzen"), L("Setzt alle Elementgrößen, Positionen, Zoomwerte und Farben zurück."))
     bindWheel(resetRow)
     page.categoryRows.colors[#page.categoryRows.colors + 1] = resetRow
     local resetAppearance = createButton(resetRow, L("OPTIK RESET"), 150, 32, false)
@@ -868,10 +946,18 @@ function HeliHeal:BuildStylePage(parent)
         local profile = self.db.profile
         local defaults = ns.defaults.profile
         for _, key in ipairs({ "hudFont", "hudFontOutline", "primaryIconSize", "secondaryIconSize",
-            "roleLabelSize", "roleLabelOffsetY", "hotkeyFontSize", "cooldownFontSize", "abilityNameFontSize" }) do
+            "primaryIconWidth", "primaryIconHeight", "primaryIconZoom", "primaryIconOffsetX", "primaryIconOffsetY",
+            "secondaryIconWidth", "secondaryIconHeight", "secondaryIconZoom", "secondaryIconOffsetX", "secondaryIconOffsetY",
+            "iconInset", "panelPaddingX", "panelPaddingY", "panelBackgroundAlpha",
+            "roleLabelSize", "roleLabelOffsetX", "roleLabelOffsetY",
+            "hotkeyFontSize", "hotkeyOffsetX", "hotkeyOffsetY", "hotkeyBadgeHeight", "hotkeyBadgeMinWidth",
+            "hotkeyBadgePadding", "cooldownFontSize", "cooldownOffsetX", "cooldownOffsetY",
+            "priorityFontSize", "priorityOffsetX", "priorityOffsetY", "abilityNameFontSize", "abilityNameWidth",
+            "abilityNameOffsetX", "abilityNameOffsetY", "headerFontSize", "headerOffsetX", "headerOffsetY" }) do
             profile[key] = defaults[key]
         end
-        for _, key in ipairs({ "accentColor", "hotkeyColor", "cooldownColor" }) do
+        for _, key in ipairs({ "accentColor", "panelBackgroundColor", "panelBorderColor", "iconBackgroundColor",
+            "hotkeyBackgroundColor", "hotkeyColor", "cooldownColor", "abilityNameColor", "headerColor", "priorityColor" }) do
             local source = defaults[key]
             profile[key] = { source[1], source[2], source[3] }
         end
@@ -883,6 +969,8 @@ function HeliHeal:BuildStylePage(parent)
         self:RefreshOptionsUI()
     end)
     function page:SelectCategory(category)
+        if category == "typography" then category = "text" end
+        if category == "sizing" then category = "icons" end
         if not self.categoryRows[category] then category = "visibility" end
         HeliHeal.selectedStyleCategory = category
         for categoryKey, rows in pairs(self.categoryRows) do

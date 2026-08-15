@@ -16,6 +16,8 @@ assert(loadfile("Core.lua"))("HeliHeal", namespace)
 
 local profile = {
     healingMode = "AOE",
+    primaryIconSize = 77,
+    secondaryIconSize = 41,
     bindings = {},
     slots = {
         { spellID = 5394, inputKey = " button5 " },
@@ -23,8 +25,11 @@ local profile = {
 }
 addon.db = { profile = profile }
 assert(addon:MigrateProfile(profile), "legacy profile must migrate exactly once")
-assert(profile.schemaVersion == 2 and profile.rotationDataVersion == 12108,
+assert(profile.schemaVersion == 3 and profile.rotationDataVersion == 12108,
     "migration must stamp the schema and rotation data versions")
+assert(profile.primaryIconWidth == 77 and profile.primaryIconHeight == 77
+    and profile.secondaryIconWidth == 41 and profile.secondaryIconHeight == 41,
+    "migration must preserve legacy icon sizes as independent dimensions")
 assert(profile.bindings.healing_stream_combo == "BUTTON5" and profile.healingMode == "aoe",
     "migration must preserve and normalize legacy bindings and modes")
 assert(not addon:MigrateProfile(profile), "current profiles must not migrate repeatedly")

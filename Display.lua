@@ -13,6 +13,10 @@ local DEFAULT_ROLE_COLORS = {
 local DEFAULT_ACCENT = { 0.02, 0.88, 0.7 }
 local DEFAULT_HOTKEY = { 0.92, 0.98, 0.97 }
 local DEFAULT_COOLDOWN = { 1.0, 0.86, 0.32 }
+local DEFAULT_PANEL = { 0.018, 0.026, 0.034 }
+local DEFAULT_PANEL_BORDER = { 0.08, 0.14, 0.16 }
+local DEFAULT_ICON_BACKGROUND = { 0.025, 0.035, 0.045 }
+local DEFAULT_NAME = { 1.0, 1.0, 1.0 }
 
 local function clamp(value, minimum, maximum, fallback)
     value = tonumber(value) or fallback
@@ -64,6 +68,11 @@ local function formatRemaining(seconds)
         return tostring(math.ceil(seconds))
     end
     return ("%.1f"):format(seconds)
+end
+
+local function getIconCrop(zoom)
+    zoom = clamp(zoom, 0.7, 1.6, 1)
+    return clamp(0.08 + ((zoom - 1) * 0.18), 0, 0.28, 0.08)
 end
 
 function HeliHeal:GetHotkeyBadgeOverhang(iconSize, badgeWidth)
@@ -307,28 +316,56 @@ function HeliHeal:RefreshDisplay()
     local now = GetTime()
     local order = self:GetDisplayOrder(now)
     local profile = self.db.profile
-    local primarySize = clamp(profile.primaryIconSize, 48, 96, 62)
-    local secondarySize = clamp(profile.secondaryIconSize, 32, 72, 46)
+    local primaryWidth = clamp(profile.primaryIconWidth or profile.primaryIconSize, 32, 160, 62)
+    local primaryHeight = clamp(profile.primaryIconHeight or profile.primaryIconSize, 32, 160, 62)
+    local secondaryWidth = clamp(profile.secondaryIconWidth or profile.secondaryIconSize, 24, 128, 46)
+    local secondaryHeight = clamp(profile.secondaryIconHeight or profile.secondaryIconSize, 24, 128, 46)
+    local primaryOffsetX = clamp(profile.primaryIconOffsetX, -40, 40, 0)
+    local primaryOffsetY = clamp(profile.primaryIconOffsetY, -40, 40, 0)
+    local secondaryOffsetX = clamp(profile.secondaryIconOffsetX, -40, 40, 0)
+    local secondaryOffsetY = clamp(profile.secondaryIconOffsetY, -40, 40, 0)
+    local iconInset = clamp(profile.iconInset, 0, 12, 4)
     local hudFont = getHudFont(profile)
     local fontFlags = getFontFlags(profile)
-    local hotkeyFontSize = clamp(profile.hotkeyFontSize, 7, 16, 9)
-    local abilityNameFontSize = clamp(profile.abilityNameFontSize, 7, 16, 9)
+    local hotkeyFontSize = clamp(profile.hotkeyFontSize, 7, 20, 9)
+    local abilityNameFontSize = clamp(profile.abilityNameFontSize, 7, 20, 9)
+    local headerFontSize = clamp(profile.headerFontSize, 7, 20, 9)
     local accentR, accentG, accentB = getColor(profile.accentColor, DEFAULT_ACCENT)
     local hotkeyR, hotkeyG, hotkeyB = getColor(profile.hotkeyColor, DEFAULT_HOTKEY)
     local cooldownR, cooldownG, cooldownB = getColor(profile.cooldownColor, DEFAULT_COOLDOWN)
+    local panelR, panelG, panelB = getColor(profile.panelBackgroundColor, DEFAULT_PANEL)
+    local panelBorderR, panelBorderG, panelBorderB = getColor(profile.panelBorderColor, DEFAULT_PANEL_BORDER)
+    local iconBackgroundR, iconBackgroundG, iconBackgroundB = getColor(profile.iconBackgroundColor, DEFAULT_ICON_BACKGROUND)
+    local hotkeyBackgroundR, hotkeyBackgroundG, hotkeyBackgroundB = getColor(profile.hotkeyBackgroundColor, DEFAULT_PANEL)
+    local nameR, nameG, nameB = getColor(profile.abilityNameColor, DEFAULT_NAME)
+    local headerR, headerG, headerB = getColor(profile.headerColor, DEFAULT_ACCENT)
+    local priorityR, priorityG, priorityB = getColor(profile.priorityColor, DEFAULT_ACCENT)
     local spacing = profile.spacing
     local totalWidth = 0
     local previousSize
     local previousBadgeWidth
     local lastOverhang = 0
-    local sidePadding = profile.showPanelBackground and 10 or 2
-    local bottomPadding = profile.showHotkey and math.max(19, hotkeyFontSize + 10) or 2
-    local topPadding = 2 + (profile.showHeader and (abilityNameFontSize + 13) or 0)
-        + (profile.showAbilityName and (abilityNameFontSize + 6) or 0)
+    local configuredPaddingX = clamp(profile.panelPaddingX, 0, 40, 2)
+    local configuredPaddingY = clamp(profile.panelPaddingY, 0, 40, 2)
+    local sidePadding = profile.showPanelBackground and math.max(10, configuredPaddingX) or configuredPaddingX
+    local primaryLeftSafety = math.max(0, -primaryOffsetX)
+    local hotkeyHeight = clamp(profile.hotkeyBadgeHeight, 12, 44, 18)
+    local hotkeyOffsetY = clamp(profile.hotkeyOffsetY, -40, 40, -8)
+    local bottomPadding = configuredPaddingY
+    if profile.showHotkey then
+        bottomPadding = math.max(bottomPadding, math.max(0, -hotkeyOffsetY + (hotkeyHeight / 2)) + 2)
+    end
+    bottomPadding = bottomPadding + math.max(0, -math.min(primaryOffsetY, secondaryOffsetY))
+    local topPadding = configuredPaddingY
+        + (profile.showHeader and (headerFontSize + 13) or 0)
+        + (profile.showAbilityName and (abilityNameFontSize
+            + math.max(6, clamp(profile.abilityNameOffsetY, -40, 60, 4))) or 0)
+        + math.max(0, math.max(primaryOffsetY, secondaryOffsetY))
 
     if profile.showPanelBackground then
-        self.frame:SetBackdropColor(0.018, 0.026, 0.034, 0.92)
-        self.frame:SetBackdropBorderColor(0.08, 0.14, 0.16, 0.95)
+        self.frame:SetBackdropColor(panelR, panelG, panelB,
+            clamp(profile.panelBackgroundAlpha, 0, 1, 0.92))
+        self.frame:SetBackdropBorderColor(panelBorderR, panelBorderG, panelBorderB, 0.95)
     else
         self.frame:SetBackdropColor(0, 0, 0, 0)
         self.frame:SetBackdropBorderColor(0, 0, 0, 0)
@@ -336,52 +373,73 @@ function HeliHeal:RefreshDisplay()
     self.frame.accent:SetColorTexture(accentR, accentG, accentB, 1)
     self.frame.accent:SetShown(profile.showPanelBackground)
     self.frame.title:SetShown(profile.showHeader)
-    self.frame.title:SetFont(hudFont, abilityNameFontSize, fontFlags)
-    self.frame.title:SetTextColor(accentR, accentG, accentB, 1)
+    self.frame.title:SetFont(hudFont, headerFontSize, fontFlags)
+    self.frame.title:ClearAllPoints()
+    self.frame.title:SetPoint("TOPLEFT", self.frame, "TOPLEFT",
+        clamp(profile.headerOffsetX, -80, 80, 10), clamp(profile.headerOffsetY, -50, 30, -9))
+    self.frame.title:SetTextColor(headerR, headerG, headerB, 1)
     self.frame.title:SetText("HELIHEAL  •  " .. self:GetHealingModeLabel():upper())
 
     for displayIndex = 1, DISPLAY_SLOT_COUNT do
         local button = self.frame.slots[displayIndex]
         local item = order[displayIndex]
         if item then
-            local size = displayIndex == 1 and primarySize or secondarySize
+            local width = displayIndex == 1 and primaryWidth or secondaryWidth
+            local height = displayIndex == 1 and primaryHeight or secondaryHeight
+            local currentOffsetY = displayIndex == 1 and primaryOffsetY or secondaryOffsetY
             local configuredSlot = self.db.profile.slots[item.slotIndex]
             button.key:SetText(configuredSlot.inputKey or ("P" .. item.slotIndex))
             button.key:SetFont(hudFont, hotkeyFontSize, fontFlags)
             button.key:SetTextColor(hotkeyR, hotkeyG, hotkeyB, 1)
-            button.keyBadge:SetHeight(math.max(18, hotkeyFontSize + 8))
-            local badgeWidth = math.max(46, button.key:GetStringWidth() + 16)
+            button.keyBadge:SetHeight(math.max(hotkeyHeight, hotkeyFontSize + 4))
+            button.keyBadge:SetBackdropColor(hotkeyBackgroundR, hotkeyBackgroundG, hotkeyBackgroundB, 0.94)
+            local badgeWidth = math.max(clamp(profile.hotkeyBadgeMinWidth, 20, 180, 46),
+                button.key:GetStringWidth() + clamp(profile.hotkeyBadgePadding, 0, 60, 16))
             button.keyBadge:SetWidth(badgeWidth)
-            local layoutBadgeWidth = profile.showHotkey and badgeWidth or size
-            local overhang = self:GetHotkeyBadgeOverhang(size, layoutBadgeWidth)
+            button.keyBadge:ClearAllPoints()
+            button.keyBadge:SetPoint("BOTTOM", button, "BOTTOM",
+                clamp(profile.hotkeyOffsetX, -80, 80, 0), hotkeyOffsetY)
+            local layoutBadgeWidth = profile.showHotkey
+                and (badgeWidth + (math.abs(clamp(profile.hotkeyOffsetX, -80, 80, 0)) * 2)) or width
+            local overhang = self:GetHotkeyBadgeOverhang(width, layoutBadgeWidth)
 
-            button:SetSize(size, size)
+            button:SetSize(width, height)
+            button:SetBackdropColor(iconBackgroundR, iconBackgroundG, iconBackgroundB, 1)
             button:ClearAllPoints()
             if displayIndex == 1 then
-                button:SetPoint("BOTTOMLEFT", self.frame, "BOTTOMLEFT", sidePadding + overhang, bottomPadding)
-                totalWidth = overhang + size
+                button:SetPoint("BOTTOMLEFT", self.frame, "BOTTOMLEFT",
+                    sidePadding + overhang + primaryLeftSafety + primaryOffsetX, bottomPadding + primaryOffsetY)
+                totalWidth = overhang + primaryLeftSafety + primaryOffsetX + width
             else
                 local badgeSpacing = self:GetBadgeAwareSpacing(
-                    previousSize, previousBadgeWidth, size, layoutBadgeWidth, spacing)
-                button:SetPoint("LEFT", self.frame.slots[displayIndex - 1], "RIGHT", badgeSpacing, 0)
-                totalWidth = totalWidth + badgeSpacing + size
+                    previousSize, previousBadgeWidth, width, layoutBadgeWidth, spacing)
+                if displayIndex == 2 then badgeSpacing = badgeSpacing + secondaryOffsetX end
+                local previousOffsetY = displayIndex == 2 and primaryOffsetY or secondaryOffsetY
+                button:SetPoint("LEFT", self.frame.slots[displayIndex - 1], "RIGHT",
+                    badgeSpacing, currentOffsetY - previousOffsetY)
+                totalWidth = totalWidth + badgeSpacing + width
             end
 
             button.icon:ClearAllPoints()
             if profile.showIconBorder then
-                button.icon:SetPoint("TOPLEFT", 4, -4)
-                button.icon:SetPoint("BOTTOMRIGHT", -4, 4)
+                button.icon:SetPoint("TOPLEFT", iconInset, -iconInset)
+                button.icon:SetPoint("BOTTOMRIGHT", -iconInset, iconInset)
                 button.shadow:Show()
             else
                 button.icon:SetAllPoints()
                 button.shadow:Hide()
             end
+            local crop = getIconCrop(displayIndex == 1 and profile.primaryIconZoom or profile.secondaryIconZoom)
+            button.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
 
             button.icon:SetTexture(item.ability.icon)
             button.icon:SetDesaturated(item.remaining > 0)
             button.name:SetText(item.ability.name)
-            button.priorityBadge:SetFont(hudFont, hotkeyFontSize, fontFlags)
-            button.priorityBadge:SetTextColor(accentR, accentG, accentB, 1)
+            button.priorityBadge:SetFont(hudFont, clamp(profile.priorityFontSize, 7, 20, 9), fontFlags)
+            button.priorityBadge:ClearAllPoints()
+            button.priorityBadge:SetPoint("TOPLEFT", button, "TOPLEFT",
+                clamp(profile.priorityOffsetX, -80, 80, 7), clamp(profile.priorityOffsetY, -80, 80, -7))
+            button.priorityBadge:SetTextColor(priorityR, priorityG, priorityB, 1)
             button.priorityBadge:SetText(("P%d"):format(item.priorityRank))
             local roleLabel = profile.showRoleLabel and item.ability.roleLabel or nil
             local roleR, roleG, roleB
@@ -389,15 +447,24 @@ function HeliHeal:RefreshDisplay()
                 roleR, roleG, roleB = getColor(
                     profile.roleColors and profile.roleColors[roleLabel], DEFAULT_ROLE_COLORS[roleLabel])
             end
-            local roleSize = clamp(profile.roleLabelSize, 7, 18, 10)
+            local roleSize = clamp(profile.roleLabelSize, 7, 24, 10)
             button.roleLabel:SetFont(hudFont, displayIndex == 1 and roleSize or math.max(7, roleSize - 2), fontFlags)
             button.roleLabel:ClearAllPoints()
-            button.roleLabel:SetPoint("CENTER", 0, clamp(profile.roleLabelOffsetY, -12, 12, 0))
+            button.roleLabel:SetPoint("CENTER", button, "CENTER",
+                clamp(profile.roleLabelOffsetX, -80, 80, 0), clamp(profile.roleLabelOffsetY, -80, 80, 0))
             button.roleLabel:SetText(roleLabel or "")
             if roleR then button.roleLabel:SetTextColor(roleR, roleG, roleB) end
-            button.remaining:SetFont(hudFont, clamp(profile.cooldownFontSize, 10, 24, 14), fontFlags)
+            button.remaining:SetFont(hudFont, clamp(profile.cooldownFontSize, 10, 30, 14), fontFlags)
+            button.remaining:ClearAllPoints()
+            button.remaining:SetPoint("CENTER", button, "CENTER",
+                clamp(profile.cooldownOffsetX, -80, 80, 0), clamp(profile.cooldownOffsetY, -80, 80, 0))
             button.remaining:SetTextColor(cooldownR, cooldownG, cooldownB, 1)
             button.name:SetFont(hudFont, abilityNameFontSize, fontFlags)
+            button.name:SetTextColor(nameR, nameG, nameB, 1)
+            button.name:SetWidth(clamp(profile.abilityNameWidth, 40, 240, 106))
+            button.name:ClearAllPoints()
+            button.name:SetPoint("BOTTOM", button, "TOP",
+                clamp(profile.abilityNameOffsetX, -100, 100, 0), clamp(profile.abilityNameOffsetY, -40, 60, 4))
             if item.trackedText then
                 button.remaining:SetText(item.trackedText)
             elseif item.remaining > 0 then
@@ -429,7 +496,7 @@ function HeliHeal:RefreshDisplay()
                 end
             end
             button:Show()
-            previousSize = size
+            previousSize = width
             previousBadgeWidth = layoutBadgeWidth
             lastOverhang = overhang
         else
@@ -440,6 +507,7 @@ function HeliHeal:RefreshDisplay()
     if #order == 0 then
         self.frame:SetSize(profile.showPanelBackground and 280 or 1, profile.showPanelBackground and 76 or 1)
     else
-        self.frame:SetSize(totalWidth + lastOverhang + (sidePadding * 2), primarySize + topPadding + bottomPadding)
+        self.frame:SetSize(totalWidth + lastOverhang + (sidePadding * 2),
+            math.max(primaryHeight, secondaryHeight) + topPadding + bottomPadding)
     end
 end

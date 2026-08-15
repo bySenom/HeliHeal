@@ -24,7 +24,7 @@ local RESTORATION_SPECIALIZATIONS = {
     PALADIN = 65,
 }
 
-local CURRENT_SCHEMA_VERSION = 2
+local CURRENT_SCHEMA_VERSION = 3
 local ROTATION_DATA_VERSION = 12108
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
@@ -102,6 +102,16 @@ function HeliHeal:MigrateProfile(profile)
             end
         end
         profile.healingMode = HEALING_MODE_ALIASES[(profile.healingMode or "standard"):lower()] or "standard"
+    end
+    if originalVersion < 3 then
+        local oldPrimarySize = tonumber(rawget(profile, "primaryIconSize")) or 62
+        local oldSecondarySize = tonumber(rawget(profile, "secondaryIconSize")) or 46
+        profile.primaryIconWidth = tonumber(rawget(profile, "primaryIconWidth")) or oldPrimarySize
+        profile.primaryIconHeight = tonumber(rawget(profile, "primaryIconHeight")) or oldPrimarySize
+        profile.secondaryIconWidth = tonumber(rawget(profile, "secondaryIconWidth")) or oldSecondarySize
+        profile.secondaryIconHeight = tonumber(rawget(profile, "secondaryIconHeight")) or oldSecondarySize
+        profile.primaryIconZoom = tonumber(rawget(profile, "primaryIconZoom")) or 1
+        profile.secondaryIconZoom = tonumber(rawget(profile, "secondaryIconZoom")) or 1
     end
     profile.schemaVersion = CURRENT_SCHEMA_VERSION
     profile.rotationDataVersion = ROTATION_DATA_VERSION

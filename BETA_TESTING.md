@@ -26,9 +26,11 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Outside combat, verify Holy Shock's local recharge matches `6 / (1 + spell haste)`; entering combat must retain that safe snapshot.
 - Verify Light of Dawn/Holy Light/Flash of Light show `AOE`/`SAVE`/`BURST`, while Chain Heal/Healing Wave show `AOE`/`SINGLE`.
 - Open `/hh` > HUD Elements and verify the mouse wheel reaches every row without overlapping the fixed bottom bar.
-- Change HUD font, outline, icon/text sizes and every color swatch; verify the preview updates immediately and Appearance Reset restores defaults.
+- Change primary and secondary icon width, height, zoom and X/Y position; verify the preview updates immediately.
+- Move and resize the hotkey badge, cooldown, role label, priority badge, ability name and header independently; Appearance Reset must restore every default.
+- Change HUD font, outline and every color swatch; verify the preview updates immediately.
 - Open the Font and Text Outline dropdowns; verify all choices are visible, the active choice is highlighted and clicking outside closes the menu.
-- Verify all four HUD subcategories show only their relevant controls and retain changes when switching categories.
+- Verify all five HUD subcategories show only their relevant controls and retain changes when switching categories.
 - Create an empty profile, copy the current profile, switch through the existing-profile dropdown, then delete only a non-active profile using the two-click confirmation.
 - Instant casts such as Riptide and Rejuvenation advance without an extra 1.5-second delay.
 

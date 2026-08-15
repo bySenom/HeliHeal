@@ -18,7 +18,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Successful-cast confirmation and live GCD locking
 - Local cooldown, charge and HoT estimates
 - Optional AOE, SINGLE, BURST and SAVE role labels on contextual healing icons
-- Custom HUD fonts, outlines, icon sizes, text sizes and per-element colors
+- Per-element HUD sizing, positioning, icon zoom, fonts, outlines and colors
 - Out-of-combat spell-haste snapshots for haste-scaled Holy Paladin recharge timers
 - Automatic Blizzard One Button Assistant detection on standard action bars
 - Live Holy Power synchronization for the player, with confirmed-cast fallback
