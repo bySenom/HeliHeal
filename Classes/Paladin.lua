@@ -45,6 +45,11 @@ local abilities = {
         grantsFreeSpenderTalent = "paladinAurora", cooldownTalent = "paladinUnwaveringSpirit",
         cooldownReduction = 30, confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
+    paladin_beacon_of_virtue = {
+        spellID = 200025, name = "Beacon of Virtue", cooldown = 15,
+        requiresTalent = "paladinBeaconVirtue", roleLabel = "BURST",
+        confirmOnPlayerSuccess = true, inputLockout = 1.5,
+    },
     paladin_judgment = {
         spellID = 275773, name = "Judgment", cooldown = 11,
         holyPowerGain = 1, hastedCooldown = true, inputLockout = 1.5,
@@ -91,6 +96,7 @@ local function modeSlots(hero, raid)
     local spender = hero == "herald" and "paladin_eternal_flame" or "paladin_word_of_glory"
     local generator = hero == "lightsmith" and "paladin_holy_armament" or "paladin_divine_toll"
     local prism = hero == "herald" and { "paladin_holy_prism" } or {}
+    local virtue = not raid and { "paladin_beacon_of_virtue" } or {}
     local function list(...)
         local result = {}
         for _, value in ipairs({ ... }) do
@@ -106,10 +112,10 @@ local function modeSlots(hero, raid)
     local secondarySpender = raid and spender or "paladin_light_of_dawn"
     return {
         standard = list("paladin_avenging_wrath", "paladin_avenging_crusader", generator, prism,
-            "paladin_holy_shock", primarySpender, secondarySpender, "paladin_holy_light",
+            virtue, "paladin_holy_shock", primarySpender, secondarySpender, "paladin_holy_light",
             "paladin_flash_of_light", "paladin_judgment"),
         aoe = list("paladin_aura_mastery", "paladin_avenging_wrath", "paladin_avenging_crusader",
-            generator, prism, "paladin_holy_shock", "paladin_light_of_dawn", spender,
+            generator, prism, virtue, "paladin_holy_shock", "paladin_light_of_dawn", spender,
             "paladin_holy_light", "paladin_flash_of_light", "paladin_judgment"),
         single = list("paladin_avenging_wrath", "paladin_avenging_crusader", generator, prism,
             "paladin_holy_shock", spender, "paladin_holy_light", "paladin_flash_of_light",

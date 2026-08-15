@@ -15,6 +15,7 @@ local selectedSpellIDs = {
     414073, -- Light's Conviction
     216331, -- Avenging Crusader
     1241511, -- Call of the Righteous (rank 2)
+    200025, -- Beacon of Virtue
 }
 
 C_ClassTalents = { GetActiveConfigID = function() return 9001 end }
@@ -56,6 +57,8 @@ addon:ResetRuntimeState()
 assert(addon:RefreshTalentSnapshot(true), "Paladin talent snapshot must be readable")
 assert(addon.talentSnapshot.paladinLightsmith and addon.talentSnapshot.paladinQuickenedInvocation,
     "Lightsmith and Quickened Invocation must be detected from committed entries")
+assert(addon.talentSnapshot.paladinBeaconVirtue,
+    "Beacon of Virtue must be detected from the committed Holy talent loadout")
 assert(addon.db.profile.rotationPreset == "paladin_lightsmith_raid",
     "hero detection must preserve the selected Raid content type")
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")

@@ -35,6 +35,7 @@ addon.talentSnapshot = {
     paladinAvengingCrusader = false,
     paladinRingingHeavens = false,
     paladinWalkIntoLight = false,
+    paladinBeaconVirtue = true,
 }
 addon.IsTalentActive = function(self, key)
     return self.talentSnapshot.available and self.talentSnapshot[key] == true
@@ -53,11 +54,31 @@ local flameIndex = addon:GetSlotIndexByAbilityKey("paladin_eternal_flame")
 local dawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
 local holyLightIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_light")
 local flashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
+local virtueIndex = addon:GetSlotIndexByAbilityKey("paladin_beacon_of_virtue")
 
 assert(addon:GetSlot(tollIndex).cooldown == 30,
     "Quickened Invocation must reduce Divine Toll to 30 seconds")
 assert(addon:GetSlot(shockIndex).maxCharges == 2,
     "Light's Conviction must keep two Holy Shock charges")
+assert(addon:GetSlot(virtueIndex).enabled and addon:GetSlot(virtueIndex).cooldown == 15
+    and addon:GetSlot(virtueIndex).roleLabel == "BURST",
+    "selected Beacon of Virtue must be a tracked 15-second Mythic+ burst setup")
+local function containsAbility(keys, expected)
+    for _, key in ipairs(keys) do
+        if key == expected then return true end
+    end
+    return false
+end
+assert(containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
+        "paladin_herald_mythicplus", "standard"), "paladin_beacon_of_virtue")
+    and containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
+        "paladin_herald_mythicplus", "aoe"), "paladin_beacon_of_virtue"),
+    "Virtue must be available in Mythic+ Standard and AoE modes")
+assert(not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
+        "paladin_herald_mythicplus", "single"), "paladin_beacon_of_virtue")
+    and not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
+        "paladin_herald_mythicplus", "mana"), "paladin_beacon_of_virtue"),
+    "Virtue must not be forced by Single Target or Mana Saving modes")
 assert(addon:GetSlot(dawnIndex).roleLabel == "AOE"
     and addon:GetSlot(holyLightIndex).roleLabel == "SAVE"
     and addon:GetSlot(flashIndex).roleLabel == "BURST",
@@ -84,8 +105,12 @@ end
 addon:AcknowledgeSlot(tollIndex)
 assert(addon.sessionHolyPower == 3, "Divine Toll must add three locally estimated Holy Power")
 order = addon:GetDisplayOrder(now)
+assert(order[1].ability.abilityKey == "paladin_beacon_of_virtue",
+    "Beacon of Virtue must prepare the Mythic+ burst window before direct healing")
+addon:AcknowledgeSlot(virtueIndex)
+order = addon:GetDisplayOrder(now)
 assert(order[1].ability.abilityKey == "paladin_holy_shock",
-    "Holy Shock must precede the normal spender below the five-point cap")
+    "Holy Shock must follow the active Virtue setup below the five-point cap")
 
 addon:AcknowledgeSlot(shockIndex)
 assert(addon.sessionHolyPower == 4, "Holy Shock must add one locally estimated Holy Power")
@@ -122,6 +147,8 @@ assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).coo
     "Lightsmith must expose its two-charge Holy Armament with Quickened Invocation")
 assert(addon:GetSlot(wordIndex).enabled and not addon:GetSlotIndexByAbilityKey("paladin_eternal_flame"),
     "Lightsmith must use Word of Glory instead of Eternal Flame")
+assert(not addon:GetSlotIndexByAbilityKey("paladin_beacon_of_virtue"),
+    "Beacon of Virtue must remain exclusive to the Mythic+ priority packs")
 assert(namespace.AbilityLibrary:GetPresetPriorityKeys("paladin_lightsmith_raid", "standard")[3]
         == "paladin_holy_armament",
     "Lightsmith Raid must keep Holy Armament ahead of its normal healing priority")

@@ -55,6 +55,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 ## Holy Paladin
 
 - Herald of the Sun uses Eternal Flame while Lightsmith uses Word of Glory and Holy Armaments.
+- With Beacon of Virtue talented in Mythic+, verify it appears as a 15-second BURST setup in Standard/AoE, leaves after a confirmed cast, and stays out of Single Target/Mana Saving.
 - Divine Toll or Holy Prism appears only for the selected talent; Holy Armaments accepts both alternating spell casts through one binding.
 - Quickened Invocation reduces the local generator cooldown by 15 seconds and Light's Conviction adds the second Holy Shock charge.
 - Confirmed generators increase the local Holy Power estimate; spenders stay hidden below 3 and are forced first at 5.

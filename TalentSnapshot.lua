@@ -29,6 +29,7 @@ local TALENTS = {
     paladinCallOfRighteous = { 1241511 },
     paladinUnwaveringSpirit = { 392911 },
     paladinDivinePurpose = { 408459, 223817 },
+    paladinBeaconVirtue = { 200025 },
 }
 
 local SNAPSHOT_FLAGS = {
@@ -40,7 +41,7 @@ local SNAPSHOT_FLAGS = {
     "paladinAvengingWrath", "paladinAvengingCrusader", "paladinRingingHeavens", "paladinWalkIntoLight",
     "paladinAurora",
     "paladinCallOfRighteous", "paladinCallOfRighteousRank", "paladinUnwaveringSpirit",
-    "paladinDivinePurpose",
+    "paladinDivinePurpose", "paladinBeaconVirtue",
 }
 
 local function isKnownSpell(spellID)
@@ -213,9 +214,10 @@ function HeliHeal:PrintTalentSnapshot()
         return
     end
     if self.classToken == "PALADIN" then
-        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Quickened Invocation %s | Light's Conviction %s | Wings %s | Crusader %s | Ringing %s | Walk Into Light %s | Aurora %s | Call %d/2 | Unwavering %s | Divine Purpose %s")
+        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Light's Conviction %s | Wings %s | Crusader %s | Ringing %s | Walk Into Light %s | Aurora %s | Call %d/2 | Unwavering %s | Divine Purpose %s")
             :format(yesNo(snapshot.paladinHerald), yesNo(snapshot.paladinLightsmith),
                 yesNo(snapshot.paladinDivineToll), yesNo(snapshot.paladinHolyPrism),
+                yesNo(snapshot.paladinBeaconVirtue),
                 yesNo(snapshot.paladinQuickenedInvocation), yesNo(snapshot.paladinLightsConviction),
                 yesNo(snapshot.paladinAvengingWrath), yesNo(snapshot.paladinAvengingCrusader),
                 yesNo(snapshot.paladinRingingHeavens), yesNo(snapshot.paladinWalkIntoLight),
