@@ -206,6 +206,7 @@ local enUS = {
     ["Breite Hotkey-Badges vergrößern den Icon-Abstand automatisch und überlappen nicht mehr."] = "Wide hotkey badges now expand icon spacing automatically and no longer overlap.",
     ["Zwischengespeicherte Fähigkeiten und wiederverwendete HUD-Tabellen reduzieren den laufenden Speicheraufbau deutlich."] = "Cached abilities and reusable HUD tables significantly reduce ongoing memory growth.",
     ["Natur- und Ahnen-Schnelligkeit werden nach einem erfolgreichen Off-GCD-Cast direkt bestätigt und sofort ausgeblendet."] = "Nature's Swiftness and Ancestral Swiftness are now confirmed directly after a successful off-GCD cast and disappear immediately.",
+    ["Leben entfesseln wird ebenfalls direkt über den erfolgreichen Spieler-Cast bestätigt."] = "Unleash Life is now also confirmed directly from the successful player cast.",
     ["Schriftart und Textkontur verwenden jetzt echte Dropdown-Menüs mit Live-Vorschau."] = "Font and text outline now use proper dropdown menus with a live preview.",
     ["HUD-Einstellungen sind jetzt in Sichtbarkeit, Text, Größe und Farben gegliedert."] = "HUD settings are now organized into Visibility, Text, Size and Colors.",
     ["Die Profilseite zeigt vorhandene Profile und unterstützt Wechseln, Erstellen, Kopieren und sicheres Löschen."] = "The Profiles page now lists existing profiles and supports switching, creating, copying and safe deletion.",

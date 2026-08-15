@@ -37,6 +37,7 @@ addon.db = {
         bindings = {
             healing_stream_combo = "BUTTON5",
             natures_swiftness = "SHIFT-3",
+            unleash_life = "SHIFT-4",
         },
     },
 }
@@ -48,7 +49,7 @@ addon.sessionSpendHistory = {}
 addon.pendingAcknowledgements = {}
 addon.heldInputKeys = {}
 addon.inputLockedUntil = {}
-addon.talentSnapshot = { available = true, mysticKnowledge = false }
+addon.talentSnapshot = { available = true, mysticKnowledge = false, unleashLife = true }
 addon.IsTalentActive = function(self, key) return self.talentSnapshot[key] == true end
 addon.RefreshDisplay = function() end
 addon.Print = function() end
@@ -99,5 +100,23 @@ assert(addon:CommitObservedSpell(5394), "second normal Healing Stream cast must 
 state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 0 and state.bonusCharges == 0,
     "only two normal HST casts may remain after the Stormstream use")
+
+local unleashIndex = addon:GetSlotIndexByAbilityKey("unleash_life")
+assert(addon.db.profile.slots[unleashIndex].inputKey == "SHIFT-4",
+    "the Unleash Life regression must exercise a modifier binding")
+now = 4
+assert(addon:RecordPlayerSpellSucceeded(73685),
+    "Unleash Life success must confirm directly when its action hook is missed")
+assert(addon.sessionUses[unleashIndex] == now and addon.pendingUnleash,
+    "confirmed Unleash Life must start its cooldown and arm the local consumer state")
+local unleashOrder = addon:GetDisplayOrder(now)
+assert(unleashOrder[1].ability.abilityKey ~= "unleash_life",
+    "confirmed Unleash Life must immediately leave the ready recommendation")
+local unleashPreview
+for _, item in ipairs(unleashOrder) do
+    if item.ability.abilityKey == "unleash_life" then unleashPreview = item end
+end
+assert(not unleashPreview or unleashPreview.remaining > 0,
+    "Unleash Life may remain only as an explicitly cooling-down preview")
 
 print("Stormstream sequence OK: 2/2 -> 3/2 -> Stormstream -> exactly two normal HST uses")

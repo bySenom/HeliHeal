@@ -45,7 +45,13 @@ local abilities = {
         confirmOnPlayerSuccess = true,
     },
     surging_totem = { spellID = 444995, name = "Surging Totem", cooldown = 25 },
-    unleash_life = { spellID = 73685, name = "Unleash Life", cooldown = 20, inputLockout = 1.5 },
+    unleash_life = {
+        spellID = 73685,
+        name = "Unleash Life",
+        cooldown = 20,
+        inputLockout = 1.5,
+        confirmOnPlayerSuccess = true,
+    },
     healing_rain = {
         spellID = 73920,
         name = "Healing Rain",
