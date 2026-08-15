@@ -312,6 +312,11 @@ local enUS = {
     ["Holy Power wird als geordnete Folge bestätigter Casts berechnet und bei Refunds korrekt neu aufgebaut."] = "Holy Power is calculated as an ordered sequence of confirmed casts and replayed correctly after refunds.",
     ["Aurora, Walk Into Light, Ringing of the Heavens und rangabhängige Cooldown-Talente werden lokal simuliert."] = "Aurora, Walk Into Light, Ringing of the Heavens and rank-based cooldown talents are simulated locally.",
     ["Mit /hh hp 0-5 kann die lokale Schätzung bei einem nicht lesbaren Zufallsproc synchronisiert werden."] = "Use /hh hp 0-5 to synchronize the local estimate after an unreadable random proc.",
+    ["Primär- und Folge-Icons unterstützen jetzt getrennte Breite, Höhe, Zoom und Position."] = "Primary and secondary icons now support independent width, height, zoom and position controls.",
+    ["Hotkey, Cooldown, Rollenlabel, Prioritätsbadge, Fähigkeitsname und Header können unabhängig positioniert und skaliert werden."] = "Hotkeys, cooldowns, role labels, priority badges, ability names and the header can now be positioned and scaled independently.",
+    ["Panel, Icon-Hintergrund und sämtliche HUD-Texte besitzen eigene Farbeinstellungen."] = "The panel, icon background and all HUD text elements now have individual color settings.",
+    ["Leuchtfeuer der Tugend wird talentabhängig in Holy-Paladin-M+-Standard und AoE mit 15 Sekunden Cooldown unterstützt."] = "Beacon of Virtue is now supported based on talent selection in Holy Paladin Mythic+ Standard and AoE modes with a 15-second cooldown.",
+    ["CurseForge und GitHub verwenden jetzt gepflegte Markdown-Release-Notes ohne Git-Autorendaten."] = "CurseForge and GitHub now use curated Markdown release notes without Git author metadata.",
 }
 
 local deDE = {
@@ -335,6 +340,7 @@ local deDE = {
     ["Context Labels for Filler Heals"] = "Kontext-Hinweise für direkte Heilungen",
     ["First Beta: Customizable HUD and Profiles"] = "Erste Beta: Anpassbares HUD und Profile",
     ["Reliable Cast Tracking and Runtime Efficiency"] = "Zuverlässige Cast-Erkennung und Speichereffizienz",
+    ["Advanced HUD Customization and Beacon of Virtue"] = "Erweiterte HUD-Anpassung und Leuchtfeuer der Tugend",
 }
 
 local translations = enUS

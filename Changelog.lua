@@ -1,8 +1,19 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.7-beta.1",
+    currentVersion = "0.9.8-beta.1",
     entries = {
+        {
+            version = "0.9.8-beta.1",
+            title = "Advanced HUD Customization and Beacon of Virtue",
+            changes = {
+                "Primär- und Folge-Icons unterstützen jetzt getrennte Breite, Höhe, Zoom und Position.",
+                "Hotkey, Cooldown, Rollenlabel, Prioritätsbadge, Fähigkeitsname und Header können unabhängig positioniert und skaliert werden.",
+                "Panel, Icon-Hintergrund und sämtliche HUD-Texte besitzen eigene Farbeinstellungen.",
+                "Leuchtfeuer der Tugend wird talentabhängig in Holy-Paladin-M+-Standard und AoE mit 15 Sekunden Cooldown unterstützt.",
+                "CurseForge und GitHub verwenden jetzt gepflegte Markdown-Release-Notes ohne Git-Autorendaten.",
+            },
+        },
         {
             version = "0.9.7-beta.1",
             title = "Reliable Cast Tracking and Runtime Efficiency",
