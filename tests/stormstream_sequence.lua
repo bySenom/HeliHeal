@@ -27,6 +27,7 @@ assert(loadfile("AbilityLibrary.lua"))("HeliHeal", namespace)
 assert(loadfile("Classes/Shaman.lua"))("HeliHeal", namespace)
 assert(loadfile("Core.lua"))("HeliHeal", namespace)
 assert(loadfile("Input.lua"))("HeliHeal", namespace)
+assert(loadfile("Display.lua"))("HeliHeal", namespace)
 
 addon.classToken = "SHAMAN"
 addon.db = {
@@ -35,7 +36,7 @@ addon.db = {
         healingMode = "standard",
         bindings = {
             healing_stream_combo = "BUTTON5",
-            natures_swiftness = "SHIFT-1",
+            natures_swiftness = "SHIFT-3",
         },
     },
 }
@@ -59,7 +60,17 @@ assert(hst.cooldown == 17, "Healing Stream Totem must recharge every 17 seconds"
 local state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 2 and state.bonusCharges == 0, "sequence must start at 2/2")
 
-addon:AcknowledgeSlot(swiftnessIndex)
+local swiftnessSlot = addon:GetSlot(swiftnessIndex)
+assert(swiftnessSlot.confirmOnPlayerSuccess,
+    "Nature's Swiftness must accept its off-GCD player success without relying on the action hook")
+assert(addon:RecordPlayerSpellSucceeded(378081),
+    "Nature's Swiftness success must confirm the configured SHIFT-3 recommendation directly")
+assert(addon.pendingSwiftness and addon.pendingSwiftness.slotIndex == swiftnessIndex,
+    "confirmed Nature's Swiftness must arm its local consumer state")
+for _, item in ipairs(addon:GetDisplayOrder(now)) do
+    assert(item.ability.abilityKey ~= "natures_swiftness",
+        "confirmed Nature's Swiftness must immediately leave the recommendations")
+end
 state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 2 and state.bonusCharges == 1,
     "Nature's Swiftness must create one effective Stormstream use at 3/2")

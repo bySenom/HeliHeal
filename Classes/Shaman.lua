@@ -33,6 +33,7 @@ local abilities = {
         grantsBonusChargeTo = "healing_stream_combo",
         armsSwiftness = true,
         preferredSwiftnessConsumer = "chain_heal",
+        confirmOnPlayerSuccess = true,
     },
     ancestral_swiftness = {
         spellID = 443454,
@@ -41,6 +42,7 @@ local abilities = {
         grantsBonusChargeTo = "healing_stream_combo",
         armsSwiftness = true,
         preferredSwiftnessConsumer = "chain_heal",
+        confirmOnPlayerSuccess = true,
     },
     surging_totem = { spellID = 444995, name = "Surging Totem", cooldown = 25 },
     unleash_life = { spellID = 73685, name = "Unleash Life", cooldown = 20, inputLockout = 1.5 },

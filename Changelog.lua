@@ -18,6 +18,7 @@ ns.changelog = {
                 "Die Profilseite zeigt vorhandene Profile und unterstützt Wechseln, Erstellen, Kopieren und sicheres Löschen.",
                 "Breite Hotkey-Badges vergrößern den Icon-Abstand automatisch und überlappen nicht mehr.",
                 "Zwischengespeicherte Fähigkeiten und wiederverwendete HUD-Tabellen reduzieren den laufenden Speicheraufbau deutlich.",
+                "Natur- und Ahnen-Schnelligkeit werden nach einem erfolgreichen Off-GCD-Cast direkt bestätigt und sofort ausgeblendet.",
             },
         },
         {

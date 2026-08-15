@@ -38,6 +38,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Nature's/Ancestral Swiftness at 2/2 grants one Stormstream use, then leaves exactly 2/2 normal Healing Stream charges.
 - Stormstream, normal Healing Stream and repeated mouse-button spam never double-spend charges.
 - Downpour inherits Healing Rain's binding without a false duplicate-binding warning.
+- Nature's Swiftness and Ancestral Swiftness immediately leave the recommendations after a successful off-GCD cast, including modifier bindings such as `SHIFT-3`.
 - Totemic and Farseer presets retain the chosen Mythic+ or Raid content type after talent changes.
 
 ## Restoration Druid
