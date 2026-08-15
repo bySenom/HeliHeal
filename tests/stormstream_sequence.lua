@@ -61,6 +61,13 @@ assert(hst.cooldown == 17, "Healing Stream Totem must recharge every 17 seconds"
 local state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 2 and state.bonusCharges == 0, "sequence must start at 2/2")
 
+assert(addon:RecordPlayerSpellSucceeded(1267068),
+    "an unreadable random Stormstream proc must still be recognized when the player uses it")
+state = addon:GetChargeState(hstIndex, hst, now)
+assert(state.baseCharges == 2 and state.bonusCharges == 0,
+    "an observed random Stormstream cast must not consume a normal Healing Stream charge")
+
+now = 1
 local swiftnessSlot = addon:GetSlot(swiftnessIndex)
 assert(swiftnessSlot.confirmOnPlayerSuccess,
     "Nature's Swiftness must accept its off-GCD player success without relying on the action hook")
@@ -76,14 +83,14 @@ state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 2 and state.bonusCharges == 1,
     "Nature's Swiftness must create one effective Stormstream use at 3/2")
 
-now = 1
+now = 2
 addon:ObserveInputKey("BUTTON5")
 assert(addon:CommitObservedSpell(1267068), "Stormstream cast ID 1267068 must confirm BUTTON5")
 state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 2 and state.bonusCharges == 0,
     "Stormstream must consume only the synthetic use and leave exactly two normal HST charges")
 
-now = 2
+now = 3
 addon:ReleaseInputKey("BUTTON5")
 addon.inputLockedUntil[hstIndex] = nil
 addon:ObserveInputKey("BUTTON5")
@@ -92,7 +99,7 @@ state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 1 and state.bonusCharges == 0,
     "the first normal HST after Stormstream must leave one normal charge")
 
-now = 3
+now = 4
 addon:ReleaseInputKey("BUTTON5")
 addon.inputLockedUntil[hstIndex] = nil
 addon:ObserveInputKey("BUTTON5")
@@ -104,7 +111,7 @@ assert(state.baseCharges == 0 and state.bonusCharges == 0,
 local unleashIndex = addon:GetSlotIndexByAbilityKey("unleash_life")
 assert(addon.db.profile.slots[unleashIndex].inputKey == "SHIFT-4",
     "the Unleash Life regression must exercise a modifier binding")
-now = 4
+now = 5
 assert(addon:RecordPlayerSpellSucceeded(73685),
     "Unleash Life success must confirm directly when its action hook is missed")
 assert(addon.sessionUses[unleashIndex] == now and addon.pendingUnleash,

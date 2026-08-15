@@ -16,6 +16,7 @@ local abilities = {
         -- 1267068 is the player cast; 1267089 is the visible proc aura seen
         -- in the UI and retained as a compatibility alias.
         castSpellIDs = { 5394, 1267068, 1267089 },
+        confirmOnPlayerSuccess = true,
         note = "Stormstream uses the Healing Stream action without consuming a normal charge. Random Riptide procs remain untracked.",
     },
     riptide = {

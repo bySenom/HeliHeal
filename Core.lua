@@ -26,6 +26,10 @@ local RESTORATION_SPECIALIZATIONS = {
 
 local CURRENT_SCHEMA_VERSION = 2
 local ROTATION_DATA_VERSION = 12108
+local STORMSTREAM_CAST_SPELL_IDS = {
+    [1267068] = true,
+    [1267089] = true,
+}
 
 local function copyTable(source)
     local result = {}
@@ -770,18 +774,36 @@ function HeliHeal:GrantBonusCharge(abilityKey, now)
     state.bonusCharges = math.min(ability.maxBonusCharges, state.bonusCharges + 1)
 end
 
-function HeliHeal:SpendCharge(slotIndex, ability, now)
+function HeliHeal:SpendCharge(slotIndex, ability, now, observedSpellID)
     local state = self:GetChargeState(slotIndex, ability, now)
     if not state then
         return false
     end
 
-    -- A guaranteed Stormstream use is spent first and deliberately leaves the
-    -- two normal Healing Stream charges untouched (effective 3/2 at cap).
     self.sessionSpendHistory = self.sessionSpendHistory or {}
-    if state.bonusCharges > 0 then
+    self.sessionSpendHistory[slotIndex] = self.sessionSpendHistory[slotIndex] or {}
+
+    -- The transformed Stormstream player cast has its own success spell ID.
+    -- If the granting random proc was unreadable, consume that observed proc
+    -- without touching either normal Healing Stream charge.
+    local observedStormstream = ability.abilityKey == "healing_stream_combo"
+        and STORMSTREAM_CAST_SPELL_IDS[tonumber(observedSpellID)] == true
+    if observedStormstream then
+        if state.bonusCharges > 0 then
+            state.bonusCharges = state.bonusCharges - 1
+            table.insert(self.sessionSpendHistory[slotIndex], "bonus")
+        else
+            table.insert(self.sessionSpendHistory[slotIndex], "observed_bonus")
+        end
+        return true
+    end
+
+    -- Without an authoritative cast ID, retain the local guaranteed-proc
+    -- fallback and spend its synthetic bonus before a normal charge.
+    local observedNormalHealingStream = ability.abilityKey == "healing_stream_combo"
+        and observedSpellID ~= nil
+    if not observedNormalHealingStream and state.bonusCharges > 0 then
         state.bonusCharges = state.bonusCharges - 1
-        self.sessionSpendHistory[slotIndex] = self.sessionSpendHistory[slotIndex] or {}
         table.insert(self.sessionSpendHistory[slotIndex], "bonus")
         return true
     end
@@ -790,7 +812,6 @@ function HeliHeal:SpendCharge(slotIndex, ability, now)
     end
 
     state.baseCharges = state.baseCharges - 1
-    self.sessionSpendHistory[slotIndex] = self.sessionSpendHistory[slotIndex] or {}
     table.insert(self.sessionSpendHistory[slotIndex], "base")
     if not state.nextRechargeAt and ability.cooldown > 0 then
         state.nextRechargeAt = self:GetRechargeFinish(ability, now)
@@ -904,7 +925,7 @@ function HeliHeal:ConsumeSwiftness(now)
     return true
 end
 
-function HeliHeal:AcknowledgeSlot(slotIndex)
+function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     slotIndex = tonumber(slotIndex)
     local slot = slotIndex and self:GetSlot(slotIndex)
     if not slot or not slot.enabled then
@@ -948,7 +969,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex)
         end
         self:AddTrackedApplications(slot, applications, now)
     elseif slot.maxCharges > 1 then
-        if not self:SpendCharge(slotIndex, slot, now) then
+        if not self:SpendCharge(slotIndex, slot, now, observedSpellID) then
             return
         end
     else
@@ -1047,6 +1068,8 @@ function HeliHeal:RefundAbility(abilityName)
             if state.baseCharges >= ability.maxCharges then return false end
             state.baseCharges = state.baseCharges + 1
             if state.baseCharges >= ability.maxCharges then state.nextRechargeAt = nil end
+        elseif kind == "observed_bonus" then
+            return false
         elseif state.baseCharges < ability.maxCharges then
             state.baseCharges = math.min(ability.maxCharges, state.baseCharges + 1)
             if state.baseCharges >= ability.maxCharges then state.nextRechargeAt = nil end

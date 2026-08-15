@@ -20,6 +20,7 @@ ns.changelog = {
                 "Zwischengespeicherte Fähigkeiten und wiederverwendete HUD-Tabellen reduzieren den laufenden Speicheraufbau deutlich.",
                 "Natur- und Ahnen-Schnelligkeit werden nach einem erfolgreichen Off-GCD-Cast direkt bestätigt und sofort ausgeblendet.",
                 "Leben entfesseln wird ebenfalls direkt über den erfolgreichen Spieler-Cast bestätigt.",
+                "Ein verwendeter zufälliger Stormstream-Proc wird an seiner Cast-ID erkannt und verbraucht keine normale Healing-Stream-Aufladung.",
             },
         },
         {

@@ -204,7 +204,7 @@ function HeliHeal:CommitObservedSpell(spellID)
             else
                 refreshGCDLock()
             end
-            self:AcknowledgeSlot(slotIndex)
+            self:AcknowledgeSlot(slotIndex, spellID)
             return true
         end
     end
@@ -237,7 +237,7 @@ function HeliHeal:CommitConfiguredPlayerSpell(spellID)
             self.recentDirectConfirmations[slotIndex] = now
             self.inputLockedUntil[slotIndex] = now
                 + math.max(1.0, tonumber(configuredSlot.inputLockout) or 1.0)
-            self:AcknowledgeSlot(slotIndex)
+            self:AcknowledgeSlot(slotIndex, spellID)
             return true
         end
     end
@@ -260,7 +260,7 @@ function HeliHeal:CommitAssistedCombatSpell(spellID)
         if configuredSlot.enabled and self:SlotAcceptsSpell(configuredSlot, spellID) then
             self.inputLockedUntil[slotIndex] = GetTime()
                 + math.max(1.5, tonumber(configuredSlot.inputLockout) or 1.5)
-            self:AcknowledgeSlot(slotIndex)
+            self:AcknowledgeSlot(slotIndex, spellID)
             return true
         end
     end
