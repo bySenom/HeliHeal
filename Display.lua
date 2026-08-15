@@ -20,12 +20,30 @@ local function clamp(value, minimum, maximum, fallback)
 end
 
 local function getColor(value, fallback)
-    if type(value) ~= "table" then return fallback end
-    return {
-        clamp(value[1], 0, 1, fallback[1]),
+    if type(value) ~= "table" then return fallback[1], fallback[2], fallback[3] end
+    return clamp(value[1], 0, 1, fallback[1]),
         clamp(value[2], 0, 1, fallback[2]),
-        clamp(value[3], 0, 1, fallback[3]),
-    }
+        clamp(value[3], 0, 1, fallback[3])
+end
+
+local function clearArray(array)
+    for index = #array, 1, -1 do array[index] = nil end
+end
+
+local function readyBefore(a, b)
+    if a.preferSpender ~= b.preferSpender then return a.preferSpender end
+    if a.preferredConsumer ~= b.preferredConsumer then return a.preferredConsumer end
+    if a.unleashPriority ~= b.unleashPriority then
+        if not a.unleashPriority then return false end
+        if not b.unleashPriority then return true end
+        return a.unleashPriority < b.unleashPriority
+    end
+    return a.priorityRank < b.priorityRank
+end
+
+local function waitingBefore(a, b)
+    if a.readyAt == b.readyAt then return a.priorityRank < b.priorityRank end
+    return a.readyAt < b.readyAt
 end
 
 local function getHudFont(profile)
@@ -174,10 +192,18 @@ function HeliHeal:CreateDisplay()
 end
 
 function HeliHeal:GetDisplayOrder(now)
-    local ready = {}
-    local waiting = {}
+    self.displayReadyScratch = self.displayReadyScratch or {}
+    self.displayWaitingScratch = self.displayWaitingScratch or {}
+    self.displayItemScratch = self.displayItemScratch or {}
+    local ready = self.displayReadyScratch
+    local waiting = self.displayWaitingScratch
+    clearArray(ready)
+    clearArray(waiting)
     local priorityRanks = self:GetActivePriorityRanks()
     local downpourReady = self:IsDownpourReady(now)
+    local preferHolyPowerSpender = self.classToken == "PALADIN"
+        and ((self.pendingFreeHolyPowerSpenders or 0) > 0 or (self.sessionHolyPower or 0) >= 5)
+    local preferredConsumer = self.pendingSwiftness and self.pendingSwiftness.consumerAbilityKey
 
     for slotIndex, configuredSlot in ipairs(self.db.profile.slots) do
         local ability = configuredSlot and self:GetSlot(slotIndex)
@@ -230,16 +256,22 @@ function HeliHeal:GetDisplayOrder(now)
                 usedAt = self.sessionUses[slotIndex]
                 readyAt = usedAt and (usedAt + ability.cooldown) or 0
             end
-            local item = {
-                slotIndex = slotIndex,
-                ability = ability,
-                usedAt = usedAt,
-                readyAt = readyAt,
-                remaining = math.max(0, readyAt - now),
-                charges = charges,
-                trackedText = trackedText,
-                priorityRank = priorityRank,
-            }
+            local item = self.displayItemScratch[slotIndex]
+            if not item then
+                item = {}
+                self.displayItemScratch[slotIndex] = item
+            end
+            item.slotIndex = slotIndex
+            item.ability = ability
+            item.usedAt = usedAt
+            item.readyAt = readyAt
+            item.remaining = math.max(0, readyAt - now)
+            item.charges = charges
+            item.trackedText = trackedText
+            item.priorityRank = priorityRank
+            item.preferSpender = preferHolyPowerSpender and (ability.holyPowerCost or 0) > 0 or false
+            item.preferredConsumer = preferredConsumer == ability.abilityKey
+            item.unleashPriority = self:GetUnleashConsumerPriority(ability.abilityKey)
             if item.remaining <= 0 then
                 ready[#ready + 1] = item
             else
@@ -247,43 +279,8 @@ function HeliHeal:GetDisplayOrder(now)
             end
         end
     end
-
-
-    local preferredConsumer = self.pendingSwiftness and self.pendingSwiftness.consumerAbilityKey
-    table.sort(ready, function(a, b)
-        if self.classToken == "PALADIN" and (self.pendingFreeHolyPowerSpenders or 0) > 0 then
-            local aSpender = (a.ability.holyPowerCost or 0) > 0
-            local bSpender = (b.ability.holyPowerCost or 0) > 0
-            if aSpender ~= bSpender then return aSpender end
-        end
-        if self.classToken == "PALADIN" and (self.sessionHolyPower or 0) >= 5 then
-            local aSpender = (a.ability.holyPowerCost or 0) > 0
-            local bSpender = (b.ability.holyPowerCost or 0) > 0
-            if aSpender ~= bSpender then return aSpender end
-        end
-        if preferredConsumer then
-            local aPreferred = a.ability.abilityKey == preferredConsumer
-            local bPreferred = b.ability.abilityKey == preferredConsumer
-            if aPreferred ~= bPreferred then
-                return aPreferred
-            end
-        end
-        local aUnleash = self:GetUnleashConsumerPriority(a.ability.abilityKey)
-        local bUnleash = self:GetUnleashConsumerPriority(b.ability.abilityKey)
-        if aUnleash ~= bUnleash then
-            if not aUnleash then return false end
-            if not bUnleash then return true end
-            return aUnleash < bUnleash
-        end
-        return a.priorityRank < b.priorityRank
-    end)
-
-    table.sort(waiting, function(a, b)
-        if a.readyAt == b.readyAt then
-            return a.priorityRank < b.priorityRank
-        end
-        return a.readyAt < b.readyAt
-    end)
+    table.sort(ready, readyBefore)
+    table.sort(waiting, waitingBefore)
 
     for _, item in ipairs(waiting) do
         ready[#ready + 1] = item
@@ -316,9 +313,9 @@ function HeliHeal:RefreshDisplay()
     local fontFlags = getFontFlags(profile)
     local hotkeyFontSize = clamp(profile.hotkeyFontSize, 7, 16, 9)
     local abilityNameFontSize = clamp(profile.abilityNameFontSize, 7, 16, 9)
-    local accent = getColor(profile.accentColor, DEFAULT_ACCENT)
-    local hotkeyColor = getColor(profile.hotkeyColor, DEFAULT_HOTKEY)
-    local cooldownColor = getColor(profile.cooldownColor, DEFAULT_COOLDOWN)
+    local accentR, accentG, accentB = getColor(profile.accentColor, DEFAULT_ACCENT)
+    local hotkeyR, hotkeyG, hotkeyB = getColor(profile.hotkeyColor, DEFAULT_HOTKEY)
+    local cooldownR, cooldownG, cooldownB = getColor(profile.cooldownColor, DEFAULT_COOLDOWN)
     local spacing = profile.spacing
     local totalWidth = 0
     local previousSize
@@ -336,11 +333,11 @@ function HeliHeal:RefreshDisplay()
         self.frame:SetBackdropColor(0, 0, 0, 0)
         self.frame:SetBackdropBorderColor(0, 0, 0, 0)
     end
-    self.frame.accent:SetColorTexture(accent[1], accent[2], accent[3], 1)
+    self.frame.accent:SetColorTexture(accentR, accentG, accentB, 1)
     self.frame.accent:SetShown(profile.showPanelBackground)
     self.frame.title:SetShown(profile.showHeader)
     self.frame.title:SetFont(hudFont, abilityNameFontSize, fontFlags)
-    self.frame.title:SetTextColor(accent[1], accent[2], accent[3], 1)
+    self.frame.title:SetTextColor(accentR, accentG, accentB, 1)
     self.frame.title:SetText("HELIHEAL  •  " .. self:GetHealingModeLabel():upper())
 
     for displayIndex = 1, DISPLAY_SLOT_COUNT do
@@ -351,7 +348,7 @@ function HeliHeal:RefreshDisplay()
             local configuredSlot = self.db.profile.slots[item.slotIndex]
             button.key:SetText(configuredSlot.inputKey or ("P" .. item.slotIndex))
             button.key:SetFont(hudFont, hotkeyFontSize, fontFlags)
-            button.key:SetTextColor(hotkeyColor[1], hotkeyColor[2], hotkeyColor[3], 1)
+            button.key:SetTextColor(hotkeyR, hotkeyG, hotkeyB, 1)
             button.keyBadge:SetHeight(math.max(18, hotkeyFontSize + 8))
             local badgeWidth = math.max(46, button.key:GetStringWidth() + 16)
             button.keyBadge:SetWidth(badgeWidth)
@@ -384,18 +381,22 @@ function HeliHeal:RefreshDisplay()
             button.icon:SetDesaturated(item.remaining > 0)
             button.name:SetText(item.ability.name)
             button.priorityBadge:SetFont(hudFont, hotkeyFontSize, fontFlags)
-            button.priorityBadge:SetTextColor(accent[1], accent[2], accent[3], 1)
+            button.priorityBadge:SetTextColor(accentR, accentG, accentB, 1)
             button.priorityBadge:SetText(("P%d"):format(item.priorityRank))
             local roleLabel = profile.showRoleLabel and item.ability.roleLabel or nil
-            local roleColor = roleLabel and getColor(profile.roleColors and profile.roleColors[roleLabel], DEFAULT_ROLE_COLORS[roleLabel])
+            local roleR, roleG, roleB
+            if roleLabel then
+                roleR, roleG, roleB = getColor(
+                    profile.roleColors and profile.roleColors[roleLabel], DEFAULT_ROLE_COLORS[roleLabel])
+            end
             local roleSize = clamp(profile.roleLabelSize, 7, 18, 10)
             button.roleLabel:SetFont(hudFont, displayIndex == 1 and roleSize or math.max(7, roleSize - 2), fontFlags)
             button.roleLabel:ClearAllPoints()
             button.roleLabel:SetPoint("CENTER", 0, clamp(profile.roleLabelOffsetY, -12, 12, 0))
             button.roleLabel:SetText(roleLabel or "")
-            if roleColor then button.roleLabel:SetTextColor(roleColor[1], roleColor[2], roleColor[3]) end
+            if roleR then button.roleLabel:SetTextColor(roleR, roleG, roleB) end
             button.remaining:SetFont(hudFont, clamp(profile.cooldownFontSize, 10, 24, 14), fontFlags)
-            button.remaining:SetTextColor(cooldownColor[1], cooldownColor[2], cooldownColor[3], 1)
+            button.remaining:SetTextColor(cooldownR, cooldownG, cooldownB, 1)
             button.name:SetFont(hudFont, abilityNameFontSize, fontFlags)
             if item.trackedText then
                 button.remaining:SetText(item.trackedText)
@@ -420,8 +421,8 @@ function HeliHeal:RefreshDisplay()
             else
                 button.cooldown:Clear()
                 if displayIndex == 1 then
-                    button:SetBackdropBorderColor(accent[1], accent[2], accent[3], profile.showIconBorder and 1 or 0)
-                    button.keyBadge:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
+                    button:SetBackdropBorderColor(accentR, accentG, accentB, profile.showIconBorder and 1 or 0)
+                    button.keyBadge:SetBackdropBorderColor(accentR, accentG, accentB, 1)
                 else
                     button:SetBackdropBorderColor(0.22, 0.3, 0.34, profile.showIconBorder and 1 or 0)
                     button.keyBadge:SetBackdropBorderColor(0.16, 0.24, 0.27, 1)

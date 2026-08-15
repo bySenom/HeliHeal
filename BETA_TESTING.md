@@ -62,6 +62,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - `/hh sync` reconciles local estimates; `/hh reset` performs a full reset.
 - Duplicate independent hotkeys are visibly marked in the priority settings.
 - Long bindings such as `SHIFT-BUTTON5` remain fully readable without overlapping adjacent hotkey badges.
+- After several minutes with the HUD active, addon memory remains stable after one forced garbage collection instead of rapidly rebuilding toward the previous usage level.
 - `/hh debug` prints version, build, spec, preset, mode, talents, bindings and local-state counts without unit combat data.
 
 For every failure, attach the `/hh debug` output, exact reproduction steps and whether `/hh sync` corrected the state.

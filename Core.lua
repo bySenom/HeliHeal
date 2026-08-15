@@ -439,18 +439,44 @@ function HeliHeal:CycleHealingMode()
 end
 
 function HeliHeal:GetActivePriorityRanks()
-    local keys = ns.AbilityLibrary:GetPresetPriorityKeys(self.db.profile.rotationPreset, self:GetHealingMode())
+    local presetKey = self.db.profile.rotationPreset
+    local mode = self:GetHealingMode()
+    local cached = self.activePriorityRanksCache
+    if cached and cached.presetKey == presetKey and cached.mode == mode then
+        return cached.ranks
+    end
+    local keys = ns.AbilityLibrary:GetPresetPriorityKeys(presetKey, mode)
     local ranks = {}
     for rank, abilityKey in ipairs(keys) do ranks[abilityKey] = rank end
+    self.activePriorityRanksCache = { presetKey = presetKey, mode = mode, ranks = ranks }
     return ranks
 end
 
 function HeliHeal:GetSlot(slotIndex)
-    local slot = self.db.profile.slots[tonumber(slotIndex) or 0]
+    slotIndex = tonumber(slotIndex) or 0
+    local slot = self.db.profile.slots[slotIndex]
     if not slot then
         return nil
     end
-    local ability = ns.AbilityLibrary:Resolve(slot)
+    self.resolvedSlotCache = self.resolvedSlotCache or {}
+    local cached = self.resolvedSlotCache[slotIndex]
+    if not cached or cached.slot ~= slot then
+        local resolved = ns.AbilityLibrary:Resolve(slot)
+        cached = {
+            slot = slot,
+            ability = resolved,
+            baseEnabled = resolved.enabled,
+            baseCooldown = resolved.cooldown,
+            baseMaxCharges = resolved.maxCharges,
+            baseTrackedDuration = resolved.trackedDuration,
+        }
+        self.resolvedSlotCache[slotIndex] = cached
+    end
+    local ability = cached.ability
+    ability.enabled = cached.baseEnabled
+    ability.cooldown = cached.baseCooldown
+    ability.maxCharges = cached.baseMaxCharges
+    ability.trackedDuration = cached.baseTrackedDuration
     if ability.abilityKey == "riptide" and self.GetRiptideMaxCharges then
         ability.maxCharges = self:GetRiptideMaxCharges(ability.maxCharges)
     elseif ability.abilityKey == "downpour" and self.talentSnapshot and self.talentSnapshot.available then
@@ -612,18 +638,31 @@ function HeliHeal:GetTrackedState(ability, now)
     if not ability or ability.trackedDuration <= 0 then return nil end
     now = now or GetTime()
     self.sessionTimedEffects = self.sessionTimedEffects or {}
-    local entries = self.sessionTimedEffects[ability.abilityKey] or {}
-    local active = {}
-    for _, expiresAt in ipairs(entries) do
-        if expiresAt > now then active[#active + 1] = expiresAt end
+    local entries = self.sessionTimedEffects[ability.abilityKey]
+    if not entries then
+        entries = {}
+        self.sessionTimedEffects[ability.abilityKey] = entries
     end
-    table.sort(active)
-    self.sessionTimedEffects[ability.abilityKey] = active
-    return {
-        count = #active,
-        nextExpiresAt = active[1],
-        goal = self:GetTrackedGoal(ability),
-    }
+    local writeIndex = 1
+    for readIndex = 1, #entries do
+        local expiresAt = entries[readIndex]
+        if expiresAt > now then
+            entries[writeIndex] = expiresAt
+            writeIndex = writeIndex + 1
+        end
+    end
+    for index = #entries, writeIndex, -1 do entries[index] = nil end
+
+    self.trackedStateCache = self.trackedStateCache or {}
+    local state = self.trackedStateCache[ability.abilityKey]
+    if not state then
+        state = {}
+        self.trackedStateCache[ability.abilityKey] = state
+    end
+    state.count = #entries
+    state.nextExpiresAt = entries[1]
+    state.goal = self:GetTrackedGoal(ability)
+    return state
 end
 
 function HeliHeal:AddTrackedApplications(ability, amount, now)
