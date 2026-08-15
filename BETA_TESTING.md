@@ -61,6 +61,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Leaving combat clears stale input locks while preserving still-active cooldown estimates.
 - `/hh sync` reconciles local estimates; `/hh reset` performs a full reset.
 - Duplicate independent hotkeys are visibly marked in the priority settings.
+- Long bindings such as `SHIFT-BUTTON5` remain fully readable without overlapping adjacent hotkey badges.
 - `/hh debug` prints version, build, spec, preset, mode, talents, bindings and local-state counts without unit combat data.
 
 For every failure, attach the `/hh debug` output, exact reproduction steps and whether `/hh sync` corrected the state.

@@ -48,6 +48,16 @@ local function formatRemaining(seconds)
     return ("%.1f"):format(seconds)
 end
 
+function HeliHeal:GetHotkeyBadgeOverhang(iconSize, badgeWidth)
+    return math.max(0, ((badgeWidth or iconSize) - iconSize) / 2)
+end
+
+function HeliHeal:GetBadgeAwareSpacing(previousIconSize, previousBadgeWidth, iconSize, badgeWidth, preferredSpacing)
+    local previousOverhang = self:GetHotkeyBadgeOverhang(previousIconSize, previousBadgeWidth)
+    local currentOverhang = self:GetHotkeyBadgeOverhang(iconSize, badgeWidth)
+    return math.max(preferredSpacing or 0, previousOverhang + currentOverhang + 2)
+end
+
 function HeliHeal:CreateDisplay()
     local frame = CreateFrame("Frame", "HeliHealPriorityFrame", UIParent, "BackdropTemplate")
     frame:SetClampedToScreen(true)
@@ -311,6 +321,9 @@ function HeliHeal:RefreshDisplay()
     local cooldownColor = getColor(profile.cooldownColor, DEFAULT_COOLDOWN)
     local spacing = profile.spacing
     local totalWidth = 0
+    local previousSize
+    local previousBadgeWidth
+    local lastOverhang = 0
     local sidePadding = profile.showPanelBackground and 10 or 2
     local bottomPadding = profile.showHotkey and math.max(19, hotkeyFontSize + 10) or 2
     local topPadding = 2 + (profile.showHeader and (abilityNameFontSize + 13) or 0)
@@ -335,12 +348,26 @@ function HeliHeal:RefreshDisplay()
         local item = order[displayIndex]
         if item then
             local size = displayIndex == 1 and primarySize or secondarySize
+            local configuredSlot = self.db.profile.slots[item.slotIndex]
+            button.key:SetText(configuredSlot.inputKey or ("P" .. item.slotIndex))
+            button.key:SetFont(hudFont, hotkeyFontSize, fontFlags)
+            button.key:SetTextColor(hotkeyColor[1], hotkeyColor[2], hotkeyColor[3], 1)
+            button.keyBadge:SetHeight(math.max(18, hotkeyFontSize + 8))
+            local badgeWidth = math.max(46, button.key:GetStringWidth() + 16)
+            button.keyBadge:SetWidth(badgeWidth)
+            local layoutBadgeWidth = profile.showHotkey and badgeWidth or size
+            local overhang = self:GetHotkeyBadgeOverhang(size, layoutBadgeWidth)
+
             button:SetSize(size, size)
             button:ClearAllPoints()
             if displayIndex == 1 then
-                button:SetPoint("BOTTOMLEFT", self.frame, "BOTTOMLEFT", sidePadding, bottomPadding)
+                button:SetPoint("BOTTOMLEFT", self.frame, "BOTTOMLEFT", sidePadding + overhang, bottomPadding)
+                totalWidth = overhang + size
             else
-                button:SetPoint("LEFT", self.frame.slots[displayIndex - 1], "RIGHT", spacing, 0)
+                local badgeSpacing = self:GetBadgeAwareSpacing(
+                    previousSize, previousBadgeWidth, size, layoutBadgeWidth, spacing)
+                button:SetPoint("LEFT", self.frame.slots[displayIndex - 1], "RIGHT", badgeSpacing, 0)
+                totalWidth = totalWidth + badgeSpacing + size
             end
 
             button.icon:ClearAllPoints()
@@ -356,12 +383,6 @@ function HeliHeal:RefreshDisplay()
             button.icon:SetTexture(item.ability.icon)
             button.icon:SetDesaturated(item.remaining > 0)
             button.name:SetText(item.ability.name)
-            local configuredSlot = self.db.profile.slots[item.slotIndex]
-            button.key:SetText(configuredSlot.inputKey or ("P" .. item.slotIndex))
-            button.key:SetFont(hudFont, hotkeyFontSize, fontFlags)
-            button.key:SetTextColor(hotkeyColor[1], hotkeyColor[2], hotkeyColor[3], 1)
-            button.keyBadge:SetHeight(math.max(18, hotkeyFontSize + 8))
-            button.keyBadge:SetWidth(math.max(46, button.key:GetStringWidth() + 16))
             button.priorityBadge:SetFont(hudFont, hotkeyFontSize, fontFlags)
             button.priorityBadge:SetTextColor(accent[1], accent[2], accent[3], 1)
             button.priorityBadge:SetText(("P%d"):format(item.priorityRank))
@@ -407,7 +428,9 @@ function HeliHeal:RefreshDisplay()
                 end
             end
             button:Show()
-            totalWidth = totalWidth + size + (displayIndex > 1 and spacing or 0)
+            previousSize = size
+            previousBadgeWidth = layoutBadgeWidth
+            lastOverhang = overhang
         else
             button:Hide()
         end
@@ -416,6 +439,6 @@ function HeliHeal:RefreshDisplay()
     if #order == 0 then
         self.frame:SetSize(profile.showPanelBackground and 280 or 1, profile.showPanelBackground and 76 or 1)
     else
-        self.frame:SetSize(totalWidth + (sidePadding * 2), primarySize + topPadding + bottomPadding)
+        self.frame:SetSize(totalWidth + lastOverhang + (sidePadding * 2), primarySize + topPadding + bottomPadding)
     end
 end

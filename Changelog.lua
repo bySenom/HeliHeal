@@ -16,6 +16,7 @@ ns.changelog = {
                 "Schriftart und Textkontur verwenden jetzt echte Dropdown-Menüs mit Live-Vorschau.",
                 "HUD-Einstellungen sind jetzt in Sichtbarkeit, Text, Größe und Farben gegliedert.",
                 "Die Profilseite zeigt vorhandene Profile und unterstützt Wechseln, Erstellen, Kopieren und sicheres Löschen.",
+                "Breite Hotkey-Badges vergrößern den Icon-Abstand automatisch und überlappen nicht mehr.",
             },
         },
         {

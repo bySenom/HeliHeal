@@ -203,6 +203,7 @@ local enUS = {
     ["Die HUD-Optionen unterstützen jetzt Mausrad-Scrolling mit einem dezenten Scroll-Indikator."] = "HUD options now support mouse-wheel scrolling with a subtle scroll indicator.",
     ["Schriftart, Textkontur, Icon- und Textgrößen können jetzt live angepasst werden."] = "Font, outline, icon sizes and text sizes can now be adjusted live.",
     ["Akzent-, Hotkey-, Cooldown- und einzelne Rollenfarben sind vollständig konfigurierbar."] = "Accent, hotkey, cooldown and individual role colors are fully configurable.",
+    ["Breite Hotkey-Badges vergrößern den Icon-Abstand automatisch und überlappen nicht mehr."] = "Wide hotkey badges now expand icon spacing automatically and no longer overlap.",
     ["Schriftart und Textkontur verwenden jetzt echte Dropdown-Menüs mit Live-Vorschau."] = "Font and text outline now use proper dropdown menus with a live preview.",
     ["HUD-Einstellungen sind jetzt in Sichtbarkeit, Text, Größe und Farben gegliedert."] = "HUD settings are now organized into Visibility, Text, Size and Colors.",
     ["Die Profilseite zeigt vorhandene Profile und unterstützt Wechseln, Erstellen, Kopieren und sicheres Löschen."] = "The Profiles page now lists existing profiles and supports switching, creating, copying and safe deletion.",
