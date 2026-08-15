@@ -1,11 +1,11 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.6-alpha.1",
+    currentVersion = "0.9.6-beta.1",
     entries = {
         {
-            version = "0.9.6-alpha.1",
-            title = "Context Labels for Filler Heals",
+            version = "0.9.6-beta.1",
+            title = "First Beta: Customizable HUD and Profiles",
             changes = {
                 "Passende Heilfähigkeiten zeigen jetzt AOE, SINGLE, BURST oder SAVE mittig auf dem Icon.",
                 "Holy Light wird als mana-effizientes SAVE und Flash of Light als schnelles BURST gekennzeichnet.",

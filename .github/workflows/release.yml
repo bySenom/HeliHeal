@@ -64,7 +64,7 @@ jobs:
             echo "- The tag matches the version declared in HeliHeal.toc."
             echo "- The packaged addon contains only runtime files and documentation."
             echo
-            echo "This is an alpha prerelease intended for in-game testing."
+            echo "This is a beta prerelease intended for in-game testing and feedback."
           } > dist/release-notes.md
 
       - name: Publish prerelease

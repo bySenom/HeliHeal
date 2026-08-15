@@ -6,7 +6,7 @@
 
 HeliHeal is a lightweight, input-driven healing priority tracker for **World of Warcraft: Midnight 12.1**. It presents up to five recommended abilities in a movable, Hekili-inspired icon strip.
 
-> HeliHeal is currently an **Alpha release** intended for testing.
+> HeliHeal is currently a **Beta release** intended for in-game testing and feedback.
 
 ## Features
 
