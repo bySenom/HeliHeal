@@ -834,7 +834,9 @@ function HeliHeal:BuildStylePage(parent)
     local function addControlRow(category, titleText, descriptionText, control)
         local row = createSettingRow(content, 0, titleText, descriptionText)
         control:SetParent(row)
-        control:SetPoint("RIGHT", -20, 0)
+        -- Slider values are rendered to the right of the slider itself. Keep
+        -- that external label inside the row and clear of the scroll bar.
+        control:SetPoint("RIGHT", control.value and -88 or -20, 0)
         bindWheel(row)
         bindWheel(control)
         page.refreshers[#page.refreshers + 1] = control
