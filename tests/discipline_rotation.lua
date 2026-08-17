@@ -17,7 +17,6 @@ assert(loadfile("Display.lua"))("HeliHeal", namespace)
 
 addon.classToken = "PRIEST"
 addon.specializationID = 256
-addon.cachedSpellHaste = 20
 addon.db = { profile = {
     rotationPreset = "disc_oracle_mythicplus",
     rotationDataVersion = 12111,
@@ -52,6 +51,11 @@ addon.RefreshDisplay = function() end
 addon.RefreshOptionsUI = function() end
 addon.Print = function() end
 
+UnitSpellHaste = function() return 20 end
+InCombatLockdown = function() return false end
+assert(addon:RefreshSpellHasteSnapshot(true),
+    "Discipline must capture a safe out-of-combat spell-haste snapshot")
+
 local radianceIndex = addon:GetSlotIndexByAbilityKey("disc_power_word_radiance")
 local penanceIndex = addon:GetSlotIndexByAbilityKey("disc_penance")
 local mindBlastIndex = addon:GetSlotIndexByAbilityKey("disc_mind_blast")
@@ -67,8 +71,10 @@ assert(addon:GetSlot(radianceIndex).cooldown == 12.5 and addon:GetSlot(radianceI
     "Bright Pupil, Light's Promise and 20% haste must produce two 12.5-second Radiance charges")
 assert(addon:GetSlot(penanceIndex).cooldown == 7.5 and addon:GetSlot(penanceIndex).maxCharges == 2,
     "Oracle and 20% haste must produce two 7.5-second Penance charges")
-assert(addon:GetSlot(mindBlastIndex).cooldown == 7.5,
-    "Mind Blast's 9-second base cooldown must scale with cached haste")
+assert(addon:GetSlot(mindBlastIndex).cooldown == 23.33,
+    "Mind Blast's 28-second base cooldown must scale with cached haste")
+assert(addon:GetSlot(shieldIndex).cooldown == 5,
+    "Power Word: Shield's six-second base cooldown must scale with cached haste")
 assert(addon:GetSlot(evangelismIndex).cooldown == 90,
     "Evangelism must use its 90-second Midnight cooldown")
 assert(addon:GetSlot(painSuppressionIndex).cooldown == 180,
@@ -110,9 +116,8 @@ assert(radianceState.baseCharges == 0 and radianceState.nextRechargeAt,
 addon:ObserveInputKey("S")
 assert(addon:RecordPlayerSpellSucceeded(1253593),
     "a successful Void Shield override must confirm Power Word: Shield")
-local shieldState = addon:GetTrackedState(addon:GetSlot(shieldIndex), now)
-assert(shieldState.count == 1,
-    "Power Word: Shield must leave the ready queue after either shield variant succeeds")
+assert(addon.sessionUses[shieldIndex] == now,
+    "Power Word: Shield must start its local cooldown after either shield variant succeeds")
 
 addon:SetRotationPreset("disc_voidweaver_mythicplus")
 addon.talentSnapshot.priestOracle = false

@@ -39,7 +39,7 @@ local abilities = {
         roleLabel = "SAVE", inputLockout = 1.0,
     },
     disc_mind_blast = {
-        spellID = 8092, name = "Mind Blast", cooldown = 9,
+        spellID = 8092, name = "Mind Blast", cooldown = 28,
         hastedCooldown = true, roleLabel = "SINGLE", inputLockout = 1.5,
     },
     disc_shadow_word_death = {
@@ -49,9 +49,9 @@ local abilities = {
     },
     disc_power_word_shield = {
         spellID = 17, castSpellIDs = { 17, 1253593 },
-        name = "Power Word: Shield / Void Shield", cooldown = 0,
+        name = "Power Word: Shield / Void Shield", cooldown = 6,
         confirmOnPlayerSuccess = true,
-        trackedDuration = 15, trackedGoal = 1, roleLabel = "SAVE", inputLockout = 1.5,
+        hastedCooldown = true, roleLabel = "SAVE", inputLockout = 1.5,
     },
     disc_smite = {
         spellID = 585, castSpellIDs = { 585, 450215 }, name = "Smite / Void Blast", cooldown = 0,

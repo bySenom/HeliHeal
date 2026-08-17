@@ -546,7 +546,7 @@ function HeliHeal:GetSlot(slotIndex)
 end
 
 function HeliHeal:RefreshSpellHasteSnapshot(silent)
-    if self.classToken ~= "PALADIN" or type(UnitSpellHaste) ~= "function" then return false end
+    if type(UnitSpellHaste) ~= "function" then return false end
     if InCombatLockdown and InCombatLockdown() then return false end
     local ok, haste = pcall(function()
         local value = tonumber(UnitSpellHaste("player"))
