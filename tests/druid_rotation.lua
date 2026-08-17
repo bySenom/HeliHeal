@@ -11,6 +11,7 @@ GetTime = function() return now end
 assert(loadfile("AbilityLibrary.lua"))("HeliHeal", namespace)
 assert(loadfile("Classes/Druid.lua"))("HeliHeal", namespace)
 assert(loadfile("Core.lua"))("HeliHeal", namespace)
+assert(loadfile("Input.lua"))("HeliHeal", namespace)
 assert(loadfile("Display.lua"))("HeliHeal", namespace)
 
 addon.classToken = "DRUID"
@@ -22,14 +23,7 @@ addon.db = {
     },
 }
 addon.db.profile.slots = namespace.AbilityLibrary:BuildPresetSlots(addon.db.profile.rotationPreset, {})
-addon.sessionUses = {}
-addon.sessionCharges = {}
-addon.sessionSpendHistory = {}
-addon.sessionTimedEffects = {}
-addon.pendingSwiftness = nil
-addon.pendingDownpour = nil
-addon.pendingUnleash = nil
-addon.pendingArchdruid = nil
+addon:ResetRuntimeState()
 addon.talentSnapshot = {
     available = true,
     druidGermination = false,
@@ -92,5 +86,20 @@ addon:AcknowledgeSlot(lifebloomIndex)
 state = addon:GetTrackedState(lifebloom, now)
 assert(state.count == 1 and state.nextExpiresAt == now + 15,
     "a repeated Lifebloom input must refresh its single local duration")
+
+now = now + 1
+local wildGrowthIndex = addon:GetSlotIndexByAbilityKey("druid_wild_growth")
+assert(addon:GetSlot(wildGrowthIndex).confirmOnPlayerSuccess,
+    "Wild Growth must use direct successful-cast confirmation")
+assert(addon:RecordPlayerSpellSucceeded(48438),
+    "Wild Growth must confirm without a correlated action-bar input")
+assert(addon.sessionUses[wildGrowthIndex] == now,
+    "a successful Wild Growth cast must start its local cooldown")
+local wildGrowthItem
+for _, item in ipairs(addon:GetDisplayOrder(now)) do
+    if item.ability.abilityKey == "druid_wild_growth" then wildGrowthItem = item end
+end
+assert(wildGrowthItem and wildGrowthItem.remaining == 10,
+    "the HUD must move Wild Growth into its ten-second waiting state")
 
 print("druid_rotation.lua: OK")

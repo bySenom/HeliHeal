@@ -50,6 +50,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Lifebloom refreshes its single local application instead of increasing the counter.
 - Rejuvenation advances the local coverage counter and expires applications on schedule.
 - Germination and Power of the Archdruid modify only the intended local counters.
+- A successful Wild Growth cast starts its local ten-second cooldown even when no action-bar key input was correlated.
 - Mythic+ and Raid coverage goals match the selected Standard, AoE, Single Target or Mana mode.
 
 ## Holy Paladin

@@ -23,6 +23,7 @@ local abilities = {
         spellID = 48438,
         name = "Wild Growth",
         cooldown = 10,
+        confirmOnPlayerSuccess = true,
         inputLockout = 1.5,
     },
     druid_rejuvenation = {
