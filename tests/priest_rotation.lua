@@ -14,6 +14,7 @@ assert(loadfile("Core.lua"))("HeliHeal", namespace)
 assert(loadfile("Display.lua"))("HeliHeal", namespace)
 
 addon.classToken = "PRIEST"
+addon.specializationID = 257
 addon.db = {
     profile = {
         rotationPreset = "priest_archon_mythicplus",

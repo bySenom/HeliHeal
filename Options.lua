@@ -601,7 +601,9 @@ function HeliHeal:BuildPrioritiesPage(parent)
     page:SetAllPoints()
     local className = self.classToken == "DRUID" and "Restoration Druid 12.1"
         or (self.classToken == "PALADIN" and "Holy Paladin 12.1"
-        or (self.classToken == "PRIEST" and "Holy Priest 12.1" or "Restoration Shaman 12.1"))
+        or (self.classToken == "PRIEST" and (self.specializationID == 256
+            and "Discipline Priest 12.1" or "Holy Priest 12.1")
+        or "Restoration Shaman 12.1"))
     setPageHeader(page, className, L("Standard bleibt das Guide-Paket; Kontextmodi verändern nur dessen lokale Reihenfolge."))
 
     page.presetButtons = {}
@@ -615,6 +617,11 @@ function HeliHeal:BuildPrioritiesPage(parent)
         { "paladin_herald_raid", "HERALD RAID" },
         { "paladin_lightsmith_mythicplus", "LIGHTSMITH M+" },
         { "paladin_lightsmith_raid", "LIGHTSMITH RAID" },
+    } or self.classToken == "PRIEST" and self.specializationID == 256 and {
+        { "disc_oracle_mythicplus", "ORACLE M+" },
+        { "disc_oracle_raid", "ORACLE RAID" },
+        { "disc_voidweaver_mythicplus", "VOIDWEAVER M+" },
+        { "disc_voidweaver_raid", "VOIDWEAVER RAID" },
     } or self.classToken == "PRIEST" and {
         { "priest_archon_mythicplus", "ARCHON M+" },
         { "priest_archon_raid", "ARCHON RAID" },
@@ -1414,6 +1421,8 @@ function HeliHeal:CreateModernOptions()
         profiles = self:BuildProfilesPage(window.pagesHost),
         changelog = self:BuildChangelogPage(window.pagesHost),
     }
+    window.priorityPages = { [self.specializationID or 0] = window.pages.priorities }
+    window.prioritiesSpecializationID = self.specializationID
 
     window.navButtons = {}
     local navigation = {
@@ -1502,9 +1511,27 @@ function HeliHeal:SelectOptionsPage(pageKey)
     self:RefreshOptionsUI()
 end
 
+function HeliHeal:EnsurePriorityOptionsForSpecialization()
+    local window = self.optionsWindow
+    if not window or window.prioritiesSpecializationID == self.specializationID then return end
+
+    local current = window.pages.priorities
+    if current then current:Hide() end
+    local specializationKey = self.specializationID or 0
+    local priorityPage = window.priorityPages[specializationKey]
+    if not priorityPage then
+        priorityPage = self:BuildPrioritiesPage(window.pagesHost)
+        window.priorityPages[specializationKey] = priorityPage
+    end
+    window.pages.priorities = priorityPage
+    window.prioritiesSpecializationID = self.specializationID
+    priorityPage:SetShown(self.selectedOptionsPage == "priorities")
+end
+
 function HeliHeal:RefreshOptionsUI()
     local window = self.optionsWindow
     if not window then return end
+    self:EnsurePriorityOptionsForSpecialization()
 
     local overview = window.pages.overview
     for _, control in ipairs(overview.refreshers or {}) do

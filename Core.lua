@@ -18,15 +18,15 @@ local HEALING_MODE_ALIASES = {
     mana = "mana", sparen = "mana",
 }
 
-local RESTORATION_SPECIALIZATIONS = {
+local HEALER_SPECIALIZATIONS = {
     SHAMAN = 264,
     DRUID = 105,
     PALADIN = 65,
-    PRIEST = 257,
+    PRIEST = { [256] = true, [257] = true },
 }
 
 local CURRENT_SCHEMA_VERSION = 3
-local ROTATION_DATA_VERSION = 12110
+local ROTATION_DATA_VERSION = 12111
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -137,7 +137,10 @@ function HeliHeal:RefreshPlayerSupport(resetOnChange)
     local _, classToken = UnitClass("player")
     self.classToken = classToken
     self.specializationID = self:GetPlayerSpecializationID()
-    self.supportedClass = RESTORATION_SPECIALIZATIONS[classToken] == self.specializationID
+    local supportedSpecs = HEALER_SPECIALIZATIONS[classToken]
+    self.supportedClass = type(supportedSpecs) == "table"
+        and supportedSpecs[self.specializationID] == true
+        or supportedSpecs == self.specializationID
 
     local changed = previousClass ~= self.classToken
         or previousSpecialization ~= self.specializationID
@@ -228,10 +231,16 @@ function HeliHeal:EnsureRotationProfile()
         PALADIN = "paladin_herald_mythicplus",
         PRIEST = "priest_archon_mythicplus",
     }
-    local defaultPreset = defaults[self.classToken] or "shaman_totemic_mythicplus"
+    local storedPreset = profile.rotationPreset and ns.AbilityLibrary:GetPreset(profile.rotationPreset)
+    local priestContent = storedPreset and storedPreset.content == "Raid" and "raid" or "mythicplus"
+    local defaultPreset = self.classToken == "PRIEST" and self.specializationID == 256
+        and ("disc_oracle_" .. priestContent)
+        or (self.classToken == "PRIEST" and ("priest_archon_" .. priestContent)
+        or (defaults[self.classToken] or "shaman_totemic_mythicplus"))
     local presetKey = profile.rotationPreset or defaultPreset
     local preset = ns.AbilityLibrary:GetPreset(presetKey)
-    if not preset or preset.class ~= self.classToken then
+    if not preset or preset.class ~= self.classToken
+        or (preset.specializationID and preset.specializationID ~= self.specializationID) then
         presetKey = defaultPreset
     end
     profile.rotationPreset = presetKey
@@ -240,7 +249,8 @@ end
 
 function HeliHeal:SetRotationPreset(presetKey)
     local preset = ns.AbilityLibrary:GetPreset(presetKey)
-    if not preset or preset.class ~= self.classToken then
+    if not preset or preset.class ~= self.classToken
+        or (preset.specializationID and preset.specializationID ~= self.specializationID) then
         return
     end
     self.db.profile.rotationPreset = presetKey

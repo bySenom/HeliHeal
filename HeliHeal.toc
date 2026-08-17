@@ -23,6 +23,7 @@ Classes\Shaman.lua
 Classes\Druid.lua
 Classes\Paladin.lua
 Classes\Priest.lua
+Classes\DisciplinePriest.lua
 Defaults.lua
 Core.lua
 TalentSnapshot.lua

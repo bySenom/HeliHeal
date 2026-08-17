@@ -25,7 +25,7 @@ local profile = {
 }
 addon.db = { profile = profile }
 assert(addon:MigrateProfile(profile), "legacy profile must migrate exactly once")
-assert(profile.schemaVersion == 3 and profile.rotationDataVersion == 12110,
+assert(profile.schemaVersion == 3 and profile.rotationDataVersion == 12111,
     "migration must stamp the schema and rotation data versions")
 assert(profile.primaryIconWidth == 77 and profile.primaryIconHeight == 77
     and profile.secondaryIconWidth == 41 and profile.secondaryIconHeight == 41,

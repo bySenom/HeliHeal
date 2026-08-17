@@ -45,6 +45,14 @@ local TALENTS = {
     priestApotheosis = { 200183 },
     priestDivineHymn = { 64843 },
     priestGuardianSpirit = { 47788 },
+    discVoidweaver = { 450405, 447445 },
+    discEvangelism = { 472433 },
+    discVoidShield = { 1253593 },
+    discLightsPromise = { 322115 },
+    discBrightPupil = { 390684 },
+    discUltimatePenitence = { 421453 },
+    discPowerWordBarrier = { 62618 },
+    discPainSuppression = { 33206 },
 }
 
 local SNAPSHOT_FLAGS = {
@@ -62,6 +70,8 @@ local SNAPSHOT_FLAGS = {
     "priestMiracleWorker", "priestEternalSanctity", "priestHolyCelerity", "priestVoiceHarmony",
     "priestLightNaaru", "priestLightNaaruRank", "priestProphetInsight",
     "priestApotheosis", "priestDivineHymn", "priestGuardianSpirit",
+    "discVoidweaver", "discEvangelism", "discVoidShield", "discLightsPromise",
+    "discBrightPupil", "discUltimatePenitence", "discPowerWordBarrier", "discPainSuppression",
 }
 
 local function isKnownSpell(spellID)
@@ -183,6 +193,8 @@ function HeliHeal:RefreshTalentSnapshot(silent)
             detectedHero = snapshot.druidKeeper and "keeper" or (snapshot.druidWildstalker and "wildstalker")
         elseif self.classToken == "PALADIN" then
             detectedHero = snapshot.paladinLightsmith and "lightsmith" or (snapshot.paladinHerald and "herald")
+        elseif self.classToken == "PRIEST" and self.specializationID == 256 then
+            detectedHero = snapshot.priestOracle and "oracle" or (snapshot.discVoidweaver and "voidweaver")
         elseif self.classToken == "PRIEST" then
             detectedHero = snapshot.priestOracle and "oracle" or (snapshot.priestArchon and "archon")
         else
@@ -191,7 +203,8 @@ function HeliHeal:RefreshTalentSnapshot(silent)
         end
         local classPrefix = self.classToken == "DRUID" and "druid"
             or (self.classToken == "PALADIN" and "paladin"
-            or (self.classToken == "PRIEST" and "priest" or "shaman"))
+            or (self.classToken == "PRIEST" and (self.specializationID == 256 and "disc" or "priest")
+            or "shaman"))
         local detectedPreset = detectedHero and content and (classPrefix .. "_" .. detectedHero .. "_" .. content)
         if detectedPreset and ns.AbilityLibrary:GetPreset(detectedPreset) and detectedPreset ~= currentPreset then
             self.db.profile.rotationPreset = detectedPreset
@@ -255,6 +268,16 @@ function HeliHeal:PrintTalentSnapshot()
         return
     end
     if self.classToken == "PRIEST" then
+        if self.specializationID == 256 then
+            local details = ("Oracle %s | Voidweaver %s | Evangelism %s | Void Shield %s | Light's Promise %s | Bright Pupil %s | Ultimate Penitence %s | Barrier %s | Pain Suppression %s")
+                :format(yesNo(snapshot.priestOracle), yesNo(snapshot.discVoidweaver),
+                    yesNo(snapshot.discEvangelism), yesNo(snapshot.discVoidShield),
+                    yesNo(snapshot.discLightsPromise), yesNo(snapshot.discBrightPupil),
+                    yesNo(snapshot.discUltimatePenitence), yesNo(snapshot.discPowerWordBarrier),
+                    yesNo(snapshot.discPainSuppression))
+            self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
+            return
+        end
         local details = ("Archon %s | Oracle %s | Sanctify %s | Prayer of Healing %s | Chastise %s | Ultimate Serenity %s | Miracle Worker %s | Eternal Sanctity %s | Holy Celerity %s | Voice of Harmony %s | Light of the Naaru %d/2 | Prophet's Insight %s | Apotheosis %s | Divine Hymn %s | Guardian Spirit %s")
             :format(yesNo(snapshot.priestArchon), yesNo(snapshot.priestOracle),
                 yesNo(snapshot.priestSanctify), yesNo(snapshot.priestPrayerOfHealing),

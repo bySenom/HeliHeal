@@ -102,6 +102,7 @@ local function registerPreset(key, name, heroTalent, hero, content)
         name = name,
         class = "PRIEST",
         specialization = "Holy",
+        specializationID = 257,
         heroTalent = heroTalent,
         content = content,
         guideVersion = "12.1",

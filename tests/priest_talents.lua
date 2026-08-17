@@ -50,6 +50,7 @@ assert(loadfile("Core.lua"))("HeliHeal", namespace)
 assert(loadfile("TalentSnapshot.lua"))("HeliHeal", namespace)
 
 addon.classToken = "PRIEST"
+addon.specializationID = 257
 addon.db = { profile = {
     rotationPreset = "priest_archon_raid", healingMode = "standard", bindings = {},
 } }

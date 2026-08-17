@@ -75,6 +75,18 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - At capped Holy Word charges with Apotheosis ready, HeliHeal recommends spending one charge before Apotheosis instead of wasting its reset/granted charge.
 - Divine Hymn, Guardian Spirit, Apotheosis, Serenity, Sanctify and Prayer of Mending start their local cooldown or recharge only after a successful player cast; Prayer of Healing and Flash Heal only reduce Holy Words after success.
 
+## Discipline Priest
+
+- Switching between Holy (257) and Discipline (256) selects the correct spec-specific priority pack and rebuilds the Priorities page without `/reload`.
+- Oracle and Voidweaver presets retain the selected Mythic+ or Raid content type after hero-talent changes.
+- Void Shield uses a fixed 7.5-second cooldown; Evangelism uses 90 seconds and Shadow Word: Death uses 20 seconds.
+- Power Word: Radiance starts from an 18-second recharge, Bright Pupil reduces it by 3 seconds, Light's Promise adds one charge and the result scales with cached spell haste.
+- Penance and Mind Blast start from 9 seconds and scale with cached spell haste; Oracle adds the second Penance charge while Voidweaver keeps one.
+- Ultimate Penitence uses 240 seconds and is mutually exclusive with the 180-second Power Word: Barrier recommendation.
+- Pain Suppression uses its 180-second cooldown and confirms directly from a successful player cast.
+- Voidweaver prioritizes Mind Blast before Penance and accepts the Void Blast override through the configured Smite binding.
+- Shadow Word: Pain maintenance and random Shadow Mend/Flash Heal procs are intentionally not inferred without readable target/aura context.
+
 ## Recovery and diagnostics
 
 - Leaving combat clears stale input locks while preserving still-active cooldown estimates.

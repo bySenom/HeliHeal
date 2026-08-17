@@ -10,7 +10,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 
 ## Features
 
-- Restoration Shaman, Restoration Druid, Holy Paladin and Holy Priest priority packs
+- Restoration Shaman, Restoration Druid, Holy Paladin, Holy Priest and Discipline Priest priority packs
 - Separate Mythic+ and Raid presets
 - Standard, AoE, Single Target and Mana Saving modes
 - Keyboard, modifier, mouse-button and mouse-wheel bindings
@@ -23,6 +23,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Automatic Blizzard One Button Assistant detection on standard action bars
 - Live Holy Power synchronization for the player, with confirmed-cast fallback
 - Talent-aware Holy Priest Holy Word charges, recharge times and Serendipity reductions
+- Talent-aware Discipline Priest Radiance/Penance charges and haste-scaled recharge times
 - Movable, scalable and customizable display
 - Persistent AceDB profiles
 - One-time What's New popup and local update history
@@ -36,6 +37,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 | Restoration Druid | Wildstalker, Keeper of the Grove | Mythic+, Raid |
 | Holy Paladin | Herald of the Sun, Lightsmith | Mythic+, Raid |
 | Holy Priest | Archon, Oracle | Mythic+, Raid |
+| Discipline Priest | Oracle, Voidweaver | Mythic+, Raid |
 
 ## Installation
 
@@ -49,7 +51,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 
 HeliHeal observes configured action-bar and physical mouse inputs without replacing Blizzard's protected input handling. A recommendation advances only after Blizzard confirms that the expected player spell succeeded. Failed, interrupted or unmatched inputs do not consume it.
 
-Class mechanics such as Healing Stream charges, Stormstream uses, Riptide recharge, Rejuvenation coverage, Holy Power and Holy Word cooldown reduction are simulated locally from confirmed casts and an out-of-combat talent snapshot.
+Class mechanics such as Healing Stream charges, Stormstream uses, Riptide recharge, Rejuvenation coverage, Holy Power, Holy Word cooldown reduction and Discipline Priest charge/recharge rules are simulated locally from confirmed casts and an out-of-combat talent snapshot.
 
 ## Commands
 
