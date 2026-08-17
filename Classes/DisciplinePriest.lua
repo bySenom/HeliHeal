@@ -14,9 +14,10 @@ local abilities = {
     disc_power_word_radiance = {
         spellID = 194509, castSpellIDs = { 194509, 246097 },
         name = "Power Word: Radiance", cooldown = 18,
-        bonusChargeTalent = "discLightsPromise",
         cooldownTalent = "discBrightPupil", cooldownReduction = 3,
-        hastedCooldown = true, roleLabel = "AOE", inputLockout = 2.0,
+        hastedCooldown = true, trackedDuration = 14, trackedGoal = 1,
+        trackedAsCooldown = true,
+        roleLabel = "AOE", inputLockout = 2.0,
     },
     disc_penance = {
         spellID = 47540, name = "Penance", cooldown = 9,

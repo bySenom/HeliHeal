@@ -80,12 +80,12 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Switching between Holy (257) and Discipline (256) selects the correct spec-specific priority pack and rebuilds the Priorities page without `/reload`.
 - Oracle and Voidweaver presets retain the selected Mythic+ or Raid content type after hero-talent changes.
 - Power Word: Shield and its Master the Darkness Void Shield override share one binding; either successful cast starts the same haste-scaled six-second base cooldown.
-- Power Word: Radiance starts from an 18-second recharge, Bright Pupil reduces it by 3 seconds, Light's Promise adds one charge and the result scales with cached spell haste.
+- Power Word: Radiance uses one logical recommendation regardless of its real charge count. A confirmed cast starts a 14-second local Atonement-maintenance estimate before it can be recommended again.
 - Penance starts from 9 seconds and Mind Blast from 28 seconds; both scale with cached spell haste. Oracle adds the second Penance charge while Voidweaver keeps one.
 - Ultimate Penitence uses 240 seconds and is mutually exclusive with the 180-second Power Word: Barrier recommendation.
 - Pain Suppression uses its 180-second cooldown and confirms directly from a successful player cast.
 - Voidweaver prioritizes Mind Blast before Penance and accepts the Void Blast override through the configured Smite binding.
-- Normal and Evangelism-instant Power Word: Radiance casts both consume the correct local charge; with Light's Promise the recommendation remains until the second charge is spent.
+- Normal and Evangelism-instant Power Word: Radiance casts both remove the recommendation immediately; HeliHeal intentionally never requests two back-to-back Radiance casts from unreadable combat context.
 - Shadow Word: Pain maintenance and random Shadow Mend/Flash Heal procs are intentionally not inferred without readable target/aura context.
 
 ## Recovery and diagnostics

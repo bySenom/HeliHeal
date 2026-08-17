@@ -257,16 +257,20 @@ function HeliHeal:GetDisplayOrder(now)
             local readyAt
             local charges
             local trackedText
+            local cooldownDuration = ability.cooldown
             if ability.abilityKey == "downpour" and self.pendingDownpour then
                 charges = self.pendingDownpour.uses
                 readyAt = 0
             elseif (ability.trackedDuration or 0) > 0 then
                 local state = self:GetTrackedState(ability, now)
                 charges = state.count
-                trackedText = ("%d/%d"):format(state.count, state.goal)
+                if not ability.trackedAsCooldown then
+                    trackedText = ("%d/%d"):format(state.count, state.goal)
+                end
                 if state.count >= state.goal and state.nextExpiresAt then
                     readyAt = state.nextExpiresAt
                     usedAt = readyAt - ability.trackedDuration
+                    cooldownDuration = ability.trackedDuration
                 else
                     readyAt = 0
                 end
@@ -291,6 +295,7 @@ function HeliHeal:GetDisplayOrder(now)
             item.remaining = math.max(0, readyAt - now)
             item.charges = charges
             item.trackedText = trackedText
+            item.cooldownDuration = cooldownDuration
             item.priorityRank = priorityRank
             item.preferSpender = preferHolyPowerSpender and (ability.holyPowerCost or 0) > 0 or false
             item.preferredConsumer = preferredConsumer == ability.abilityKey
@@ -501,8 +506,8 @@ function HeliHeal:RefreshDisplay()
             button.name:SetShown(profile.showAbilityName)
             button.priorityBadge:SetShown(profile.showPriorityBadge)
 
-            if item.remaining > 0 and item.usedAt and item.ability.cooldown > 0 then
-                button.cooldown:SetCooldown(item.usedAt, item.ability.cooldown)
+            if item.remaining > 0 and item.usedAt and item.cooldownDuration > 0 then
+                button.cooldown:SetCooldown(item.usedAt, item.cooldownDuration)
                 button:SetBackdropBorderColor(0.15, 0.2, 0.23, profile.showIconBorder and 1 or 0)
                 button.keyBadge:SetBackdropBorderColor(0.18, 0.24, 0.27, 1)
             else

@@ -67,8 +67,10 @@ local shadowWordDeathIndex = addon:GetSlotIndexByAbilityKey("disc_shadow_word_de
 local smiteIndex = addon:GetSlotIndexByAbilityKey("disc_smite")
 local shieldIndex = addon:GetSlotIndexByAbilityKey("disc_power_word_shield")
 
-assert(addon:GetSlot(radianceIndex).cooldown == 12.5 and addon:GetSlot(radianceIndex).maxCharges == 2,
-    "Bright Pupil, Light's Promise and 20% haste must produce two 12.5-second Radiance charges")
+assert(addon:GetSlot(radianceIndex).cooldown == 12.5
+        and addon:GetSlot(radianceIndex).maxCharges == 1
+        and addon:GetSlot(radianceIndex).trackedDuration == 14,
+    "Radiance must expose one logical recommendation and track its fourteen-second Atonement window")
 assert(addon:GetSlot(penanceIndex).cooldown == 7.5 and addon:GetSlot(penanceIndex).maxCharges == 2,
     "Oracle and 20% haste must produce two 7.5-second Penance charges")
 assert(addon:GetSlot(mindBlastIndex).cooldown == 23.33,
@@ -101,17 +103,28 @@ assert(order[1].ability.abilityKey == "disc_evangelism",
 addon:ObserveInputKey("R")
 assert(addon:RecordPlayerSpellSucceeded(246097),
     "the instant Radiance override must confirm its configured input")
-local radianceState = addon:GetChargeState(radianceIndex, addon:GetSlot(radianceIndex), now)
-assert(radianceState.baseCharges == 1,
-    "the first instant Radiance must spend exactly one of two charges")
+local radianceState = addon:GetTrackedState(addon:GetSlot(radianceIndex), now)
+assert(radianceState.count == 1 and radianceState.nextExpiresAt == 14,
+    "a confirmed instant Radiance must remove its recommendation for the Atonement window")
+local postRadianceOrder = addon:GetDisplayOrder(now)
+assert(postRadianceOrder[1].ability.abilityKey ~= "disc_power_word_radiance",
+    "Radiance must not be recommended twice back-to-back in the static model")
+local waitingRadiance
+for _, entry in ipairs(postRadianceOrder) do
+    if entry.ability.abilityKey == "disc_power_word_radiance" then waitingRadiance = entry end
+end
+assert(waitingRadiance and waitingRadiance.remaining == 14
+        and waitingRadiance.cooldownDuration == 14 and not waitingRadiance.trackedText,
+    "Radiance must show one fourteen-second maintenance cooldown instead of a charge counter")
 now = 2
 addon:ReleaseInputKey("R")
+addon.sessionTimedEffects.disc_power_word_radiance = nil
 addon:ObserveInputKey("R")
 assert(addon:RecordPlayerSpellSucceeded(194509),
     "normal Radiance must confirm through the same configured slot")
-radianceState = addon:GetChargeState(radianceIndex, addon:GetSlot(radianceIndex), now)
-assert(radianceState.baseCharges == 0 and radianceState.nextRechargeAt,
-    "the recommendation must leave the ready queue after both Radiance charges are spent")
+radianceState = addon:GetTrackedState(addon:GetSlot(radianceIndex), now)
+assert(radianceState.count == 1 and radianceState.nextExpiresAt == 16,
+    "normal Radiance must start the same fourteen-second maintenance estimate")
 
 addon:ObserveInputKey("S")
 assert(addon:RecordPlayerSpellSucceeded(1253593),
