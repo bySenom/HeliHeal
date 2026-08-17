@@ -26,7 +26,7 @@ local HEALER_SPECIALIZATIONS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 3
-local ROTATION_DATA_VERSION = 12112
+local ROTATION_DATA_VERSION = 12113
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -73,6 +73,7 @@ function HeliHeal:ResetRuntimeState()
     self.pendingDownpour = nil
     self.pendingUnleash = nil
     self.pendingArchdruid = nil
+    self.pendingDruidSoul = nil
     self.unleashConsumptionHistory = {}
     self.riptideRechargeRateUntil = nil
     self.priestApotheosisUntil = nil
@@ -536,6 +537,16 @@ function HeliHeal:GetSlot(slotIndex)
         if ability.bonusChargeTalent and self:IsTalentActive(ability.bonusChargeTalent) then
             ability.maxCharges = ability.maxCharges + 1
         end
+        if ability.abilityKey == "druid_rejuvenation" then
+            -- Rejuvenation is 12 sec baseline. Germination's second copy uses
+            -- the 14-sec variant, while Lingering Healing adds another 3 sec.
+            if self:IsTalentActive("druidGermination") then
+                ability.trackedDuration = ability.trackedDuration + 2
+            end
+            if self:IsTalentActive("druidLingeringHealing") then
+                ability.trackedDuration = ability.trackedDuration + 3
+            end
+        end
         if self.classToken == "PRIEST" and self:IsTalentActive("priestProphetInsight")
             and (ability.abilityKey == "priest_holy_word_serenity"
                 or ability.abilityKey == "priest_holy_word_sanctify"
@@ -713,6 +724,35 @@ function HeliHeal:GetTrackedCapacity(ability)
     return groupSize * (self:IsTalentActive("druidGermination") and 2 or 1)
 end
 
+function HeliHeal:HasLocalDruidHot(now)
+    now = now or GetTime()
+    for _, abilityKey in ipairs({ "druid_rejuvenation", "druid_lifebloom" }) do
+        local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
+        local ability = slotIndex and self:GetSlot(slotIndex)
+        local state = ability and self:GetTrackedState(ability, now)
+        if state and state.count > 0 then return true end
+    end
+    return false
+end
+
+function HeliHeal:ExtendLocalDruidHots(seconds, now)
+    seconds = math.max(0, tonumber(seconds) or 0)
+    if seconds <= 0 then return false end
+    now = now or GetTime()
+    local changed = false
+    for _, abilityKey in ipairs({ "druid_rejuvenation", "druid_lifebloom" }) do
+        local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
+        local ability = slotIndex and self:GetSlot(slotIndex)
+        if ability then self:GetTrackedState(ability, now) end
+        local entries = self.sessionTimedEffects and self.sessionTimedEffects[abilityKey]
+        for index = 1, #(entries or {}) do
+            entries[index] = entries[index] + seconds
+            changed = true
+        end
+    end
+    return changed
+end
+
 function HeliHeal:GetTrackedState(ability, now)
     if not ability or ability.trackedDuration <= 0 then return nil end
     now = now or GetTime()
@@ -770,6 +810,14 @@ function HeliHeal:IsArchdruidReady(now)
         self.pendingArchdruid = nil
     end
     return self.pendingArchdruid ~= nil
+end
+
+function HeliHeal:IsDruidSoulReady(now)
+    now = now or GetTime()
+    if self.pendingDruidSoul and now >= self.pendingDruidSoul.expiresAt then
+        self.pendingDruidSoul = nil
+    end
+    return self.pendingDruidSoul ~= nil
 end
 
 function HeliHeal:GetSlotIndexByAbilityKey(abilityKey)
@@ -1093,8 +1141,11 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     end
 
     local now = GetTime()
-    if slot.abilityKey == "druid_swiftmend" and self:IsTalentActive("druidPowerArchdruid") then
-        self.pendingArchdruid = { expiresAt = now + 15 }
+    if slot.abilityKey == "druid_swiftmend" and self:IsTalentActive("druidSoulOfTheForest") then
+        self.pendingDruidSoul = { expiresAt = now + 15 }
+        if self:IsTalentActive("druidPowerArchdruid") then
+            self.pendingArchdruid = { expiresAt = now + 15 }
+        end
     end
     if slot.abilityKey == "healing_rain" and self:IsDownpourReady(now) then
         self:ConsumeDownpour(now)
@@ -1140,9 +1191,14 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     self:RecordHolyPowerEvent(slotIndex, slot)
     self:ApplyPriestHolyWordEffects(slot.abilityKey, now)
 
-
-    if slot.abilityKey == "druid_regrowth" and self:IsArchdruidReady(now) then
-        self.pendingArchdruid = nil
+    if slot.abilityKey == "druid_tranquility" and self:IsTalentActive("druidFlourish") then
+        self:ExtendLocalDruidHots(10, now)
+    end
+    if slot.abilityKey == "druid_rejuvenation" or slot.abilityKey == "druid_regrowth" then
+        if slot.abilityKey == "druid_regrowth" and self:IsArchdruidReady(now) then
+            self.pendingArchdruid = nil
+        end
+        self.pendingDruidSoul = nil
     end
 
     self:ConsumeUnleash(slot.abilityKey, now)

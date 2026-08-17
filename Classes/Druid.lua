@@ -17,12 +17,18 @@ local abilities = {
         spellID = 18562,
         name = "Swiftmend",
         cooldown = 15,
+        cooldownTalent = "druidEarlySpring",
+        cooldownReduction = 1,
+        bonusChargeTalent = "druidProsperity",
+        confirmOnPlayerSuccess = true,
         inputLockout = 1.5,
     },
     druid_wild_growth = {
         spellID = 48438,
         name = "Wild Growth",
         cooldown = 10,
+        cooldownTalent = "druidEarlySpring",
+        cooldownReduction = 1,
         confirmOnPlayerSuccess = true,
         inputLockout = 1.5,
     },
@@ -30,13 +36,15 @@ local abilities = {
         spellID = 774,
         name = "Rejuvenation",
         cooldown = 0,
-        trackedDuration = 17,
+        trackedDuration = 12,
         inputLockout = 1.5,
     },
     druid_natures_swiftness = {
         spellID = 132158,
         name = "Nature's Swiftness",
         cooldown = 60,
+        cooldownTalent = "druidPassingSeasons",
+        cooldownReduction = 15,
         confirmOnPlayerSuccess = true,
         inputLockout = 1.0,
     },
@@ -57,6 +65,26 @@ local abilities = {
         roleLabel = "BURST",
         inputLockout = 4.5,
     },
+    druid_incarnation_tree = {
+        spellID = 33891,
+        name = "Incarnation: Tree of Life",
+        cooldown = 180,
+        requiresTalent = "druidIncarnationTree",
+        confirmOnPlayerSuccess = true,
+        roleLabel = "BURST",
+        inputLockout = 1.5,
+    },
+    druid_tranquility = {
+        spellID = 740,
+        name = "Tranquility",
+        cooldown = 180,
+        requiresTalent = "druidTranquility",
+        cooldownTalent = "druidInnerPeace",
+        cooldownReduction = 30,
+        confirmOnPlayerSuccess = true,
+        roleLabel = "BURST",
+        inputLockout = 6.5,
+    },
 }
 
 for key, ability in pairs(abilities) do
@@ -69,15 +97,18 @@ local function modes(raid)
     return {
         aoe = {
             "druid_lifebloom", "druid_swiftmend", "druid_wild_growth",
-            "druid_convoke", "druid_rejuvenation", "druid_regrowth", "druid_natures_swiftness",
+            "druid_tranquility", "druid_convoke", "druid_incarnation_tree",
+            "druid_rejuvenation", "druid_regrowth", "druid_natures_swiftness",
         },
         single = {
             "druid_lifebloom", "druid_rejuvenation", "druid_swiftmend",
-            "druid_natures_swiftness", "druid_regrowth", "druid_wild_growth", "druid_convoke",
+            "druid_natures_swiftness", "druid_regrowth", "druid_wild_growth",
+            "druid_tranquility", "druid_convoke", "druid_incarnation_tree",
         },
         mana = {
             "druid_lifebloom", "druid_swiftmend", "druid_wild_growth",
-            "druid_convoke", "druid_rejuvenation", "druid_regrowth", "druid_natures_swiftness",
+            "druid_tranquility", "druid_convoke", "druid_incarnation_tree",
+            "druid_rejuvenation", "druid_regrowth", "druid_natures_swiftness",
         },
     }
 end
@@ -94,7 +125,8 @@ local function registerPreset(key, name, heroTalent, content)
         guideUpdated = "2026-06-12",
         slots = {
             "druid_lifebloom", "druid_swiftmend", "druid_wild_growth",
-            "druid_convoke", "druid_rejuvenation", "druid_natures_swiftness", "druid_regrowth",
+            "druid_tranquility", "druid_convoke", "druid_incarnation_tree",
+            "druid_rejuvenation", "druid_natures_swiftness", "druid_regrowth",
         },
         modeSlots = modes(raid),
         rejuvenationGoals = raid and {

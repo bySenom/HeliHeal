@@ -11,12 +11,24 @@ local TALENTS = {
     surgingTotem = { 444995 },
     unleashLife = { 73685 },
     druidGermination = { 155675 },
+    druidLingeringHealing = { 231040 },
+    druidVerdantInfusion = { 392410 },
+    druidProsperity = { 200383 },
+    druidPassingSeasons = { 382550 },
+    druidEarlySpring = { 428937 },
     druidPowerArchdruid = { 392302 },
     druidLifetreading = { 1217941 },
     druidKeeper = { 433831, 428731 },
     druidWildstalker = { 439926, 439530 },
     druidConvoke = { 391528 },
     druidCenariusGuidance = { 393371 },
+    druidIncarnationTree = { 33891 },
+    druidTranquility = { 740 },
+    druidInnerPeace = { 197073 },
+    druidFlourish = { 197721 },
+    druidSoulOfTheForest = { 158478 },
+    druidReforestation = { 392360 },
+    druidControlOfTheDream = { 434249 },
     paladinHerald = { 431377, 156322 },
     paladinLightsmith = { 432459, 432472, 434132 },
     paladinDivineToll = { 375576, 304971 },
@@ -60,8 +72,11 @@ local TALENTS = {
 local SNAPSHOT_FLAGS = {
     "echoOfTheElements", "elementalReverb", "downpour", "doubleDip",
     "mysticKnowledge", "surgingTotem", "unleashLife", "restorationTier2", "restorationTier4",
-    "druidGermination", "druidPowerArchdruid", "druidLifetreading", "druidKeeper", "druidWildstalker",
-    "druidConvoke", "druidCenariusGuidance",
+    "druidGermination", "druidLingeringHealing", "druidVerdantInfusion", "druidProsperity",
+    "druidPassingSeasons", "druidEarlySpring", "druidPowerArchdruid", "druidLifetreading", "druidKeeper", "druidWildstalker",
+    "druidConvoke", "druidCenariusGuidance", "druidIncarnationTree", "druidTranquility",
+    "druidInnerPeace", "druidFlourish", "druidSoulOfTheForest", "druidReforestation",
+    "druidControlOfTheDream",
     "paladinHerald", "paladinLightsmith", "paladinDivineToll", "paladinHolyPrism",
     "paladinQuickenedInvocation", "paladinLightsConviction",
     "paladinAvengingWrath", "paladinAvengingCrusader", "paladinRingingHeavens", "paladinWalkIntoLight",
@@ -251,10 +266,16 @@ function HeliHeal:PrintTalentSnapshot()
     end
     local function yesNo(value) return L(value and "JA" or "nein") end
     if self.classToken == "DRUID" then
-        local details = ("Germination %s | Power of the Archdruid %s | Lifetreading %s | Keeper %s | Wildstalker %s | Convoke %s | Cenarius' Guidance %s")
-            :format(yesNo(snapshot.druidGermination), yesNo(snapshot.druidPowerArchdruid),
+        local details = ("Germination %s | Lingering Healing %s | Verdant Infusion %s | Prosperity %s | Passing Seasons %s | Early Spring %s | Soul of the Forest %s | Power of the Archdruid %s | Reforestation %s | Lifetreading %s | Keeper %s | Wildstalker %s | Convoke %s | Tree %s | Tranquility %s | Inner Peace %s | Flourish %s | Cenarius' Guidance %s | Control of the Dream %s")
+            :format(yesNo(snapshot.druidGermination), yesNo(snapshot.druidLingeringHealing),
+                yesNo(snapshot.druidVerdantInfusion), yesNo(snapshot.druidProsperity),
+                yesNo(snapshot.druidPassingSeasons), yesNo(snapshot.druidEarlySpring),
+                yesNo(snapshot.druidSoulOfTheForest), yesNo(snapshot.druidPowerArchdruid),
+                yesNo(snapshot.druidReforestation),
                 yesNo(snapshot.druidLifetreading), yesNo(snapshot.druidKeeper), yesNo(snapshot.druidWildstalker),
-                yesNo(snapshot.druidConvoke), yesNo(snapshot.druidCenariusGuidance))
+                yesNo(snapshot.druidConvoke), yesNo(snapshot.druidIncarnationTree),
+                yesNo(snapshot.druidTranquility), yesNo(snapshot.druidInnerPeace), yesNo(snapshot.druidFlourish),
+                yesNo(snapshot.druidCenariusGuidance), yesNo(snapshot.druidControlOfTheDream))
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end

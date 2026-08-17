@@ -43,6 +43,7 @@ local function readyBefore(a, b)
     end
     if a.preferSpender ~= b.preferSpender then return a.preferSpender end
     if a.preferredConsumer ~= b.preferredConsumer then return a.preferredConsumer end
+    if a.druidSoulConsumer ~= b.druidSoulConsumer then return a.druidSoulConsumer end
     if a.unleashPriority ~= b.unleashPriority then
         if not a.unleashPriority then return false end
         if not b.unleashPriority then return true end
@@ -233,6 +234,11 @@ function HeliHeal:GetDisplayOrder(now)
         local swiftnessIsArmed = self.pendingSwiftness and self.pendingSwiftness.slotIndex == slotIndex
         local priorityRank = ability and priorityRanks[ability.abilityKey]
         local contextAvailable = ability and ability.abilityKey ~= "downpour" or downpourReady
+        if ability and ability.abilityKey == "druid_swiftmend"
+            and not self:IsTalentActive("druidVerdantInfusion")
+            and not self:HasLocalDruidHot(now) then
+            contextAvailable = false
+        end
         if ability and self.classToken == "PALADIN" then
             local holyPower = self.sessionHolyPower or 0
             local holyPowerGain = self:GetHolyPowerDelta(ability)
@@ -304,6 +310,9 @@ function HeliHeal:GetDisplayOrder(now)
             item.priorityRank = priorityRank
             item.preferSpender = preferHolyPowerSpender and (ability.holyPowerCost or 0) > 0 or false
             item.preferredConsumer = preferredConsumer == ability.abilityKey
+            item.druidSoulConsumer = self:IsDruidSoulReady(now)
+                and (ability.abilityKey == "druid_rejuvenation" or ability.abilityKey == "druid_regrowth")
+                or false
             item.unleashPriority = self:GetUnleashConsumerPriority(ability.abilityKey)
             local priestHolyWord = ability.abilityKey == "priest_holy_word_serenity"
                 or ability.abilityKey == "priest_holy_word_sanctify"

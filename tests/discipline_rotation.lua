@@ -19,7 +19,7 @@ addon.classToken = "PRIEST"
 addon.specializationID = 256
 addon.db = { profile = {
     rotationPreset = "disc_oracle_mythicplus",
-    rotationDataVersion = 12112,
+    rotationDataVersion = 12113,
     healingMode = "standard",
     bindings = {
         disc_power_word_radiance = "R",

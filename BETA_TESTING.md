@@ -48,11 +48,13 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 ## Restoration Druid
 
 - Lifebloom refreshes its single local application instead of increasing the counter.
-- Rejuvenation advances the local coverage counter and expires each application after the observed 17-second Midnight duration.
-- Germination permits a second Rejuvenation per target without extending its duration; Power of the Archdruid modifies only the intended local counter.
+- Rejuvenation advances the local coverage counter and uses its talent-aware duration: 12 seconds baseline, 14 with Germination, 15 with Lingering Healing, or 17 with both.
+- Germination permits a second Rejuvenation per target; Power of the Archdruid modifies only the intended local counter.
+- Swiftmend is withheld until HeliHeal has locally confirmed Rejuvenation or Lifebloom, unless Verdant Infusion is selected.
 - A successful Wild Growth cast starts its local ten-second cooldown even when no action-bar key input was correlated.
-- A successful Nature's Swiftness cast starts its local sixty-second cooldown through the same direct confirmation path.
+- A successful Nature's Swiftness cast starts its local 60- or 45-second cooldown through the same direct confirmation path, depending on Passing Seasons.
 - Convoke the Spirits appears only when talented, confirms directly, and uses 120 seconds or 60 seconds with Cenarius' Guidance.
+- Incarnation: Tree of Life and Tranquility appear only when selected; Inner Peace and Flourish modify the local Tranquility model.
 - Mythic+ and Raid coverage goals match the selected Standard, AoE, Single Target or Mana mode.
 
 ## Holy Paladin
