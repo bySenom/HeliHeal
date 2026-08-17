@@ -483,11 +483,10 @@ function HeliHeal:BeginKeyCapture(button, slotIndex)
     button:SetPropagateKeyboardInput(false)
     button:EnableMouseWheel(true)
 
-    local function commit(input)
+    local function commit(input, suppressCaptureClick)
         if not input then return end
         HeliHeal:SetAbilityBinding(slotIndex, input)
-        HeliHeal:EndKeyCapture()
-        HeliHeal:RefreshOptionsUI()
+        HeliHeal:EndKeyCapture(suppressCaptureClick)
     end
 
     button:SetScript("OnKeyDown", function(capture, key)
@@ -499,14 +498,22 @@ function HeliHeal:BeginKeyCapture(button, slotIndex)
         commit(normalizeCapturedKey(key))
     end)
     button:SetScript("OnMouseDown", function(_, mouseButton)
-        commit(normalizeCapturedMouse(mouseButton))
+        commit(normalizeCapturedMouse(mouseButton), mouseButton == "LeftButton")
     end)
     button:SetScript("OnMouseWheel", function(_, delta)
         commit(withModifiers(delta > 0 and "MOUSEWHEELUP" or "MOUSEWHEELDOWN"))
     end)
 end
 
-function HeliHeal:EndKeyCapture()
+function HeliHeal:HandleKeyCaptureClick(button, slotIndex)
+    if button.ignoreNextCaptureClick then
+        button.ignoreNextCaptureClick = nil
+        return
+    end
+    self:BeginKeyCapture(button, slotIndex)
+end
+
+function HeliHeal:EndKeyCapture(suppressCaptureClick)
     local button = self.keyCaptureButton
     if button then
         button:EnableKeyboard(false)
@@ -514,14 +521,10 @@ function HeliHeal:EndKeyCapture()
         button:SetScript("OnKeyDown", nil)
         button:SetScript("OnMouseDown", nil)
         button:SetScript("OnMouseWheel", nil)
-        -- BUTTON1 is captured on OnMouseDown. Restore the normal handler on
-        -- the next frame so the same physical click cannot reopen capture via
-        -- the following OnClick event.
-        C_Timer.After(0, function()
-            if button and button.captureOnClick then
-                button:SetScript("OnClick", button.captureOnClick)
-            end
-        end)
+        -- BUTTON1 is captured on OnMouseDown, followed by OnClick for the same
+        -- physical press. Consume exactly that click before capture can reopen.
+        button.ignoreNextCaptureClick = suppressCaptureClick and true or nil
+        button:SetScript("OnClick", button.captureOnClick)
         button:SetBackdropBorderColor(unpackColor(C.border))
     end
     self.keyCaptureButton = nil
@@ -620,7 +623,7 @@ function HeliHeal:BuildPrioritiesPage(parent)
 
         row.key = createButton(row, "", 210, 28, false)
         row.key:SetPoint("RIGHT", -9, 0)
-        row.key.captureOnClick = function(button) self:BeginKeyCapture(button, capturedSlotIndex) end
+        row.key.captureOnClick = function(button) self:HandleKeyCaptureClick(button, capturedSlotIndex) end
         row.key:SetScript("OnClick", row.key.captureOnClick)
         page.slotRows[slotIndex] = row
     end
