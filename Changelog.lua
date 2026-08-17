@@ -1,8 +1,20 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.8-beta.1",
+    currentVersion = "0.9.9-beta.1",
     entries = {
+        {
+            version = "0.9.9-beta.1",
+            title = "Priest Support and Atonement Tracking",
+            changes = {
+                "Holy Priest unterstützt jetzt Archon- und Oracle-Prioritäten für Mythic+ und Raid.",
+                "Discipline Priest unterstützt jetzt Oracle- und Voidweaver-Prioritäten für Mythic+ und Raid.",
+                "Sühne, Gedankenschlag, Machtwort: Schild und Machtwort: Glanz verwenden korrigierte, tempoabhängige Timer.",
+                "Gruppen- und Einzelziel-Abbitte werden aus bestätigten Glanz-, Schild- und Void-Shield-Casts getrennt geschätzt.",
+                "Machtwort: Glanz wird als ein 14-Sekunden-Gruppenzyklus behandelt und nach erfolgreichem Cast direkt bestätigt.",
+                "Mouse Button 1 kann zuverlässig gebunden werden; Hotkeys lassen sich durch 1,5 Sekunden gehaltenes Escape entfernen.",
+            },
+        },
         {
             version = "0.9.8-beta.1",
             title = "Advanced HUD Customization and Beacon of Virtue",
