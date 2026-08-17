@@ -1,8 +1,20 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.9-beta.1",
+    currentVersion = "0.9.10-beta.1",
     entries = {
+        {
+            version = "0.9.10-beta.1",
+            title = "Talent-Aware Restoration Druid Rotation",
+            changes = {
+                "Rasche Heilung wird ohne lokal bestätigten HoT nicht mehr empfohlen; Verdant Infusion hebt diese Voraussetzung auf.",
+                "Verjüngungsdauer, Swiftmend-Aufladungen sowie Wild-Growth-, Swiftmend- und Nature's-Swiftness-Cooldowns reagieren auf die gewählten Talente.",
+                "Soul of the Forest priorisiert Verjüngung oder Nachwachsen; Power of the Archdruid hängt korrekt von diesem Effekt ab.",
+                "Convoke the Spirits, Inkarnation: Baum des Lebens und Gelassenheit werden passend zur Talentwahl ein- oder ausgeblendet.",
+                "Inner Peace und Flourish verändern den lokalen Gelassenheits- und HoT-Zustand.",
+                "Wildwuchs, Schnelligkeit der Natur, Rasche Heilung und große Druiden-Cooldowns bestätigen erfolgreiche Casts direkt.",
+            },
+        },
         {
             version = "0.9.9-beta.1",
             title = "Priest Support and Atonement Tracking",

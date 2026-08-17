@@ -1,18 +1,17 @@
-# HeliHeal 0.9.9 Beta 1
+# HeliHeal 0.9.10 Beta 1
 
 For **World of Warcraft: Midnight 12.1**.
 
 ## Changes
 
-- Added Midnight 12.1 Holy Priest support for Archon and Oracle in Mythic+ and Raid.
-- Added Midnight 12.1 Discipline Priest support for Oracle and Voidweaver in Mythic+ and Raid.
-- Added talent-aware Holy Word, Radiance and Penance charge handling.
-- Added safe out-of-combat haste scaling for Penance, Mind Blast, Power Word: Shield and other supported healer cooldowns.
-- Added separate local group and single-target Atonement estimates from confirmed Radiance, Shield and Void Shield casts.
-- Power Word: Radiance now uses one logical 14-second group-Atonement cycle and confirms directly from successful casts.
-- Power Word: Shield and Void Shield now share one binding and successful-cast confirmation path.
-- Fixed Mouse Button 1 hotkey capture.
-- Added hold-Escape hotkey removal with progress feedback while keeping the options window open.
+- Swiftmend is no longer recommended until HeliHeal has locally confirmed a compatible heal-over-time effect; Verdant Infusion removes this restriction.
+- Rejuvenation duration now responds to Germination and Lingering Healing.
+- Prosperity, Early Spring and Passing Seasons now modify Swiftmend charges and supported cooldowns.
+- Soul of the Forest prioritizes Rejuvenation or Regrowth after Swiftmend, and Power of the Archdruid is tied to the correct talent sequence.
+- Convoke the Spirits, Incarnation: Tree of Life and Tranquility are shown only when their talents are selected.
+- Inner Peace and Flourish modify the local Tranquility and heal-over-time model.
+- Wild Growth, Nature's Swiftness, Swiftmend and major Restoration Druid cooldowns confirm directly from successful casts.
+- Expanded the Restoration Druid talent snapshot and diagnostics for major rotation-impacting talents.
 
 ## Validation
 
