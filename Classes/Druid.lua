@@ -37,6 +37,7 @@ local abilities = {
         spellID = 132158,
         name = "Nature's Swiftness",
         cooldown = 60,
+        confirmOnPlayerSuccess = true,
         inputLockout = 1.0,
     },
     druid_regrowth = {

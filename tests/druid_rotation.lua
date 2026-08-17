@@ -102,4 +102,20 @@ end
 assert(wildGrowthItem and wildGrowthItem.remaining == 10,
     "the HUD must move Wild Growth into its ten-second waiting state")
 
+now = now + 1
+local swiftnessIndex = addon:GetSlotIndexByAbilityKey("druid_natures_swiftness")
+assert(addon:GetSlot(swiftnessIndex).confirmOnPlayerSuccess,
+    "Nature's Swiftness must use direct successful-cast confirmation")
+assert(addon:RecordPlayerSpellSucceeded(132158),
+    "Nature's Swiftness must confirm without a correlated action-bar input")
+assert(addon.sessionUses[swiftnessIndex] == now,
+    "a successful Nature's Swiftness cast must start its local cooldown")
+local swiftnessItem
+for _, item in ipairs(addon:GetDisplayOrder(now)) do
+    if item.ability.abilityKey == "druid_natures_swiftness" then swiftnessItem = item end
+end
+assert(swiftnessItem and math.abs(swiftnessItem.remaining - 60) < 0.001,
+    ("the HUD must move Nature's Swiftness into its sixty-second waiting state (got %s)")
+        :format(swiftnessItem and tostring(swiftnessItem.remaining) or "missing"))
+
 print("druid_rotation.lua: OK")
