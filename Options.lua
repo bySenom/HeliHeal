@@ -831,12 +831,10 @@ function HeliHeal:BuildStylePage(parent)
         page.categoryRows.visibility[#page.categoryRows.visibility + 1] = row
     end
 
-    local function addControlRow(category, titleText, descriptionText, control)
+    local function addControlRow(category, titleText, descriptionText, control, rightInset)
         local row = createSettingRow(content, 0, titleText, descriptionText)
         control:SetParent(row)
-        -- Slider values are rendered to the right of the slider itself. Keep
-        -- that external label inside the row and clear of the scroll bar.
-        control:SetPoint("RIGHT", control.value and -88 or -20, 0)
+        control:SetPoint("RIGHT", -(rightInset or 20), 0)
         bindWheel(row)
         bindWheel(control)
         page.refreshers[#page.refreshers + 1] = control
@@ -852,7 +850,9 @@ function HeliHeal:BuildStylePage(parent)
                 self:RefreshDisplay()
             end,
             formatter)
-        addControlRow(category, L(titleText), L(descriptionText), slider)
+        -- The value label occupies 68 pixels to the right of the slider.
+        -- Reserve that space explicitly so it remains inside the setting card.
+        addControlRow(category, L(titleText), L(descriptionText), slider, 88)
         return slider
     end
 
