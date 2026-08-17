@@ -35,6 +35,12 @@ local function clearArray(array)
 end
 
 local function readyBefore(a, b)
+    if a.priestPreApotheosisSpend ~= b.priestPreApotheosisSpend then
+        return a.priestPreApotheosisSpend
+    end
+    if a.priestHoldForApotheosis ~= b.priestHoldForApotheosis then
+        return not a.priestHoldForApotheosis
+    end
     if a.preferSpender ~= b.preferSpender then return a.preferSpender end
     if a.preferredConsumer ~= b.preferredConsumer then return a.preferredConsumer end
     if a.unleashPriority ~= b.unleashPriority then
@@ -213,6 +219,14 @@ function HeliHeal:GetDisplayOrder(now)
     local preferHolyPowerSpender = self.classToken == "PALADIN"
         and ((self.pendingFreeHolyPowerSpenders or 0) > 0 or (self.sessionHolyPower or 0) >= 5)
     local preferredConsumer = self.pendingSwiftness and self.pendingSwiftness.consumerAbilityKey
+    local priestApotheosisReady = false
+    if self.classToken == "PRIEST" then
+        local apotheosisIndex = self:GetSlotIndexByAbilityKey("priest_apotheosis")
+        local apotheosis = apotheosisIndex and self:GetSlot(apotheosisIndex)
+        local usedAt = apotheosisIndex and self.sessionUses[apotheosisIndex]
+        priestApotheosisReady = apotheosis and apotheosis.enabled
+            and (not usedAt or now >= usedAt + apotheosis.cooldown) or false
+    end
 
     for slotIndex, configuredSlot in ipairs(self.db.profile.slots) do
         local ability = configuredSlot and self:GetSlot(slotIndex)
@@ -281,6 +295,12 @@ function HeliHeal:GetDisplayOrder(now)
             item.preferSpender = preferHolyPowerSpender and (ability.holyPowerCost or 0) > 0 or false
             item.preferredConsumer = preferredConsumer == ability.abilityKey
             item.unleashPriority = self:GetUnleashConsumerPriority(ability.abilityKey)
+            local priestHolyWord = ability.abilityKey == "priest_holy_word_serenity"
+                or ability.abilityKey == "priest_holy_word_sanctify"
+            item.priestPreApotheosisSpend = priestApotheosisReady and priestHolyWord
+                and (charges or 1) >= ability.maxCharges or false
+            item.priestHoldForApotheosis = priestApotheosisReady and priestHolyWord
+                and (charges or 0) > 0 and (charges or 0) < ability.maxCharges or false
             if item.remaining <= 0 then
                 ready[#ready + 1] = item
             else

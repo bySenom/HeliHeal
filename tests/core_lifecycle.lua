@@ -44,6 +44,15 @@ specializationID = 66
 assert(addon:RefreshPlayerSupport(false) and not addon.supportedClass,
     "Protection Paladin must not display a healing rotation")
 
+classToken = "PRIEST"
+specializationID = 257
+assert(addon:RefreshPlayerSupport(false) and addon.supportedClass,
+    "Holy Priest must be supported")
+
+specializationID = 256
+assert(addon:RefreshPlayerSupport(false) and not addon.supportedClass,
+    "Discipline Priest must not display the Holy priority pack")
+
 local cancelled = false
 addon.pendingAcknowledgements = {
     [1] = { timer = { Cancel = function() cancelled = true end } },

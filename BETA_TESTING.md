@@ -62,6 +62,19 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Aurora's guaranteed free spender does not consume Holy Power; `/hh hp 0-5` manually corrects an unreadable random Divine Purpose proc.
 - Raid Standard/AoE prioritizes Light of Dawn while Mythic+ Standard/Single Target prioritizes the hero-appropriate single-target spender.
 
+## Holy Priest
+
+- Archon exposes Halo at its 60-second cooldown; Oracle hides Halo and grants two 12-second Prayer of Mending charges.
+- Holy Celerity reduces Holy Word recharge from 60 to 45 seconds; Oracle Prophet's Insight reduces it by another 5 seconds.
+- Miracle Worker grants a second Serenity and Sanctify charge without changing their recharge duration.
+- Flash Heal reduces Serenity by 6 seconds and Prayer of Healing reduces Sanctify by 6 seconds.
+- Voice of Harmony additionally makes Prayer of Mending reduce Serenity and Halo reduce Sanctify by 4 seconds.
+- Light of the Naaru scales all confirmed Serendipity reductions by 10% per selected rank.
+- Apotheosis grants/resets the appropriate Holy Word charges, lasts locally for 20 seconds (32 with Eternal Sanctity) and triples confirmed Serendipity reductions during that window.
+- With Ultimate Serenity selected, Sanctify stays hidden and Prayer of Healing reduces Serenity instead.
+- At capped Holy Word charges with Apotheosis ready, HeliHeal recommends spending one charge before Apotheosis instead of wasting its reset/granted charge.
+- Divine Hymn, Guardian Spirit, Apotheosis, Serenity, Sanctify and Prayer of Mending start their local cooldown or recharge only after a successful player cast; Prayer of Healing and Flash Heal only reduce Holy Words after success.
+
 ## Recovery and diagnostics
 
 - Leaving combat clears stale input locks while preserving still-active cooldown estimates.

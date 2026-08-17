@@ -533,7 +533,8 @@ function HeliHeal:BuildPrioritiesPage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
     local className = self.classToken == "DRUID" and "Restoration Druid 12.1"
-        or (self.classToken == "PALADIN" and "Holy Paladin 12.1" or "Restoration Shaman 12.1")
+        or (self.classToken == "PALADIN" and "Holy Paladin 12.1"
+        or (self.classToken == "PRIEST" and "Holy Priest 12.1" or "Restoration Shaman 12.1"))
     setPageHeader(page, className, L("Standard bleibt das Guide-Paket; Kontextmodi verändern nur dessen lokale Reihenfolge."))
 
     page.presetButtons = {}
@@ -547,6 +548,11 @@ function HeliHeal:BuildPrioritiesPage(parent)
         { "paladin_herald_raid", "HERALD RAID" },
         { "paladin_lightsmith_mythicplus", "LIGHTSMITH M+" },
         { "paladin_lightsmith_raid", "LIGHTSMITH RAID" },
+    } or self.classToken == "PRIEST" and {
+        { "priest_archon_mythicplus", "ARCHON M+" },
+        { "priest_archon_raid", "ARCHON RAID" },
+        { "priest_oracle_mythicplus", "ORACLE M+" },
+        { "priest_oracle_raid", "ORACLE RAID" },
     } or {
         { "shaman_totemic_mythicplus", "TOTEMIC M+" },
         { "shaman_totemic_raid", "TOTEMIC RAID" },

@@ -22,10 +22,11 @@ local RESTORATION_SPECIALIZATIONS = {
     SHAMAN = 264,
     DRUID = 105,
     PALADIN = 65,
+    PRIEST = 257,
 }
 
 local CURRENT_SCHEMA_VERSION = 3
-local ROTATION_DATA_VERSION = 12109
+local ROTATION_DATA_VERSION = 12110
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -73,6 +74,7 @@ function HeliHeal:ResetRuntimeState()
     self.pendingArchdruid = nil
     self.unleashConsumptionHistory = {}
     self.riptideRechargeRateUntil = nil
+    self.priestApotheosisUntil = nil
 end
 
 function HeliHeal:MigrateProfile(profile)
@@ -224,6 +226,7 @@ function HeliHeal:EnsureRotationProfile()
         SHAMAN = "shaman_totemic_mythicplus",
         DRUID = "druid_wildstalker_mythicplus",
         PALADIN = "paladin_herald_mythicplus",
+        PRIEST = "priest_archon_mythicplus",
     }
     local defaultPreset = defaults[self.classToken] or "shaman_totemic_mythicplus"
     local presetKey = profile.rotationPreset or defaultPreset
@@ -517,6 +520,12 @@ function HeliHeal:GetSlot(slotIndex)
         end
         if ability.bonusChargeTalent and self:IsTalentActive(ability.bonusChargeTalent) then
             ability.maxCharges = ability.maxCharges + 1
+        end
+        if self.classToken == "PRIEST" and self:IsTalentActive("priestProphetInsight")
+            and (ability.abilityKey == "priest_holy_word_serenity"
+                or ability.abilityKey == "priest_holy_word_sanctify"
+                or ability.abilityKey == "priest_holy_word_chastise") then
+            ability.cooldown = math.max(0, ability.cooldown - 5)
         end
     end
     if ability.hastedCooldown and ability.cooldown > 0 then
@@ -935,6 +944,90 @@ function HeliHeal:ConsumeSwiftness(now)
     return true
 end
 
+function HeliHeal:IsPriestApotheosisActive(now)
+    now = now or GetTime()
+    if self.priestApotheosisUntil and now >= self.priestApotheosisUntil then
+        self.priestApotheosisUntil = nil
+    end
+    return self.priestApotheosisUntil ~= nil
+end
+
+function HeliHeal:GetPriestHolyWordReductionMultiplier(now)
+    local multiplier = self:IsPriestApotheosisActive(now) and 3 or 1
+    local naaruRank = self.GetTalentRank and self:GetTalentRank("priestLightNaaru") or 0
+    return multiplier * (1 + (math.max(0, math.min(2, naaruRank)) * 0.1))
+end
+
+function HeliHeal:ReducePriestHolyWordCooldown(abilityKey, baseReduction, now)
+    local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
+    local ability = slotIndex and self:GetSlot(slotIndex)
+    if not ability or not ability.enabled then return false end
+    now = now or GetTime()
+    local reduction = math.max(0, tonumber(baseReduction) or 0)
+        * self:GetPriestHolyWordReductionMultiplier(now)
+    if reduction <= 0 then return false end
+
+    if ability.maxCharges > 1 then
+        local state = self:GetChargeState(slotIndex, ability, now)
+        if not state.nextRechargeAt then return false end
+        state.nextRechargeAt = math.max(now, state.nextRechargeAt - reduction)
+        self:GetChargeState(slotIndex, ability, now)
+    else
+        local usedAt = self.sessionUses[slotIndex]
+        if not usedAt then return false end
+        self.sessionUses[slotIndex] = usedAt - reduction
+        if now >= self.sessionUses[slotIndex] + ability.cooldown then
+            self.sessionUses[slotIndex] = nil
+        end
+    end
+    return true
+end
+
+function HeliHeal:ActivatePriestApotheosis(now)
+    now = now or GetTime()
+    local duration = self:IsTalentActive("priestEternalSanctity") and 32 or 20
+    self.priestApotheosisUntil = now + duration
+    for _, abilityKey in ipairs({
+        "priest_holy_word_serenity", "priest_holy_word_sanctify", "priest_holy_word_chastise",
+    }) do
+        local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
+        local ability = slotIndex and self:GetSlot(slotIndex)
+        if ability and ability.enabled then
+            if ability.maxCharges > 1 then
+                local state = self:GetChargeState(slotIndex, ability, now)
+                state.baseCharges = math.min(ability.maxCharges, state.baseCharges + 1)
+                if state.baseCharges >= ability.maxCharges then state.nextRechargeAt = nil end
+            else
+                self.sessionUses[slotIndex] = nil
+            end
+        end
+    end
+end
+
+function HeliHeal:ApplyPriestHolyWordEffects(abilityKey, now)
+    if self.classToken ~= "PRIEST" then return end
+    if abilityKey == "priest_apotheosis" then
+        self:ActivatePriestApotheosis(now)
+        return
+    end
+
+    if abilityKey == "priest_flash_heal" then
+        self:ReducePriestHolyWordCooldown("priest_holy_word_serenity", 6, now)
+    elseif abilityKey == "priest_prayer_of_healing" then
+        local target = self:IsTalentActive("priestUltimateSerenity")
+            and "priest_holy_word_serenity" or "priest_holy_word_sanctify"
+        self:ReducePriestHolyWordCooldown(target, 6, now)
+    elseif abilityKey == "priest_prayer_of_mending" and self:IsTalentActive("priestVoiceHarmony") then
+        self:ReducePriestHolyWordCooldown("priest_holy_word_serenity", 4, now)
+    elseif abilityKey == "priest_halo" and self:IsTalentActive("priestVoiceHarmony") then
+        local target = self:IsTalentActive("priestUltimateSerenity")
+            and "priest_holy_word_serenity" or "priest_holy_word_sanctify"
+        self:ReducePriestHolyWordCooldown(target, 4, now)
+    elseif abilityKey == "priest_smite" then
+        self:ReducePriestHolyWordCooldown("priest_holy_word_chastise", 4, now)
+    end
+end
+
 function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     slotIndex = tonumber(slotIndex)
     local slot = slotIndex and self:GetSlot(slotIndex)
@@ -987,6 +1080,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     end
 
     self:RecordHolyPowerEvent(slotIndex, slot)
+    self:ApplyPriestHolyWordEffects(slot.abilityKey, now)
 
 
     if slot.abilityKey == "druid_regrowth" and self:IsArchdruidReady(now) then

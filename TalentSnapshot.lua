@@ -30,6 +30,21 @@ local TALENTS = {
     paladinUnwaveringSpirit = { 392911 },
     paladinDivinePurpose = { 408459, 223817 },
     paladinBeaconVirtue = { 200025 },
+    priestArchon = { 120517 },
+    priestOracle = { 1248423 },
+    priestSanctify = { 34861 },
+    priestPrayerOfHealing = { 596 },
+    priestChastise = { 88625 },
+    priestUltimateSerenity = { 1246517 },
+    priestMiracleWorker = { 235587 },
+    priestEternalSanctity = { 1215245 },
+    priestHolyCelerity = { 1215275 },
+    priestVoiceHarmony = { 390994 },
+    priestLightNaaru = { 196985 },
+    priestProphetInsight = { 1272359 },
+    priestApotheosis = { 200183 },
+    priestDivineHymn = { 64843 },
+    priestGuardianSpirit = { 47788 },
 }
 
 local SNAPSHOT_FLAGS = {
@@ -42,6 +57,11 @@ local SNAPSHOT_FLAGS = {
     "paladinAurora",
     "paladinCallOfRighteous", "paladinCallOfRighteousRank", "paladinUnwaveringSpirit",
     "paladinDivinePurpose", "paladinBeaconVirtue",
+    "priestArchon", "priestOracle", "priestSanctify", "priestPrayerOfHealing",
+    "priestChastise", "priestUltimateSerenity",
+    "priestMiracleWorker", "priestEternalSanctity", "priestHolyCelerity", "priestVoiceHarmony",
+    "priestLightNaaru", "priestLightNaaruRank", "priestProphetInsight",
+    "priestApotheosis", "priestDivineHymn", "priestGuardianSpirit",
 }
 
 local function isKnownSpell(spellID)
@@ -140,6 +160,11 @@ function HeliHeal:RefreshTalentSnapshot(silent)
         snapshot.paladinCallOfRighteousRank = math.max(snapshot.paladinCallOfRighteousRank,
             tonumber(snapshot.ranks[spellID]) or 0)
     end
+    snapshot.priestLightNaaruRank = 0
+    for _, spellID in ipairs(TALENTS.priestLightNaaru) do
+        snapshot.priestLightNaaruRank = math.max(snapshot.priestLightNaaruRank,
+            tonumber(snapshot.ranks[spellID]) or 0)
+    end
     snapshot.restorationTier2 = self.classToken == "SHAMAN" and isKnownSpell(1264866)
     snapshot.restorationTier4 = self.classToken == "SHAMAN" and isKnownSpell(1264867)
 
@@ -158,12 +183,15 @@ function HeliHeal:RefreshTalentSnapshot(silent)
             detectedHero = snapshot.druidKeeper and "keeper" or (snapshot.druidWildstalker and "wildstalker")
         elseif self.classToken == "PALADIN" then
             detectedHero = snapshot.paladinLightsmith and "lightsmith" or (snapshot.paladinHerald and "herald")
+        elseif self.classToken == "PRIEST" then
+            detectedHero = snapshot.priestOracle and "oracle" or (snapshot.priestArchon and "archon")
         else
             detectedHero = (snapshot.elementalReverb or snapshot.mysticKnowledge) and "farseer"
                 or (snapshot.surgingTotem and "totemic")
         end
         local classPrefix = self.classToken == "DRUID" and "druid"
-            or (self.classToken == "PALADIN" and "paladin" or "shaman")
+            or (self.classToken == "PALADIN" and "paladin"
+            or (self.classToken == "PRIEST" and "priest" or "shaman"))
         local detectedPreset = detectedHero and content and (classPrefix .. "_" .. detectedHero .. "_" .. content)
         if detectedPreset and ns.AbilityLibrary:GetPreset(detectedPreset) and detectedPreset ~= currentPreset then
             self.db.profile.rotationPreset = detectedPreset
@@ -223,6 +251,19 @@ function HeliHeal:PrintTalentSnapshot()
                 yesNo(snapshot.paladinRingingHeavens), yesNo(snapshot.paladinWalkIntoLight),
                 yesNo(snapshot.paladinAurora), snapshot.paladinCallOfRighteousRank or 0,
                 yesNo(snapshot.paladinUnwaveringSpirit), yesNo(snapshot.paladinDivinePurpose))
+        self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
+        return
+    end
+    if self.classToken == "PRIEST" then
+        local details = ("Archon %s | Oracle %s | Sanctify %s | Prayer of Healing %s | Chastise %s | Ultimate Serenity %s | Miracle Worker %s | Eternal Sanctity %s | Holy Celerity %s | Voice of Harmony %s | Light of the Naaru %d/2 | Prophet's Insight %s | Apotheosis %s | Divine Hymn %s | Guardian Spirit %s")
+            :format(yesNo(snapshot.priestArchon), yesNo(snapshot.priestOracle),
+                yesNo(snapshot.priestSanctify), yesNo(snapshot.priestPrayerOfHealing),
+                yesNo(snapshot.priestChastise), yesNo(snapshot.priestUltimateSerenity),
+                yesNo(snapshot.priestMiracleWorker), yesNo(snapshot.priestEternalSanctity),
+                yesNo(snapshot.priestHolyCelerity),
+                yesNo(snapshot.priestVoiceHarmony), snapshot.priestLightNaaruRank or 0,
+                yesNo(snapshot.priestProphetInsight), yesNo(snapshot.priestApotheosis),
+                yesNo(snapshot.priestDivineHymn), yesNo(snapshot.priestGuardianSpirit))
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end
