@@ -20,6 +20,7 @@ local C = {
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local FONT = ns.media.font
+local KEY_CLEAR_HOLD_SECONDS = 1.5
 local MODIFIER_KEYS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LALT = true, RALT = true }
 
 local function unpackColor(color)
@@ -464,6 +465,44 @@ function HeliHeal:BuildOverviewPage(parent)
     return page
 end
 
+function HeliHeal:CancelKeyClearHold(button, restorePrompt)
+    if not button then return end
+    button.clearHoldElapsed = nil
+    button:SetScript("OnUpdate", nil)
+    if button.clearHoldProgress then
+        button.clearHoldProgress:SetWidth(1)
+        button.clearHoldProgress:Hide()
+    end
+    if restorePrompt and self.keyCaptureButton == button then
+        button.label:SetText(L("TASTE DRÜCKEN • ESC HALTEN"))
+    end
+end
+
+function HeliHeal:StartKeyClearHold(button, slotIndex)
+    if not button or button.clearHoldElapsed then return end
+    button.clearHoldElapsed = 0
+    button.label:SetText(L("ESC HALTEN ZUM LÖSCHEN"))
+    if button.clearHoldProgress then
+        button.clearHoldProgress:SetWidth(1)
+        button.clearHoldProgress:Show()
+    end
+    button:SetScript("OnUpdate", function(capture, elapsed)
+        if HeliHeal.keyCaptureButton ~= capture then
+            HeliHeal:CancelKeyClearHold(capture, false)
+            return
+        end
+        capture.clearHoldElapsed = (capture.clearHoldElapsed or 0) + elapsed
+        local progress = math.min(1, capture.clearHoldElapsed / KEY_CLEAR_HOLD_SECONDS)
+        if capture.clearHoldProgress then
+            capture.clearHoldProgress:SetWidth(math.max(1, (capture:GetWidth() - 2) * progress))
+        end
+        if progress >= 1 then
+            HeliHeal:SetAbilityBinding(slotIndex, "")
+            HeliHeal:EndKeyCapture()
+        end
+    end)
+end
+
 function HeliHeal:BeginKeyCapture(button, slotIndex)
     if InCombatLockdown and InCombatLockdown() then
         self:Print(L("Inputs können während des Kampfes nicht neu belegt werden."))
@@ -476,7 +515,7 @@ function HeliHeal:BeginKeyCapture(button, slotIndex)
 
     self.suspendInput = true
     self.keyCaptureButton = button
-    button.label:SetText(L("TASTE DRÜCKEN …"))
+    button.label:SetText(L("TASTE DRÜCKEN • ESC HALTEN"))
     button:SetBackdropBorderColor(unpackColor(C.accent))
     button:SetScript("OnClick", nil)
     button:EnableKeyboard(true)
@@ -492,10 +531,16 @@ function HeliHeal:BeginKeyCapture(button, slotIndex)
     button:SetScript("OnKeyDown", function(capture, key)
         capture:SetPropagateKeyboardInput(false)
         if key == "ESCAPE" then
-            HeliHeal:EndKeyCapture()
+            HeliHeal:StartKeyClearHold(capture, slotIndex)
             return
         end
         commit(normalizeCapturedKey(key))
+    end)
+    button:SetScript("OnKeyUp", function(capture, key)
+        capture:SetPropagateKeyboardInput(false)
+        if key == "ESCAPE" then
+            HeliHeal:CancelKeyClearHold(capture, true)
+        end
     end)
     button:SetScript("OnMouseDown", function(_, mouseButton)
         commit(normalizeCapturedMouse(mouseButton), mouseButton == "LeftButton")
@@ -516,9 +561,11 @@ end
 function HeliHeal:EndKeyCapture(suppressCaptureClick)
     local button = self.keyCaptureButton
     if button then
+        self:CancelKeyClearHold(button, false)
         button:EnableKeyboard(false)
         button:EnableMouseWheel(false)
         button:SetScript("OnKeyDown", nil)
+        button:SetScript("OnKeyUp", nil)
         button:SetScript("OnMouseDown", nil)
         button:SetScript("OnMouseWheel", nil)
         -- BUTTON1 is captured on OnMouseDown, followed by OnClick for the same
@@ -623,10 +670,22 @@ function HeliHeal:BuildPrioritiesPage(parent)
 
         row.key = createButton(row, "", 210, 28, false)
         row.key:SetPoint("RIGHT", -9, 0)
+        row.key.clearHoldProgress = row.key:CreateTexture(nil, "ARTWORK")
+        row.key.clearHoldProgress:SetTexture(WHITE)
+        row.key.clearHoldProgress:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.3)
+        row.key.clearHoldProgress:SetPoint("TOPLEFT", 1, -1)
+        row.key.clearHoldProgress:SetPoint("BOTTOMLEFT", 1, 1)
+        row.key.clearHoldProgress:SetWidth(1)
+        row.key.clearHoldProgress:Hide()
         row.key.captureOnClick = function(button) self:HandleKeyCaptureClick(button, capturedSlotIndex) end
         row.key:SetScript("OnClick", row.key.captureOnClick)
         page.slotRows[slotIndex] = row
     end
+
+    local clearBindingHint = text(page,
+        L("Hotkey-Feld anklicken und ESC 1,5 Sekunden halten, um die Belegung zu entfernen."),
+        10, C.muted)
+    clearBindingHint:SetPoint("BOTTOMLEFT", 28, 20)
 
     return page
 end

@@ -7,6 +7,7 @@ local namespace = {
 assert(loadfile("Options.lua"))("HeliHeal", namespace)
 
 local addon = namespace.addon
+local beginKeyCapture = addon.BeginKeyCapture
 local scripts = {}
 local button = {
     label = { SetText = function() end },
@@ -14,6 +15,7 @@ local button = {
     EnableMouseWheel = function() end,
     SetPropagateKeyboardInput = function() end,
     SetBackdropBorderColor = function() end,
+    GetWidth = function() return 210 end,
     SetScript = function(_, event, handler) scripts[event] = handler end,
 }
 
@@ -50,4 +52,33 @@ scripts.OnClick(button)
 assert(captureStarts == 2,
     "keyboard and wheel capture must not consume the next deliberate click")
 
-print("Key capture OK: BUTTON1 commit does not reopen or clear its binding")
+local progressWidth, progressShown = 0, false
+button.clearHoldProgress = {
+    SetWidth = function(_, width) progressWidth = width end,
+    Show = function() progressShown = true end,
+    Hide = function() progressShown = false end,
+}
+local clearedBinding
+addon.SetAbilityBinding = function(_, slotIndex, binding)
+    assert(slotIndex == 3, "clear hold must target the captured ability slot")
+    clearedBinding = binding
+end
+addon.RefreshOptionsUI = function() end
+addon.BeginKeyCapture = beginKeyCapture
+addon:BeginKeyCapture(button, 3)
+scripts.OnKeyDown(button, "ESCAPE")
+assert(progressShown and scripts.OnUpdate,
+    "holding Escape must start the visible clear progress")
+scripts.OnUpdate(button, 0.75)
+assert(clearedBinding == nil and progressWidth > 1,
+    "a partial hold must animate without clearing the binding")
+scripts.OnKeyUp(button, "ESCAPE")
+assert(not progressShown and clearedBinding == nil,
+    "releasing Escape early must cancel the clear operation")
+
+scripts.OnKeyDown(button, "ESCAPE")
+scripts.OnUpdate(button, 1.5)
+assert(clearedBinding == "" and addon.keyCaptureButton == nil,
+    "holding Escape for 1.5 seconds must clear and close capture")
+
+print("Key capture OK: BUTTON1 guard and hold-Escape clearing")
