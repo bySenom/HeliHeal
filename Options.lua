@@ -478,6 +478,21 @@ function HeliHeal:CancelKeyClearHold(button, restorePrompt)
     end
 end
 
+function HeliHeal:SetOptionsEscapeCloseEnabled(enabled)
+    local window = self.optionsWindow
+    local windowName = window and window:GetName()
+    if not windowName or not UISpecialFrames then return end
+
+    for index = #UISpecialFrames, 1, -1 do
+        if UISpecialFrames[index] == windowName then
+            table.remove(UISpecialFrames, index)
+        end
+    end
+    if enabled then
+        table.insert(UISpecialFrames, windowName)
+    end
+end
+
 function HeliHeal:StartKeyClearHold(button, slotIndex)
     if not button or button.clearHoldElapsed then return end
     button.clearHoldElapsed = 0
@@ -515,6 +530,7 @@ function HeliHeal:BeginKeyCapture(button, slotIndex)
 
     self.suspendInput = true
     self.keyCaptureButton = button
+    self:SetOptionsEscapeCloseEnabled(false)
     button.label:SetText(L("TASTE DRÜCKEN • ESC HALTEN"))
     button:SetBackdropBorderColor(unpackColor(C.accent))
     button:SetScript("OnClick", nil)
@@ -576,6 +592,7 @@ function HeliHeal:EndKeyCapture(suppressCaptureClick)
     end
     self.keyCaptureButton = nil
     self.suspendInput = false
+    self:SetOptionsEscapeCloseEnabled(true)
     self:RefreshOptionsUI()
 end
 

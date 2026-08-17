@@ -8,6 +8,8 @@ assert(loadfile("Options.lua"))("HeliHeal", namespace)
 
 local addon = namespace.addon
 local beginKeyCapture = addon.BeginKeyCapture
+UISpecialFrames = { "OtherWindow", "HeliHealOptionsWindow" }
+addon.optionsWindow = { GetName = function() return "HeliHealOptionsWindow" end }
 local scripts = {}
 local button = {
     label = { SetText = function() end },
@@ -66,6 +68,8 @@ end
 addon.RefreshOptionsUI = function() end
 addon.BeginKeyCapture = beginKeyCapture
 addon:BeginKeyCapture(button, 3)
+assert(#UISpecialFrames == 1 and UISpecialFrames[1] == "OtherWindow",
+    "key capture must temporarily disable the options window's global Escape close")
 scripts.OnKeyDown(button, "ESCAPE")
 assert(progressShown and scripts.OnUpdate,
     "holding Escape must start the visible clear progress")
@@ -75,10 +79,14 @@ assert(clearedBinding == nil and progressWidth > 1,
 scripts.OnKeyUp(button, "ESCAPE")
 assert(not progressShown and clearedBinding == nil,
     "releasing Escape early must cancel the clear operation")
+assert(#UISpecialFrames == 1,
+    "releasing Escape early must keep the window protected while capture remains active")
 
 scripts.OnKeyDown(button, "ESCAPE")
 scripts.OnUpdate(button, 1.5)
 assert(clearedBinding == "" and addon.keyCaptureButton == nil,
     "holding Escape for 1.5 seconds must clear and close capture")
+assert(#UISpecialFrames == 2 and UISpecialFrames[2] == "HeliHealOptionsWindow",
+    "ending capture must restore the options window's normal Escape close behavior")
 
 print("Key capture OK: BUTTON1 guard and hold-Escape clearing")
