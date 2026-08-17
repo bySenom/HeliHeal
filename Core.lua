@@ -62,6 +62,7 @@ function HeliHeal:ResetRuntimeState()
     self.sessionCharges = {}
     self.sessionSpendHistory = {}
     self.sessionTimedEffects = {}
+    self.sessionAtonements = {}
     self.holyPowerBaseline = 0
     self.holyPowerFreeSpenderBaseline = 0
     self.sessionHolyPower = 0
@@ -333,6 +334,7 @@ function HeliHeal:ReconcileOutOfCombatState(silent)
             if ability.trackedDuration > 0 then self:GetTrackedState(ability, now) end
         end
     end
+    self:GetAtonementState(now)
     if self.riptideRechargeRateUntil and now >= self.riptideRechargeRateUntil then
         self.riptideRechargeRateUntil = nil
     end
@@ -389,6 +391,8 @@ function HeliHeal:BuildDiagnosticReport()
         "uses=" .. countEntries(self.sessionUses),
         "charges=" .. countEntries(self.sessionCharges),
         "tracked=" .. countEntries(self.sessionTimedEffects),
+        "atonementGroup=" .. tostring(self.sessionAtonements and self.sessionAtonements.groupUntil or 0),
+        "atonementSingle=" .. tostring(self.sessionAtonements and self.sessionAtonements.singleUntil or 0),
         "spellHaste=" .. tostring(self.cachedSpellHaste or "unavailable"),
         "holyPower=" .. tostring(self.sessionHolyPower or 0),
         "freeSpenders=" .. tostring(self.pendingFreeHolyPowerSpenders or 0),
@@ -656,6 +660,47 @@ function HeliHeal:GetTrackedGoal(ability)
         return math.max(1, tonumber(goals and goals[self:GetHealingMode()]) or 1)
     end
     return math.max(0, tonumber(ability.trackedGoal) or 0)
+end
+
+function HeliHeal:GetAtonementState(now)
+    now = now or GetTime()
+    self.sessionAtonements = self.sessionAtonements or {}
+    local state = self.sessionAtonements
+    if (state.groupUntil or 0) <= now then
+        state.groupStartedAt, state.groupUntil = nil, nil
+    end
+    if (state.singleUntil or 0) <= now then
+        state.singleStartedAt, state.singleUntil = nil, nil
+    end
+    return state
+end
+
+function HeliHeal:RecordAtonement(scope, duration, now)
+    if scope ~= "group" and scope ~= "single" then return false end
+    duration = math.max(0, tonumber(duration) or 0)
+    if duration <= 0 then return false end
+    now = now or GetTime()
+    local state = self:GetAtonementState(now)
+    state[scope .. "StartedAt"] = now
+    state[scope .. "Until"] = now + duration
+    return true
+end
+
+function HeliHeal:GetAtonementWindow(ability, now)
+    if not ability or not ability.atonementScope then return nil end
+    now = now or GetTime()
+    local state = self:GetAtonementState(now)
+    if ability.atonementScope == "group" then
+        if not state.groupUntil then return nil end
+        return state.groupUntil, state.groupStartedAt, state.groupUntil - state.groupStartedAt
+    end
+    if self:GetHealingMode() ~= "single" then return nil end
+    local useGroup = (state.groupUntil or 0) >= (state.singleUntil or 0)
+    local prefix = useGroup and "group" or "single"
+    local untilAt = state[prefix .. "Until"]
+    local startedAt = state[prefix .. "StartedAt"]
+    if not untilAt or not startedAt then return nil end
+    return untilAt, startedAt, untilAt - startedAt
 end
 
 function HeliHeal:GetTrackedCapacity(ability)
@@ -1073,6 +1118,8 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     if slot.consumesSwiftness then
         self:ConsumeSwiftness(now)
     end
+
+    self:RecordAtonement(slot.atonementScope, slot.atonementDuration, now)
 
     if (slot.trackedDuration or 0) > 0 then
         local applications = 1

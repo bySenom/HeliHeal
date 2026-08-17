@@ -23,7 +23,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Automatic Blizzard One Button Assistant detection on standard action bars
 - Live Holy Power synchronization for the player, with confirmed-cast fallback
 - Talent-aware Holy Priest Holy Word charges, recharge times and Serendipity reductions
-- Discipline Priest Radiance maintenance, Penance charges and haste-scaled cooldown estimates
+- Discipline Priest group/single-target Atonement estimates, Penance charges and haste-scaled cooldowns
 - Movable, scalable and customizable display
 - Persistent AceDB profiles
 - One-time What's New popup and local update history

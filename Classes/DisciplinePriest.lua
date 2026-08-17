@@ -16,8 +16,7 @@ local abilities = {
         name = "Power Word: Radiance", cooldown = 18,
         cooldownTalent = "discBrightPupil", cooldownReduction = 3,
         confirmOnPlayerSuccess = true,
-        hastedCooldown = true, trackedDuration = 14, trackedGoal = 1,
-        trackedAsCooldown = true,
+        hastedCooldown = true, atonementScope = "group", atonementDuration = 14,
         roleLabel = "AOE", inputLockout = 2.0,
     },
     disc_penance = {
@@ -53,7 +52,8 @@ local abilities = {
         spellID = 17, castSpellIDs = { 17, 1253593 },
         name = "Power Word: Shield / Void Shield", cooldown = 6,
         confirmOnPlayerSuccess = true,
-        hastedCooldown = true, roleLabel = "SAVE", inputLockout = 1.5,
+        hastedCooldown = true, atonementScope = "single", atonementDuration = 15,
+        roleLabel = "SAVE", inputLockout = 1.5,
     },
     disc_smite = {
         spellID = 585, castSpellIDs = { 585, 450215 }, name = "Smite / Void Blast", cooldown = 0,

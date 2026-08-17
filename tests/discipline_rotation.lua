@@ -69,7 +69,8 @@ local shieldIndex = addon:GetSlotIndexByAbilityKey("disc_power_word_shield")
 
 assert(addon:GetSlot(radianceIndex).cooldown == 12.5
         and addon:GetSlot(radianceIndex).maxCharges == 1
-        and addon:GetSlot(radianceIndex).trackedDuration == 14,
+        and addon:GetSlot(radianceIndex).atonementScope == "group"
+        and addon:GetSlot(radianceIndex).atonementDuration == 14,
     "Radiance must expose one logical recommendation and track its fourteen-second Atonement window")
 assert(addon:GetSlot(penanceIndex).cooldown == 7.5 and addon:GetSlot(penanceIndex).maxCharges == 2,
     "Oracle and 20% haste must produce two 7.5-second Penance charges")
@@ -77,6 +78,9 @@ assert(addon:GetSlot(mindBlastIndex).cooldown == 23.33,
     "Mind Blast's 28-second base cooldown must scale with cached haste")
 assert(addon:GetSlot(shieldIndex).cooldown == 5,
     "Power Word: Shield's six-second base cooldown must scale with cached haste")
+assert(addon:GetSlot(shieldIndex).atonementScope == "single"
+        and addon:GetSlot(shieldIndex).atonementDuration == 15,
+    "Power Word: Shield must track a separate fifteen-second single-target Atonement window")
 assert(addon:GetSlot(evangelismIndex).cooldown == 90,
     "Evangelism must use its 90-second Midnight cooldown")
 assert(addon:GetSlot(painSuppressionIndex).cooldown == 180,
@@ -103,8 +107,8 @@ assert(order[1].ability.abilityKey == "disc_evangelism",
 addon:ObserveInputKey("R")
 assert(addon:RecordPlayerSpellSucceeded(246097),
     "the instant Radiance override must confirm its configured input")
-local radianceState = addon:GetTrackedState(addon:GetSlot(radianceIndex), now)
-assert(radianceState.count == 1 and radianceState.nextExpiresAt == 14,
+local atonementState = addon:GetAtonementState(now)
+assert(atonementState.groupUntil == 14 and not atonementState.singleUntil,
     "a confirmed instant Radiance must remove its recommendation for the Atonement window")
 local postRadianceOrder = addon:GetDisplayOrder(now)
 assert(postRadianceOrder[1].ability.abilityKey ~= "disc_power_word_radiance",
@@ -118,11 +122,11 @@ assert(waitingRadiance and waitingRadiance.remaining == 14
     "Radiance must show one fourteen-second maintenance cooldown instead of a charge counter")
 now = 2
 addon:ReleaseInputKey("R")
-addon.sessionTimedEffects.disc_power_word_radiance = nil
+addon.sessionAtonements = {}
 assert(addon:RecordPlayerSpellSucceeded(194509),
     "normal Radiance must confirm directly even when no key input was correlated")
-radianceState = addon:GetTrackedState(addon:GetSlot(radianceIndex), now)
-assert(radianceState.count == 1 and radianceState.nextExpiresAt == 16,
+atonementState = addon:GetAtonementState(now)
+assert(atonementState.groupUntil == 16 and not atonementState.singleUntil,
     "normal Radiance must start the same fourteen-second maintenance estimate")
 
 addon:ObserveInputKey("S")
@@ -130,6 +134,24 @@ assert(addon:RecordPlayerSpellSucceeded(1253593),
     "a successful Void Shield override must confirm Power Word: Shield")
 assert(addon.sessionUses[shieldIndex] == now,
     "Power Word: Shield must start its local cooldown after either shield variant succeeds")
+atonementState = addon:GetAtonementState(now)
+assert(atonementState.groupUntil == 16 and atonementState.singleUntil == 17,
+    "Shield must add single-target Atonement without replacing the group Atonement estimate")
+
+local standardShield
+for _, entry in ipairs(addon:GetDisplayOrder(now)) do
+    if entry.ability.abilityKey == "disc_power_word_shield" then standardShield = entry end
+end
+assert(standardShield and standardShield.remaining == 5,
+    "outside Single mode Shield must continue following its real haste-scaled cooldown")
+addon.db.profile.healingMode = "single"
+local singleShield
+for _, entry in ipairs(addon:GetDisplayOrder(now)) do
+    if entry.ability.abilityKey == "disc_power_word_shield" then singleShield = entry end
+end
+assert(singleShield and singleShield.remaining == 15 and singleShield.cooldownDuration == 15,
+    "Single mode must hold Shield until the later single-target Atonement estimate expires")
+addon.db.profile.healingMode = "standard"
 
 addon:SetRotationPreset("disc_voidweaver_mythicplus")
 addon.talentSnapshot.priestOracle = false

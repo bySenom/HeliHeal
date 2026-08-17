@@ -28,7 +28,9 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.inputLockout = math.max(0, tonumber(record.inputLockout) or 1.0)
     record.trackedDuration = math.max(0, tonumber(record.trackedDuration) or 0)
     record.trackedGoal = math.max(0, math.floor(tonumber(record.trackedGoal) or 0))
-    record.trackedAsCooldown = record.trackedAsCooldown == true
+    record.atonementScope = (record.atonementScope == "group" or record.atonementScope == "single")
+        and record.atonementScope or nil
+    record.atonementDuration = math.max(0, tonumber(record.atonementDuration) or 0)
     record.holyPowerGain = math.max(0, math.floor(tonumber(record.holyPowerGain) or 0))
     record.holyPowerCost = math.max(0, math.floor(tonumber(record.holyPowerCost) or 0))
     record.maxHolyPower = record.maxHolyPower and math.max(0, math.floor(tonumber(record.maxHolyPower) or 0)) or nil
@@ -126,7 +128,8 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             castSpellIDs = ability.castSpellIDs,
             trackedDuration = ability.trackedDuration,
             trackedGoal = ability.trackedGoal,
-            trackedAsCooldown = ability.trackedAsCooldown,
+            atonementScope = ability.atonementScope,
+            atonementDuration = ability.atonementDuration,
             holyPowerGain = ability.holyPowerGain,
             holyPowerCost = ability.holyPowerCost,
             maxHolyPower = ability.maxHolyPower,
@@ -182,7 +185,9 @@ function AbilityLibrary:Resolve(slot)
         castSpellIDs = slot.castSpellIDs,
         trackedDuration = math.max(0, tonumber(slot.trackedDuration) or 0),
         trackedGoal = math.max(0, math.floor(tonumber(slot.trackedGoal) or 0)),
-        trackedAsCooldown = slot.trackedAsCooldown == true,
+        atonementScope = (slot.atonementScope == "group" or slot.atonementScope == "single")
+            and slot.atonementScope or nil,
+        atonementDuration = math.max(0, tonumber(slot.atonementDuration) or 0),
         holyPowerGain = math.max(0, math.floor(tonumber(slot.holyPowerGain) or 0)),
         holyPowerCost = math.max(0, math.floor(tonumber(slot.holyPowerCost) or 0)),
         maxHolyPower = slot.maxHolyPower and math.max(0, math.floor(tonumber(slot.maxHolyPower) or 0)) or nil,

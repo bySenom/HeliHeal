@@ -264,9 +264,7 @@ function HeliHeal:GetDisplayOrder(now)
             elseif (ability.trackedDuration or 0) > 0 then
                 local state = self:GetTrackedState(ability, now)
                 charges = state.count
-                if not ability.trackedAsCooldown then
-                    trackedText = ("%d/%d"):format(state.count, state.goal)
-                end
+                trackedText = ("%d/%d"):format(state.count, state.goal)
                 if state.count >= state.goal and state.nextExpiresAt then
                     readyAt = state.nextExpiresAt
                     usedAt = readyAt - ability.trackedDuration
@@ -282,6 +280,13 @@ function HeliHeal:GetDisplayOrder(now)
             else
                 usedAt = self.sessionUses[slotIndex]
                 readyAt = usedAt and (usedAt + ability.cooldown) or 0
+            end
+            local atonementReadyAt, atonementStartedAt, atonementDuration =
+                self:GetAtonementWindow(ability, now)
+            if atonementReadyAt and atonementReadyAt > readyAt then
+                readyAt = atonementReadyAt
+                usedAt = atonementStartedAt
+                cooldownDuration = atonementDuration
             end
             local item = self.displayItemScratch[slotIndex]
             if not item then
