@@ -59,6 +59,20 @@ for _, item in ipairs(freshOrder) do
         "Swiftmend must be withheld until a locally known HoT exists")
 end
 
+local lifebloomIndex = addon:GetSlotIndexByAbilityKey("druid_lifebloom")
+addon:AcknowledgeSlot(lifebloomIndex)
+for _, item in ipairs(addon:GetDisplayOrder(now)) do
+    assert(item.ability.abilityKey ~= "druid_swiftmend",
+        "Lifebloom must never satisfy Swiftmend's HoT requirement")
+end
+addon:ResetRuntimeState()
+
+local regrowthIndex = addon:GetSlotIndexByAbilityKey("druid_regrowth")
+addon:AcknowledgeSlot(regrowthIndex)
+assert(addon:HasLocalDruidHot(now),
+    "a locally confirmed Regrowth must satisfy Swiftmend's HoT requirement")
+addon:ResetRuntimeState()
+
 addon:AcknowledgeSlot(rejuvIndex)
 local state = addon:GetTrackedState(rejuv, now)
 assert(state.count == 1 and state.nextExpiresAt == 12, "one input must add one timed Rejuvenation")
@@ -107,7 +121,6 @@ assert(addon:GetSlot(rejuvIndex).trackedDuration == 15,
     "Lingering Healing alone must extend Rejuvenation to fifteen seconds")
 addon.talentSnapshot.druidLingeringHealing = false
 
-local lifebloomIndex = addon:GetSlotIndexByAbilityKey("druid_lifebloom")
 local lifebloom = addon:GetSlot(lifebloomIndex)
 addon:AcknowledgeSlot(lifebloomIndex)
 state = addon:GetTrackedState(lifebloom, now)
@@ -148,6 +161,8 @@ assert(addon:RecordPlayerSpellSucceeded(48438),
     "Wild Growth must confirm without a correlated action-bar input")
 assert(addon.sessionUses[wildGrowthIndex] == now,
     "a successful Wild Growth cast must start its local cooldown")
+assert(addon:HasLocalDruidHot(now),
+    "a locally confirmed Wild Growth must satisfy Swiftmend's HoT requirement")
 local wildGrowthItem
 for _, item in ipairs(addon:GetDisplayOrder(now)) do
     if item.ability.abilityKey == "druid_wild_growth" then wildGrowthItem = item end

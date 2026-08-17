@@ -726,12 +726,20 @@ end
 
 function HeliHeal:HasLocalDruidHot(now)
     now = now or GetTime()
-    for _, abilityKey in ipairs({ "druid_rejuvenation", "druid_lifebloom" }) do
-        local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
-        local ability = slotIndex and self:GetSlot(slotIndex)
-        local state = ability and self:GetTrackedState(ability, now)
-        if state and state.count > 0 then return true end
-    end
+    -- Swiftmend accepts only Rejuvenation, Regrowth or Wild Growth. Lifebloom
+    -- is deliberately excluded even though HeliHeal tracks its maintenance.
+    local rejuvenationIndex = self:GetSlotIndexByAbilityKey("druid_rejuvenation")
+    local rejuvenation = rejuvenationIndex and self:GetSlot(rejuvenationIndex)
+    local rejuvenationState = rejuvenation and self:GetTrackedState(rejuvenation, now)
+    if rejuvenationState and rejuvenationState.count > 0 then return true end
+
+    local regrowthIndex = self:GetSlotIndexByAbilityKey("druid_regrowth")
+    local regrowthUsedAt = regrowthIndex and self.sessionUses[regrowthIndex]
+    if regrowthUsedAt and now < regrowthUsedAt + 12 then return true end
+
+    local wildGrowthIndex = self:GetSlotIndexByAbilityKey("druid_wild_growth")
+    local wildGrowthUsedAt = wildGrowthIndex and self.sessionUses[wildGrowthIndex]
+    if wildGrowthUsedAt and now < wildGrowthUsedAt + 7 then return true end
     return false
 end
 
