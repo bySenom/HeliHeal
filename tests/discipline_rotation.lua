@@ -22,10 +22,14 @@ addon.db = { profile = {
     rotationPreset = "disc_oracle_mythicplus",
     rotationDataVersion = 12111,
     healingMode = "standard",
-    bindings = {},
+    bindings = {
+        disc_power_word_radiance = "R",
+        disc_power_word_shield = "S",
+    },
 } }
-addon.db.profile.slots = namespace.AbilityLibrary:BuildPresetSlots(addon.db.profile.rotationPreset, {})
-assert(#addon.db.profile.slots == 11,
+addon.db.profile.slots = namespace.AbilityLibrary:BuildPresetSlots(
+    addon.db.profile.rotationPreset, addon.db.profile.bindings)
+assert(#addon.db.profile.slots == 10,
     "Discipline presets must expose every bindable static ability without overflowing the options page")
 addon:ResetRuntimeState()
 addon.talentSnapshot = {
@@ -51,13 +55,13 @@ addon.Print = function() end
 local radianceIndex = addon:GetSlotIndexByAbilityKey("disc_power_word_radiance")
 local penanceIndex = addon:GetSlotIndexByAbilityKey("disc_penance")
 local mindBlastIndex = addon:GetSlotIndexByAbilityKey("disc_mind_blast")
-local voidShieldIndex = addon:GetSlotIndexByAbilityKey("disc_void_shield")
 local evangelismIndex = addon:GetSlotIndexByAbilityKey("disc_evangelism")
 local ultimateIndex = addon:GetSlotIndexByAbilityKey("disc_ultimate_penitence")
 local barrierIndex = addon:GetSlotIndexByAbilityKey("disc_power_word_barrier")
 local painSuppressionIndex = addon:GetSlotIndexByAbilityKey("disc_pain_suppression")
 local shadowWordDeathIndex = addon:GetSlotIndexByAbilityKey("disc_shadow_word_death")
 local smiteIndex = addon:GetSlotIndexByAbilityKey("disc_smite")
+local shieldIndex = addon:GetSlotIndexByAbilityKey("disc_power_word_shield")
 
 assert(addon:GetSlot(radianceIndex).cooldown == 12.5 and addon:GetSlot(radianceIndex).maxCharges == 2,
     "Bright Pupil, Light's Promise and 20% haste must produce two 12.5-second Radiance charges")
@@ -65,8 +69,6 @@ assert(addon:GetSlot(penanceIndex).cooldown == 7.5 and addon:GetSlot(penanceInde
     "Oracle and 20% haste must produce two 7.5-second Penance charges")
 assert(addon:GetSlot(mindBlastIndex).cooldown == 7.5,
     "Mind Blast's 9-second base cooldown must scale with cached haste")
-assert(addon:GetSlot(voidShieldIndex).cooldown == 7.5,
-    "Void Shield must retain its fixed 7.5-second Midnight cooldown")
 assert(addon:GetSlot(evangelismIndex).cooldown == 90,
     "Evangelism must use its 90-second Midnight cooldown")
 assert(addon:GetSlot(painSuppressionIndex).cooldown == 180,
@@ -81,14 +83,36 @@ assert(addon:GetSlot(barrierIndex).cooldown == 180,
     "Power Word: Barrier must retain its three-minute cooldown when selected")
 assert(addon:SlotAcceptsSpell(addon.db.profile.slots[smiteIndex], 450215),
     "the Smite binding must confirm its Void Blast action-bar override")
+assert(addon:SlotAcceptsSpell(addon.db.profile.slots[radianceIndex], 246097),
+    "Radiance must accept its instant Midnight override cast")
+assert(addon:SlotAcceptsSpell(addon.db.profile.slots[shieldIndex], 1253593),
+    "Power Word: Shield must accept the Master the Darkness Void Shield override")
 
 local order = addon:GetDisplayOrder(now)
-assert(order[1].ability.abilityKey == "disc_void_shield",
-    "the standard Discipline priority must lead with ready Void Shield")
-addon:AcknowledgeSlot(voidShieldIndex)
-order = addon:GetDisplayOrder(now)
 assert(order[1].ability.abilityKey == "disc_evangelism",
-    "Evangelism must follow Void Shield in the static ramp priority")
+    "the standard Discipline priority must begin its static ramp with Evangelism")
+
+addon:ObserveInputKey("R")
+assert(addon:RecordPlayerSpellSucceeded(246097),
+    "the instant Radiance override must confirm its configured input")
+local radianceState = addon:GetChargeState(radianceIndex, addon:GetSlot(radianceIndex), now)
+assert(radianceState.baseCharges == 1,
+    "the first instant Radiance must spend exactly one of two charges")
+now = 2
+addon:ReleaseInputKey("R")
+addon:ObserveInputKey("R")
+assert(addon:RecordPlayerSpellSucceeded(194509),
+    "normal Radiance must confirm through the same configured slot")
+radianceState = addon:GetChargeState(radianceIndex, addon:GetSlot(radianceIndex), now)
+assert(radianceState.baseCharges == 0 and radianceState.nextRechargeAt,
+    "the recommendation must leave the ready queue after both Radiance charges are spent")
+
+addon:ObserveInputKey("S")
+assert(addon:RecordPlayerSpellSucceeded(1253593),
+    "a successful Void Shield override must confirm Power Word: Shield")
+local shieldState = addon:GetTrackedState(addon:GetSlot(shieldIndex), now)
+assert(shieldState.count == 1,
+    "Power Word: Shield must leave the ready queue after either shield variant succeeds")
 
 addon:SetRotationPreset("disc_voidweaver_mythicplus")
 addon.talentSnapshot.priestOracle = false

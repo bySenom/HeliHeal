@@ -6,17 +6,14 @@ local library = ns.AbilityLibrary
 -- guide and 12.1 spell database. HeliHeal models only confirmed player casts;
 -- Atonement, health, targets and combat auras remain deliberately unread.
 local abilities = {
-    disc_void_shield = {
-        spellID = 1253593, name = "Void Shield", cooldown = 7.5,
-        requiresTalent = "discVoidShield", roleLabel = "AOE", inputLockout = 1.5,
-    },
     disc_evangelism = {
         spellID = 472433, name = "Evangelism", cooldown = 90,
         requiresTalent = "discEvangelism", confirmOnPlayerSuccess = true,
         roleLabel = "BURST", inputLockout = 1.5,
     },
     disc_power_word_radiance = {
-        spellID = 194509, name = "Power Word: Radiance", cooldown = 18,
+        spellID = 194509, castSpellIDs = { 194509, 246097 },
+        name = "Power Word: Radiance", cooldown = 18,
         bonusChargeTalent = "discLightsPromise",
         cooldownTalent = "discBrightPupil", cooldownReduction = 3,
         hastedCooldown = true, roleLabel = "AOE", inputLockout = 2.0,
@@ -51,7 +48,9 @@ local abilities = {
         roleLabel = "SINGLE", inputLockout = 1.5,
     },
     disc_power_word_shield = {
-        spellID = 17, name = "Power Word: Shield", cooldown = 0,
+        spellID = 17, castSpellIDs = { 17, 1253593 },
+        name = "Power Word: Shield / Void Shield", cooldown = 0,
+        confirmOnPlayerSuccess = true,
         trackedDuration = 15, trackedGoal = 1, roleLabel = "SAVE", inputLockout = 1.5,
     },
     disc_smite = {
@@ -90,16 +89,18 @@ local function modeSlots(hero, raid)
     return {
         -- Shadow Word: Pain maintenance and Shadow Mend/Flash Heal procs require
         -- target or aura context that this static input tracker intentionally lacks.
-        standard = list("disc_void_shield", ramp, damageCore,
+        -- Master the Darkness overrides Power Word: Shield with Void Shield on
+        -- the same action-bar button; disc_power_word_shield accepts both casts.
+        standard = list(ramp, damageCore,
             "disc_ultimate_penitence", "disc_power_word_barrier", "disc_pain_suppression", "disc_smite"),
-        aoe = list("disc_void_shield", "disc_evangelism",
+        aoe = list("disc_evangelism",
             "disc_power_word_radiance", "disc_ultimate_penitence", "disc_power_word_barrier",
             damageCore, "disc_power_word_shield", "disc_smite", "disc_pain_suppression"),
-        single = list("disc_void_shield", "disc_pain_suppression", "disc_penance",
+        single = list("disc_pain_suppression", "disc_penance",
             "disc_power_word_shield", "disc_evangelism", "disc_power_word_radiance",
             "disc_mind_blast", "disc_shadow_word_death",
             "disc_ultimate_penitence", "disc_power_word_barrier", "disc_smite"),
-        mana = list("disc_void_shield", "disc_evangelism",
+        mana = list("disc_evangelism",
             "disc_power_word_radiance", damageCore, "disc_smite", "disc_power_word_shield",
             "disc_ultimate_penitence", "disc_power_word_barrier", "disc_pain_suppression"),
     }
