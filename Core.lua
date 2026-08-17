@@ -26,7 +26,7 @@ local HEALER_SPECIALIZATIONS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 3
-local ROTATION_DATA_VERSION = 12111
+local ROTATION_DATA_VERSION = 12112
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -515,8 +515,6 @@ function HeliHeal:GetSlot(slotIndex)
     elseif ability.abilityKey == "unleash_life" and self.talentSnapshot and self.talentSnapshot.available then
         ability.enabled = ability.enabled and self:IsTalentActive("unleashLife")
         if self:IsTalentActive("restorationTier2") then ability.cooldown = 17 end
-    elseif ability.abilityKey == "druid_rejuvenation" and self:IsTalentActive("druidGermination") then
-        ability.trackedDuration = 14
     end
     if self.talentSnapshot and self.talentSnapshot.available then
         if ability.requiresTalent then
@@ -531,6 +529,9 @@ function HeliHeal:GetSlot(slotIndex)
         if ability.cooldownRankTalent then
             local rank = self.GetTalentRank and self:GetTalentRank(ability.cooldownRankTalent) or 0
             ability.cooldown = math.max(0, ability.cooldown - (rank * ability.cooldownReductionPerRank))
+        end
+        if ability.cooldownMultiplierTalent and self:IsTalentActive(ability.cooldownMultiplierTalent) then
+            ability.cooldown = math.max(0, ability.cooldown * ability.cooldownMultiplier)
         end
         if ability.bonusChargeTalent and self:IsTalentActive(ability.bonusChargeTalent) then
             ability.maxCharges = ability.maxCharges + 1

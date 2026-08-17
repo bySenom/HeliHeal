@@ -42,6 +42,8 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.cooldownReduction = math.max(0, tonumber(record.cooldownReduction) or 0)
     record.cooldownRankTalent = record.cooldownRankTalent
     record.cooldownReductionPerRank = math.max(0, tonumber(record.cooldownReductionPerRank) or 0)
+    record.cooldownMultiplierTalent = record.cooldownMultiplierTalent
+    record.cooldownMultiplier = math.max(0, tonumber(record.cooldownMultiplier) or 1)
     record.bonusChargeTalent = record.bonusChargeTalent
     record.grantsFreeSpenderTalent = record.grantsFreeSpenderTalent
     record.confirmOnPlayerSuccess = record.confirmOnPlayerSuccess == true
@@ -141,6 +143,8 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             cooldownReduction = ability.cooldownReduction,
             cooldownRankTalent = ability.cooldownRankTalent,
             cooldownReductionPerRank = ability.cooldownReductionPerRank,
+            cooldownMultiplierTalent = ability.cooldownMultiplierTalent,
+            cooldownMultiplier = ability.cooldownMultiplier,
             bonusChargeTalent = ability.bonusChargeTalent,
             grantsFreeSpenderTalent = ability.grantsFreeSpenderTalent,
             confirmOnPlayerSuccess = ability.confirmOnPlayerSuccess,
@@ -199,6 +203,8 @@ function AbilityLibrary:Resolve(slot)
         cooldownReduction = math.max(0, tonumber(slot.cooldownReduction) or 0),
         cooldownRankTalent = slot.cooldownRankTalent,
         cooldownReductionPerRank = math.max(0, tonumber(slot.cooldownReductionPerRank) or 0),
+        cooldownMultiplierTalent = slot.cooldownMultiplierTalent,
+        cooldownMultiplier = math.max(0, tonumber(slot.cooldownMultiplier) or 1),
         bonusChargeTalent = slot.bonusChargeTalent,
         grantsFreeSpenderTalent = slot.grantsFreeSpenderTalent,
         confirmOnPlayerSuccess = slot.confirmOnPlayerSuccess == true,

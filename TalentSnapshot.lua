@@ -15,6 +15,8 @@ local TALENTS = {
     druidLifetreading = { 1217941 },
     druidKeeper = { 433831, 428731 },
     druidWildstalker = { 439926, 439530 },
+    druidConvoke = { 391528 },
+    druidCenariusGuidance = { 393371 },
     paladinHerald = { 431377, 156322 },
     paladinLightsmith = { 432459, 432472, 434132 },
     paladinDivineToll = { 375576, 304971 },
@@ -59,6 +61,7 @@ local SNAPSHOT_FLAGS = {
     "echoOfTheElements", "elementalReverb", "downpour", "doubleDip",
     "mysticKnowledge", "surgingTotem", "unleashLife", "restorationTier2", "restorationTier4",
     "druidGermination", "druidPowerArchdruid", "druidLifetreading", "druidKeeper", "druidWildstalker",
+    "druidConvoke", "druidCenariusGuidance",
     "paladinHerald", "paladinLightsmith", "paladinDivineToll", "paladinHolyPrism",
     "paladinQuickenedInvocation", "paladinLightsConviction",
     "paladinAvengingWrath", "paladinAvengingCrusader", "paladinRingingHeavens", "paladinWalkIntoLight",
@@ -248,9 +251,10 @@ function HeliHeal:PrintTalentSnapshot()
     end
     local function yesNo(value) return L(value and "JA" or "nein") end
     if self.classToken == "DRUID" then
-        local details = ("Germination %s | Power of the Archdruid %s | Lifetreading %s | Keeper %s | Wildstalker %s")
+        local details = ("Germination %s | Power of the Archdruid %s | Lifetreading %s | Keeper %s | Wildstalker %s | Convoke %s | Cenarius' Guidance %s")
             :format(yesNo(snapshot.druidGermination), yesNo(snapshot.druidPowerArchdruid),
-                yesNo(snapshot.druidLifetreading), yesNo(snapshot.druidKeeper), yesNo(snapshot.druidWildstalker))
+                yesNo(snapshot.druidLifetreading), yesNo(snapshot.druidKeeper), yesNo(snapshot.druidWildstalker),
+                yesNo(snapshot.druidConvoke), yesNo(snapshot.druidCenariusGuidance))
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end

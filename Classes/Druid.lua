@@ -30,7 +30,7 @@ local abilities = {
         spellID = 774,
         name = "Rejuvenation",
         cooldown = 0,
-        trackedDuration = 12,
+        trackedDuration = 17,
         inputLockout = 1.5,
     },
     druid_natures_swiftness = {
@@ -46,6 +46,17 @@ local abilities = {
         cooldown = 0,
         inputLockout = 1.5,
     },
+    druid_convoke = {
+        spellID = 391528,
+        name = "Convoke the Spirits",
+        cooldown = 120,
+        requiresTalent = "druidConvoke",
+        cooldownMultiplierTalent = "druidCenariusGuidance",
+        cooldownMultiplier = 0.5,
+        confirmOnPlayerSuccess = true,
+        roleLabel = "BURST",
+        inputLockout = 4.5,
+    },
 }
 
 for key, ability in pairs(abilities) do
@@ -58,15 +69,15 @@ local function modes(raid)
     return {
         aoe = {
             "druid_lifebloom", "druid_swiftmend", "druid_wild_growth",
-            "druid_rejuvenation", "druid_regrowth", "druid_natures_swiftness",
+            "druid_convoke", "druid_rejuvenation", "druid_regrowth", "druid_natures_swiftness",
         },
         single = {
             "druid_lifebloom", "druid_rejuvenation", "druid_swiftmend",
-            "druid_natures_swiftness", "druid_regrowth", "druid_wild_growth",
+            "druid_natures_swiftness", "druid_regrowth", "druid_wild_growth", "druid_convoke",
         },
         mana = {
             "druid_lifebloom", "druid_swiftmend", "druid_wild_growth",
-            "druid_rejuvenation", "druid_regrowth", "druid_natures_swiftness",
+            "druid_convoke", "druid_rejuvenation", "druid_regrowth", "druid_natures_swiftness",
         },
     }
 end
@@ -83,7 +94,7 @@ local function registerPreset(key, name, heroTalent, content)
         guideUpdated = "2026-06-12",
         slots = {
             "druid_lifebloom", "druid_swiftmend", "druid_wild_growth",
-            "druid_rejuvenation", "druid_natures_swiftness", "druid_regrowth",
+            "druid_convoke", "druid_rejuvenation", "druid_natures_swiftness", "druid_regrowth",
         },
         modeSlots = modes(raid),
         rejuvenationGoals = raid and {

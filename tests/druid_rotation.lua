@@ -28,6 +28,8 @@ addon.talentSnapshot = {
     available = true,
     druidGermination = false,
     druidPowerArchdruid = true,
+    druidConvoke = true,
+    druidCenariusGuidance = true,
 }
 addon.IsTalentActive = function(self, key)
     return self.talentSnapshot.available and self.talentSnapshot[key] == true
@@ -37,12 +39,12 @@ addon.Print = function() end
 
 local rejuvIndex = addon:GetSlotIndexByAbilityKey("druid_rejuvenation")
 local rejuv = addon:GetSlot(rejuvIndex)
-assert(rejuv.trackedDuration == 12, "Rejuvenation must use its base twelve-second estimate")
+assert(rejuv.trackedDuration == 17, "Rejuvenation must use its Midnight seventeen-second estimate")
 assert(addon:GetTrackedGoal(rejuv) == 3, "standard Mythic+ must target three estimated Rejuvenations")
 
 addon:AcknowledgeSlot(rejuvIndex)
 local state = addon:GetTrackedState(rejuv, now)
-assert(state.count == 1 and state.nextExpiresAt == 12, "one input must add one timed Rejuvenation")
+assert(state.count == 1 and state.nextExpiresAt == 17, "one input must add one timed Rejuvenation")
 
 now = 1
 local swiftmendIndex = addon:GetSlotIndexByAbilityKey("druid_swiftmend")
@@ -61,18 +63,18 @@ local found
 for _, item in ipairs(order) do
     if item.ability.abilityKey == "druid_rejuvenation" then found = item end
 end
-assert(found and found.trackedText == "4/3" and found.remaining == 10,
+assert(found and found.trackedText == "4/3" and found.remaining == 15,
     "the HUD model must expose count/goal and wait for the oldest estimate")
 
-now = 12.1
+now = 17.1
 state = addon:GetTrackedState(rejuv, now)
 assert(state.count == 3, "only expired estimates may leave the counter")
-now = 14.1
+now = 19.1
 assert(addon:GetTrackedState(rejuv, now).count == 0, "all estimates must expire independently")
 
 addon.talentSnapshot.druidGermination = true
 rejuv = addon:GetSlot(rejuvIndex)
-assert(rejuv.trackedDuration == 14, "Germination must extend the local estimate to fourteen seconds")
+assert(rejuv.trackedDuration == 17, "Germination must not change Rejuvenation duration in Midnight 12.1")
 assert(addon:GetTrackedCapacity(rejuv) == 10, "Germination must permit two Mythic+ applications per target")
 
 local lifebloomIndex = addon:GetSlotIndexByAbilityKey("druid_lifebloom")
@@ -117,5 +119,21 @@ end
 assert(swiftnessItem and math.abs(swiftnessItem.remaining - 60) < 0.001,
     ("the HUD must move Nature's Swiftness into its sixty-second waiting state (got %s)")
         :format(swiftnessItem and tostring(swiftnessItem.remaining) or "missing"))
+
+now = now + 1
+local convokeIndex = addon:GetSlotIndexByAbilityKey("druid_convoke")
+local convoke = addon:GetSlot(convokeIndex)
+assert(convoke.enabled and convoke.cooldown == 60,
+    "Cenarius' Guidance must halve Convoke's 120-second base cooldown")
+assert(addon:RecordPlayerSpellSucceeded(391528),
+    "Convoke must confirm directly without a correlated action-bar input")
+assert(addon.sessionUses[convokeIndex] == now,
+    "a successful Convoke must start its local cooldown")
+addon.talentSnapshot.druidCenariusGuidance = false
+assert(addon:GetSlot(convokeIndex).cooldown == 120,
+    "Convoke must retain its 120-second cooldown without Cenarius' Guidance")
+addon.talentSnapshot.druidConvoke = false
+assert(not addon:GetSlot(convokeIndex).enabled,
+    "Convoke must be hidden when its talent is not selected")
 
 print("druid_rotation.lua: OK")

@@ -77,7 +77,7 @@ ns.defaults = {
         },
         rotationPreset = "shaman_totemic_mythicplus",
         healingMode = "standard",
-        rotationDataVersion = 12111,
+        rotationDataVersion = 12112,
         bindings = {},
         point = "CENTER",
         relativePoint = "CENTER",
