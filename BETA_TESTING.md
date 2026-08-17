@@ -85,7 +85,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Ultimate Penitence uses 240 seconds and is mutually exclusive with the 180-second Power Word: Barrier recommendation.
 - Pain Suppression uses its 180-second cooldown and confirms directly from a successful player cast.
 - Voidweaver prioritizes Mind Blast before Penance and accepts the Void Blast override through the configured Smite binding.
-- Normal and Evangelism-instant Power Word: Radiance casts both remove the recommendation immediately; HeliHeal intentionally never requests two back-to-back Radiance casts from unreadable combat context.
+- Normal and Evangelism-instant Power Word: Radiance casts confirm directly from `UNIT_SPELLCAST_SUCCEEDED` and remove the recommendation immediately, even if no key input was correlated. HeliHeal intentionally never requests two back-to-back Radiance casts from unreadable combat context.
 - Shadow Word: Pain maintenance and random Shadow Mend/Flash Heal procs are intentionally not inferred without readable target/aura context.
 
 ## Recovery and diagnostics

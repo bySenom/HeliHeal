@@ -15,6 +15,7 @@ local abilities = {
         spellID = 194509, castSpellIDs = { 194509, 246097 },
         name = "Power Word: Radiance", cooldown = 18,
         cooldownTalent = "discBrightPupil", cooldownReduction = 3,
+        confirmOnPlayerSuccess = true,
         hastedCooldown = true, trackedDuration = 14, trackedGoal = 1,
         trackedAsCooldown = true,
         roleLabel = "AOE", inputLockout = 2.0,

@@ -119,9 +119,8 @@ assert(waitingRadiance and waitingRadiance.remaining == 14
 now = 2
 addon:ReleaseInputKey("R")
 addon.sessionTimedEffects.disc_power_word_radiance = nil
-addon:ObserveInputKey("R")
 assert(addon:RecordPlayerSpellSucceeded(194509),
-    "normal Radiance must confirm through the same configured slot")
+    "normal Radiance must confirm directly even when no key input was correlated")
 radianceState = addon:GetTrackedState(addon:GetSlot(radianceIndex), now)
 assert(radianceState.count == 1 and radianceState.nextExpiresAt == 16,
     "normal Radiance must start the same fourteen-second maintenance estimate")
