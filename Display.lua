@@ -77,6 +77,25 @@ local function formatRemaining(seconds)
     return ("%.1f"):format(seconds)
 end
 
+local HOTKEY_TOKEN_LABELS = {
+    SHIFT = "S",
+    CTRL = "C",
+    ALT = "A",
+    MOUSEWHEELUP = "WU",
+    MOUSEWHEELDOWN = "WD",
+}
+
+function HeliHeal:FormatHotkeyLabel(inputKey)
+    if type(inputKey) ~= "string" or inputKey == "" then return inputKey or "" end
+    local parts = {}
+    for token in inputKey:gmatch("[^%-]+") do
+        local mouseButton = token:match("^BUTTON(%d+)$")
+        parts[#parts + 1] = mouseButton and ("M" .. mouseButton)
+            or HOTKEY_TOKEN_LABELS[token] or token
+    end
+    return table.concat(parts, "-")
+end
+
 local function getIconCrop(zoom)
     zoom = clamp(zoom, 0.7, 1.6, 1)
     return clamp(0.08 + ((zoom - 1) * 0.18), 0, 0.28, 0.08)
@@ -427,7 +446,11 @@ function HeliHeal:RefreshDisplay()
             local height = displayIndex == 1 and primaryHeight or secondaryHeight
             local currentOffsetY = displayIndex == 1 and primaryOffsetY or secondaryOffsetY
             local configuredSlot = self.db.profile.slots[item.slotIndex]
-            button.key:SetText(configuredSlot.inputKey or ("P" .. item.slotIndex))
+            local hotkeyLabel = configuredSlot.inputKey or ("P" .. item.slotIndex)
+            if profile.compactHotkeys ~= false then
+                hotkeyLabel = self:FormatHotkeyLabel(hotkeyLabel)
+            end
+            button.key:SetText(hotkeyLabel)
             button.key:SetFont(hudFont, hotkeyFontSize, fontFlags)
             button.key:SetTextColor(hotkeyR, hotkeyG, hotkeyB, 1)
             button.keyBadge:SetHeight(math.max(hotkeyHeight, hotkeyFontSize + 4))

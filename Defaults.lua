@@ -41,6 +41,7 @@ ns.defaults = {
         roleLabelOffsetX = 0,
         roleLabelOffsetY = 0,
         hotkeyFontSize = 9,
+        compactHotkeys = true,
         hotkeyOffsetX = 0,
         hotkeyOffsetY = -8,
         hotkeyBadgeHeight = 18,

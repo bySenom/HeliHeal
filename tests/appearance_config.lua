@@ -25,7 +25,8 @@ assert(profile.roleLabelSize == 10 and profile.hotkeyFontSize == 9
     and profile.cooldownFontSize == 14,
     "appearance defaults must preserve the established text sizes")
 assert(profile.hotkeyBadgeHeight == 18 and profile.hotkeyBadgeMinWidth == 46
-    and profile.hotkeyBadgePadding == 16 and profile.abilityNameWidth == 106,
+    and profile.hotkeyBadgePadding == 16 and profile.compactHotkeys == true
+    and profile.abilityNameWidth == 106,
     "element boxes must expose stable customizable defaults")
 assert(profile.panelPaddingX == 2 and profile.panelPaddingY == 2
     and profile.panelBackgroundAlpha == 0.92,

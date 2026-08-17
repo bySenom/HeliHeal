@@ -19,5 +19,11 @@ assert(addon:GetBadgeAwareSpacing(46, 46, 46, 46, 12) == 12,
     "configured spacing must remain unchanged when badges already fit")
 assert(addon:GetBadgeAwareSpacing(46, 70, 46, 70, 30) == 30,
     "configured spacing must win when it is larger than the required badge gap")
+assert(addon:FormatHotkeyLabel("SHIFT-BUTTON1") == "S-M1",
+    "modifier mouse bindings must use a compact HUD label")
+assert(addon:FormatHotkeyLabel("CTRL-ALT-MOUSEWHEELDOWN") == "C-A-WD",
+    "modifier mouse-wheel bindings must remain readable without widening the HUD")
+assert(addon:FormatHotkeyLabel("R") == "R",
+    "short keyboard bindings must remain unchanged")
 
 print("display layout model: ok")

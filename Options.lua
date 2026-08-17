@@ -919,6 +919,14 @@ function HeliHeal:BuildStylePage(parent)
         "hotkeyBadgeMinWidth", 20, 180, 1, pixels)
     addSlider("hotkey", "Hotkey-Textabstand", "Zusätzlicher horizontaler Platz um den Hotkey-Text.",
         "hotkeyBadgePadding", 0, 60, 1, pixels)
+    local compactHotkeys = createToggle(content,
+        function() return self.db.profile.compactHotkeys ~= false end,
+        function(value)
+            self.db.profile.compactHotkeys = value
+            self:RefreshDisplay()
+        end)
+    addControlRow("hotkey", L("Kompakte Hotkeys"),
+        L("Kürzt Modifier und Maustasten im HUD, zum Beispiel SHIFT-BUTTON1 zu S-M1."), compactHotkeys)
 
     addSlider("text", "Cooldown-Textgröße", "Größe des lokalen Timers und der Aufladungsanzeige.",
         "cooldownFontSize", 10, 30, 1, pixels)
@@ -1039,7 +1047,7 @@ function HeliHeal:BuildStylePage(parent)
     resetAppearance:SetScript("OnClick", function()
         local profile = self.db.profile
         local defaults = ns.defaults.profile
-        for _, key in ipairs({ "hudFont", "hudFontOutline", "primaryIconSize", "secondaryIconSize",
+        for _, key in ipairs({ "hudFont", "hudFontOutline", "primaryIconSize", "secondaryIconSize", "compactHotkeys",
             "primaryIconWidth", "primaryIconHeight", "primaryIconZoom", "primaryIconOffsetX", "primaryIconOffsetY",
             "secondaryIconWidth", "secondaryIconHeight", "secondaryIconZoom", "secondaryIconOffsetX", "secondaryIconOffsetY",
             "iconInset", "panelPaddingX", "panelPaddingY", "panelBackgroundAlpha",
