@@ -23,10 +23,11 @@ local HEALER_SPECIALIZATIONS = {
     DRUID = 105,
     PALADIN = 65,
     PRIEST = { [256] = true, [257] = true },
+    MONK = 270,
 }
 
 local CURRENT_SCHEMA_VERSION = 3
-local ROTATION_DATA_VERSION = 12113
+local ROTATION_DATA_VERSION = 12117
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -77,6 +78,14 @@ function HeliHeal:ResetRuntimeState()
     self.unleashConsumptionHistory = {}
     self.riptideRechargeRateUntil = nil
     self.priestApotheosisUntil = nil
+    self.pendingMonkTea = nil
+    self.monkJadeSerpentUntil = nil
+    self.monkConduitHeartAt = nil
+    self.sessionMonkRenewingMists = {}
+    self.monkSheilunClouds = 0
+    self.monkSheilunCombatStartedAt = nil
+    self.monkSheilunLeftCombatAt = nil
+    self.monkTeachingsStacks = 0
 end
 
 function HeliHeal:MigrateProfile(profile)
@@ -232,6 +241,7 @@ function HeliHeal:EnsureRotationProfile()
         DRUID = "druid_wildstalker_mythicplus",
         PALADIN = "paladin_herald_mythicplus",
         PRIEST = "priest_archon_mythicplus",
+        MONK = "monk_conduit_mythicplus",
     }
     local storedPreset = profile.rotationPreset and ns.AbilityLibrary:GetPreset(profile.rotationPreset)
     local priestContent = storedPreset and storedPreset.content == "Raid" and "raid" or "mythicplus"
@@ -285,17 +295,18 @@ end
 
 function HeliHeal:GetBindingConflicts()
     local grouped = {}
-    for _, slot in ipairs(self.db.profile.slots or {}) do
-        if slot.enabled ~= false and not slot.derivedBindingFrom and slot.inputKey and slot.inputKey ~= "" then
+    for slotIndex, slot in ipairs(self.db.profile.slots or {}) do
+        local ability = self:GetSlot(slotIndex)
+        if ability and ability.enabled and slot.inputKey and slot.inputKey ~= "" then
             local group = grouped[slot.inputKey]
             if not group then
                 group = { inputKey = slot.inputKey, abilityKeys = {}, names = {} }
                 grouped[slot.inputKey] = group
             end
-            if not group.abilityKeys[slot.abilityKey] then
-                group.abilityKeys[slot.abilityKey] = true
-                local resolved = ns.AbilityLibrary:Resolve(slot)
-                group.names[#group.names + 1] = resolved.name or slot.abilityKey
+            local bindingKey = slot.derivedBindingFrom or slot.abilityKey
+            if not group.abilityKeys[bindingKey] then
+                group.abilityKeys[bindingKey] = true
+                group.names[#group.names + 1] = ability.name or bindingKey
             end
         end
     end
@@ -517,10 +528,15 @@ function HeliHeal:GetSlot(slotIndex)
         ability.enabled = ability.enabled and self:IsTalentActive("unleashLife")
         if self:IsTalentActive("restorationTier2") then ability.cooldown = 17 end
     end
-    if self.talentSnapshot and self.talentSnapshot.available then
-        if ability.requiresTalent then
-            ability.enabled = ability.enabled and self:IsTalentActive(ability.requiresTalent)
-        end
+    local talentSnapshotAvailable = self.talentSnapshot and self.talentSnapshot.available
+    if ability.requiresTalent then
+        -- A reload can occur while the trait API is unavailable in combat. In
+        -- that state, hiding optional/replacement abilities is safer than
+        -- exposing every mutually exclusive talent from the union slot list.
+        ability.enabled = ability.enabled and talentSnapshotAvailable
+            and self:IsTalentActive(ability.requiresTalent)
+    end
+    if talentSnapshotAvailable then
         if ability.excludesTalent and self:IsTalentActive(ability.excludesTalent) then
             ability.enabled = false
         end
@@ -672,6 +688,125 @@ function HeliHeal:GetTrackedGoal(ability)
         return math.max(1, tonumber(goals and goals[self:GetHealingMode()]) or 1)
     end
     return math.max(0, tonumber(ability.trackedGoal) or 0)
+end
+
+function HeliHeal:GetMonkRenewingMistGoal()
+    local preset = ns.AbilityLibrary:GetPreset(self.db.profile.rotationPreset)
+    local goals = preset and preset.renewingMistGoals
+    return math.max(1, tonumber(goals and goals[self:GetHealingMode()]) or 1)
+end
+
+function HeliHeal:GetMonkSheilunCloudInterval()
+    return self:IsTalentActive("monkVeilOfPride") and 4 or 8
+end
+
+function HeliHeal:GetMonkSheilunCloudGoal()
+    local mode = self:GetHealingMode()
+    -- Sheilun is an emergency/ramp heal, not a maintenance button. Lower
+    -- thresholds belong to the explicit damage-response modes; the neutral
+    -- list banks a meaningful cast instead of pushing Sheilun every 16-32 sec.
+    if mode == "aoe" then return 5 end
+    if mode == "single" then return 3 end
+    if mode == "mana" then return 10 end
+    return 6
+end
+
+function HeliHeal:GetMonkSheilunCloudState(now)
+    now = now or GetTime()
+    local clouds = math.max(0, math.min(10, tonumber(self.monkSheilunClouds) or 0))
+    if self.monkSheilunCombatStartedAt then
+        local generated = math.floor(math.max(0, now - self.monkSheilunCombatStartedAt)
+            / self:GetMonkSheilunCloudInterval())
+        clouds = math.min(10, clouds + generated)
+    elseif self.monkSheilunLeftCombatAt and now - self.monkSheilunLeftCombatAt >= 60 then
+        clouds = 0
+    end
+    self.monkSheilunCloudStateCache = self.monkSheilunCloudStateCache or {}
+    local state = self.monkSheilunCloudStateCache
+    state.count = clouds
+    state.goal = self:GetMonkSheilunCloudGoal()
+    return state
+end
+
+function HeliHeal:BeginMonkCombat(now)
+    if self.classToken ~= "MONK" or self.monkSheilunCombatStartedAt then return false end
+    now = now or GetTime()
+    local state = self:GetMonkSheilunCloudState(now)
+    self.monkSheilunClouds = state.count
+    self.monkSheilunCombatStartedAt = now
+    self.monkSheilunLeftCombatAt = nil
+    return true
+end
+
+function HeliHeal:EndMonkCombat(now)
+    if self.classToken ~= "MONK" then return false end
+    now = now or GetTime()
+    local state = self:GetMonkSheilunCloudState(now)
+    self.monkSheilunClouds = state.count
+    self.monkSheilunCombatStartedAt = nil
+    self.monkSheilunLeftCombatAt = now
+    return true
+end
+
+function HeliHeal:ConsumeMonkSheilunClouds(now)
+    now = now or GetTime()
+    self.monkSheilunClouds = 0
+    if self.monkSheilunCombatStartedAt then self.monkSheilunCombatStartedAt = now end
+    return true
+end
+
+function HeliHeal:GetMonkRenewingMistState(now)
+    now = now or GetTime()
+    local entries = self.sessionMonkRenewingMists or {}
+    self.sessionMonkRenewingMists = entries
+    local writeIndex = 1
+    for readIndex = 1, #entries do
+        local entry = entries[readIndex]
+        if entry.expiresAt > now then
+            entries[writeIndex] = entry
+            writeIndex = writeIndex + 1
+        end
+    end
+    for index = #entries, writeIndex, -1 do entries[index] = nil end
+    table.sort(entries, function(a, b) return a.expiresAt < b.expiresAt end)
+    self.monkRenewingMistStateCache = self.monkRenewingMistStateCache or {}
+    local state = self.monkRenewingMistStateCache
+    state.count = #entries
+    state.goal = self:GetMonkRenewingMistGoal()
+    state.nextExpiresAt = entries[1] and entries[1].expiresAt or nil
+    state.nextStartedAt = entries[1] and entries[1].startedAt or nil
+    return state
+end
+
+function HeliHeal:AddMonkRenewingMist(duration, now)
+    now = now or GetTime()
+    duration = math.max(1, tonumber(duration) or 20)
+    self:GetMonkRenewingMistState(now)
+    local capacity = ns.AbilityLibrary:GetPreset(self.db.profile.rotationPreset)
+    capacity = capacity and capacity.content == "Raid" and 20 or 5
+    if #self.sessionMonkRenewingMists >= capacity then return false end
+    self.sessionMonkRenewingMists[#self.sessionMonkRenewingMists + 1] = {
+        startedAt = now,
+        expiresAt = now + duration,
+        maxExpiresAt = now + (duration * 2),
+    }
+    table.sort(self.sessionMonkRenewingMists, function(a, b) return a.expiresAt < b.expiresAt end)
+    return true
+end
+
+function HeliHeal:ExtendMonkRenewingMists(seconds, now)
+    now = now or GetTime()
+    self:GetMonkRenewingMistState(now)
+    local changed = false
+    for _, entry in ipairs(self.sessionMonkRenewingMists) do
+        local extended = math.min(entry.maxExpiresAt, entry.expiresAt + seconds)
+        if extended > entry.expiresAt then
+            entry.expiresAt = extended
+            changed = true
+        end
+    end
+    table.sort(self.sessionMonkRenewingMists, function(a, b) return a.expiresAt < b.expiresAt end)
+    return changed
 end
 
 function HeliHeal:GetAtonementState(now)
@@ -867,6 +1002,15 @@ end
 
 function HeliHeal:GetRechargeFinish(ability, startedAt)
     local duration = ability.cooldown
+    if self.classToken == "MONK" and self.monkJadeSerpentUntil
+        and startedAt < self.monkJadeSerpentUntil
+        and (ability.abilityKey == "monk_renewing_mist"
+            or ability.abilityKey == "monk_thunder_focus_tea") then
+        local acceleratedWindow = math.max(0, self.monkJadeSerpentUntil - startedAt)
+        local acceleratedWork = acceleratedWindow * 1.75
+        if acceleratedWork >= duration then return startedAt + (duration / 1.75) end
+        return startedAt + acceleratedWindow + (duration - acceleratedWork)
+    end
     if ability.abilityKey ~= "riptide" or not self.riptideRechargeRateUntil
         or startedAt >= self.riptideRechargeRateUntil then
         return startedAt + duration
@@ -878,6 +1022,170 @@ function HeliHeal:GetRechargeFinish(ability, startedAt)
         return startedAt + (duration / rate)
     end
     return startedAt + acceleratedWindow + (duration - (acceleratedWindow * rate))
+end
+
+function HeliHeal:ReduceLocalAbilityCooldown(abilityKey, seconds, now)
+    local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
+    local ability = slotIndex and self:GetSlot(slotIndex)
+    if not ability or not ability.enabled then return false end
+    now = now or GetTime()
+    seconds = math.max(0, tonumber(seconds) or 0)
+    if ability.maxCharges > 1 then
+        local state = self.sessionCharges[slotIndex]
+        if not state or not state.nextRechargeAt then return false end
+        state.nextRechargeAt = math.max(now, state.nextRechargeAt - seconds)
+        self:GetChargeState(slotIndex, ability, now)
+        return true
+    end
+    local usedAt = self.sessionUses[slotIndex]
+    if not usedAt then return false end
+    self.sessionUses[slotIndex] = usedAt - seconds
+    if now >= self.sessionUses[slotIndex] + ability.cooldown then self.sessionUses[slotIndex] = nil end
+    return true
+end
+
+function HeliHeal:ApplyMonkJadeSerpentRecovery(now)
+    if not self:IsTalentActive("monkConduit") then return false end
+    now = now or GetTime()
+    local previousUntil = self.monkJadeSerpentUntil or now
+    local startsAt = math.max(now, previousUntil)
+    local newUntil = now + 8
+    local addedWindow = math.max(0, newUntil - startsAt)
+    self.monkJadeSerpentUntil = math.max(previousUntil, newUntil)
+    if addedWindow <= 0 then return true end
+    local function accelerate(abilityKey)
+        local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
+        local ability = slotIndex and self:GetSlot(slotIndex)
+        if not ability or not ability.enabled then return end
+        if ability.maxCharges > 1 then
+            local state = self.sessionCharges[slotIndex]
+            if state and state.nextRechargeAt and state.nextRechargeAt > startsAt then
+                local remaining = state.nextRechargeAt - startsAt
+                local acceleratedWork = addedWindow * 1.75
+                state.nextRechargeAt = startsAt + (remaining <= acceleratedWork
+                    and (remaining / 1.75) or (addedWindow + remaining - acceleratedWork))
+            end
+        else
+            local usedAt = self.sessionUses[slotIndex]
+            if usedAt then
+                local readyAt = usedAt + ability.cooldown
+                if readyAt <= startsAt then return end
+                local remaining = readyAt - startsAt
+                local acceleratedWork = addedWindow * 1.75
+                local adjusted = remaining <= acceleratedWork and (remaining / 1.75)
+                    or (addedWindow + remaining - acceleratedWork)
+                self.sessionUses[slotIndex] = startsAt + adjusted - ability.cooldown
+            end
+        end
+    end
+    for _, abilityKey in ipairs({
+        "monk_renewing_mist", "monk_rising_sun_kick", "monk_rushing_wind_kick",
+        "monk_life_cocoon", "monk_thunder_focus_tea",
+    }) do accelerate(abilityKey) end
+    return true
+end
+
+function HeliHeal:IsMonkTeaReady(now)
+    now = now or GetTime()
+    if self.pendingMonkTea and now >= self.pendingMonkTea.expiresAt then self.pendingMonkTea = nil end
+    return self.pendingMonkTea and self.pendingMonkTea.uses > 0 or false
+end
+
+function HeliHeal:GetMonkTeaConsumerPriority(abilityKey, now)
+    if not self:IsMonkTeaReady(now) then return nil end
+    local mode = self:GetHealingMode()
+    local orders
+    if mode == "single" then
+        orders = {
+            monk_enveloping_mist = 1,
+            monk_rising_sun_kick = 2,
+            monk_rushing_wind_kick = 2,
+            monk_renewing_mist = 3,
+        }
+    else
+        -- Current 12.1 raid and Mythic+ priorities use Thunder Focus Tea to
+        -- empower the active Rising/Rushing Wind Kick. Enveloping Mist is a
+        -- damage-response cast and must not jump into the neutral rotation.
+        orders = {
+            monk_rising_sun_kick = 1,
+            monk_rushing_wind_kick = 1,
+            monk_renewing_mist = 2,
+        }
+    end
+    return orders[abilityKey]
+end
+
+function HeliHeal:ApplyActiveMonkRecovery(abilityKey, now)
+    if not self.monkJadeSerpentUntil or now >= self.monkJadeSerpentUntil then return false end
+    if abilityKey ~= "monk_rising_sun_kick" and abilityKey ~= "monk_rushing_wind_kick"
+        and abilityKey ~= "monk_life_cocoon" then return false end
+    local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
+    local ability = slotIndex and self:GetSlot(slotIndex)
+    local usedAt = slotIndex and self.sessionUses[slotIndex]
+    if not ability or not usedAt then return false end
+    local remaining = math.max(0, usedAt + ability.cooldown - now)
+    local window = math.max(0, self.monkJadeSerpentUntil - now)
+    local acceleratedWork = window * 1.75
+    local adjusted = acceleratedWork >= remaining and (remaining / 1.75)
+        or (window + remaining - acceleratedWork)
+    self.sessionUses[slotIndex] = now + adjusted - ability.cooldown
+    return true
+end
+
+function HeliHeal:ApplyMistweaverCastEffects(abilityKey, now)
+    if self.classToken ~= "MONK" then return end
+    local isKick = abilityKey == "monk_rising_sun_kick" or abilityKey == "monk_rushing_wind_kick"
+    if abilityKey == "monk_sheiluns_gift" then
+        self:ConsumeMonkSheilunClouds(now)
+    elseif abilityKey == "monk_tiger_palm" then
+        self.monkTeachingsStacks = math.min(4, (self.monkTeachingsStacks or 0) + 1)
+    elseif abilityKey == "monk_blackout_kick" then
+        self.monkTeachingsStacks = 0
+    end
+    if abilityKey == "monk_thunder_focus_tea" then
+        self.pendingMonkTea = {
+            uses = self:IsTalentActive("monkFocusedThunder") and 2 or 1,
+            expiresAt = now + 30,
+        }
+        if self:IsTalentActive("monkMorningBreeze") then
+            self:ReduceLocalAbilityCooldown("monk_rising_sun_kick", 999, now)
+            self:ReduceLocalAbilityCooldown("monk_rushing_wind_kick", 999, now)
+        end
+        self:ApplyMonkJadeSerpentRecovery(now)
+        return
+    end
+
+    local teaReady = self:IsMonkTeaReady(now)
+    local consumesTea = abilityKey == "monk_renewing_mist" or abilityKey == "monk_enveloping_mist" or isKick
+    local renewingDuration = 20 + (self:IsTalentActive("monkLotusInfusion") and 2 or 0)
+    if abilityKey == "monk_renewing_mist" then
+        self:AddMonkRenewingMist(renewingDuration + (teaReady and 10 or 0), now)
+        if self:IsTalentActive("monkPoolOfMists") then
+            self:ReduceLocalAbilityCooldown("monk_rising_sun_kick", 1, now)
+            self:ReduceLocalAbilityCooldown("monk_rushing_wind_kick", 1, now)
+        end
+    elseif (isKick or abilityKey == "monk_enveloping_mist")
+        and self:IsTalentActive("monkRapidDiffusion") then
+        self:AddMonkRenewingMist(6, now)
+    elseif abilityKey == "monk_life_cocoon" and self:IsTalentActive("monkMistsOfLife") then
+        self:AddMonkRenewingMist(renewingDuration, now)
+    end
+
+    if isKick then
+        if teaReady then self:ReduceLocalAbilityCooldown(abilityKey, 9, now) end
+        if self:IsTalentActive("monkPoolOfMists") then
+            self:ReduceLocalAbilityCooldown("monk_renewing_mist", 1, now)
+        end
+        if self:IsTalentActive("monkRisingMist") then self:ExtendMonkRenewingMists(4, now) end
+    end
+    self:ApplyActiveMonkRecovery(abilityKey, now)
+    if abilityKey == "monk_celestial_conduit" and self:IsTalentActive("monkConduit") then
+        self.monkConduitHeartAt = now + 4
+    end
+    if consumesTea and teaReady then
+        self.pendingMonkTea.uses = self.pendingMonkTea.uses - 1
+        if self.pendingMonkTea.uses <= 0 then self.pendingMonkTea = nil end
+    end
 end
 
 function HeliHeal:ApplyMysticKnowledge(now)
@@ -1198,6 +1506,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
 
     self:RecordHolyPowerEvent(slotIndex, slot)
     self:ApplyPriestHolyWordEffects(slot.abilityKey, now)
+    self:ApplyMistweaverCastEffects(slot.abilityKey, now)
 
     if slot.abilityKey == "druid_tranquility" and self:IsTalentActive("druidFlourish") then
         self:ExtendLocalDruidHots(10, now)

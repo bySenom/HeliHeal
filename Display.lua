@@ -35,6 +35,11 @@ local function clearArray(array)
 end
 
 local function readyBefore(a, b)
+    if a.monkTeaPriority ~= b.monkTeaPriority then
+        if not a.monkTeaPriority then return false end
+        if not b.monkTeaPriority then return true end
+        return a.monkTeaPriority < b.monkTeaPriority
+    end
     if a.priestPreApotheosisSpend ~= b.priestPreApotheosisSpend then
         return a.priestPreApotheosisSpend
     end
@@ -227,6 +232,10 @@ function HeliHeal:CreateDisplay()
 end
 
 function HeliHeal:GetDisplayOrder(now)
+    if self.monkConduitHeartAt and now >= self.monkConduitHeartAt then
+        self.monkConduitHeartAt = nil
+        self:ApplyMonkJadeSerpentRecovery(now)
+    end
     self.displayReadyScratch = self.displayReadyScratch or {}
     self.displayWaitingScratch = self.displayWaitingScratch or {}
     self.displayItemScratch = self.displayItemScratch or {}
@@ -258,6 +267,34 @@ function HeliHeal:GetDisplayOrder(now)
             and not self:HasLocalDruidHot(now) then
             contextAvailable = false
         end
+        if ability and self.classToken == "MONK" then
+            local mode = self:GetHealingMode()
+            local abilityKey = ability.abilityKey
+            local teachings = self.monkTeachingsStacks or 0
+            if abilityKey == "monk_sheiluns_gift" then
+                local clouds = self:GetMonkSheilunCloudState(now)
+                contextAvailable = clouds.count >= clouds.goal
+            elseif abilityKey == "monk_life_cocoon" then
+                contextAvailable = mode == "single"
+            elseif abilityKey == "monk_revival" or abilityKey == "monk_restoral"
+                or abilityKey == "monk_celestial_conduit" or abilityKey == "monk_yulon"
+                or abilityKey == "monk_chiji" then
+                contextAvailable = mode == "aoe"
+            elseif abilityKey == "monk_enveloping_mist" or abilityKey == "monk_soothing_mist" then
+                contextAvailable = mode == "single"
+            elseif abilityKey == "monk_vivify" then
+                contextAvailable = mode == "single"
+            elseif abilityKey == "monk_spinning_crane_kick" then
+                -- Standard is the hybrid dungeon/raid strip and deliberately
+                -- exposes both melee branches. Only Single and Mana Saving
+                -- suppress the AoE filler completely.
+                contextAvailable = mode == "standard" or mode == "aoe"
+            elseif abilityKey == "monk_tiger_palm" then
+                contextAvailable = mode ~= "aoe" and teachings == 0
+            elseif abilityKey == "monk_blackout_kick" then
+                contextAvailable = mode ~= "aoe" and teachings > 0
+            end
+        end
         if ability and self.classToken == "PALADIN" then
             local holyPower = self.sessionHolyPower or 0
             local holyPowerGain = self:GetHolyPowerDelta(ability)
@@ -286,6 +323,10 @@ function HeliHeal:GetDisplayOrder(now)
             if ability.abilityKey == "downpour" and self.pendingDownpour then
                 charges = self.pendingDownpour.uses
                 readyAt = 0
+            elseif ability.abilityKey == "monk_sheiluns_gift" then
+                local clouds = self:GetMonkSheilunCloudState(now)
+                trackedText = ("%dC"):format(clouds.count)
+                readyAt = 0
             elseif (ability.trackedDuration or 0) > 0 then
                 local state = self:GetTrackedState(ability, now)
                 charges = state.count
@@ -302,9 +343,23 @@ function HeliHeal:GetDisplayOrder(now)
                 charges = state.baseCharges + state.bonusCharges
                 readyAt = charges > 0 and 0 or (state.nextRechargeAt or 0)
                 usedAt = readyAt > 0 and (readyAt - ability.cooldown) or nil
+                if ability.abilityKey == "monk_renewing_mist" then
+                    local coverage = self:GetMonkRenewingMistState(now)
+                    trackedText = ("%dC %d/%d"):format(charges, coverage.count, coverage.goal)
+                    if charges < ability.maxCharges and coverage.count >= coverage.goal
+                        and coverage.nextExpiresAt and coverage.nextExpiresAt > readyAt then
+                        readyAt = coverage.nextExpiresAt
+                        usedAt = coverage.nextStartedAt or (readyAt - (ability.trackedDuration or 20))
+                        cooldownDuration = math.max(1, readyAt - usedAt)
+                    end
+                end
             else
                 usedAt = self.sessionUses[slotIndex]
-                readyAt = usedAt and (usedAt + ability.cooldown) or 0
+                local localDelay = math.max(ability.cooldown, ability.recommendationLockout or 0)
+                readyAt = usedAt and (usedAt + localDelay) or 0
+                if (ability.recommendationLockout or 0) > ability.cooldown then
+                    cooldownDuration = ability.recommendationLockout
+                end
             end
             local atonementReadyAt, atonementStartedAt, atonementDuration =
                 self:GetAtonementWindow(ability, now)
@@ -333,6 +388,8 @@ function HeliHeal:GetDisplayOrder(now)
                 and (ability.abilityKey == "druid_rejuvenation" or ability.abilityKey == "druid_regrowth")
                 or false
             item.unleashPriority = self:GetUnleashConsumerPriority(ability.abilityKey)
+            item.monkTeaPriority = self.classToken == "MONK"
+                and self:GetMonkTeaConsumerPriority(ability.abilityKey, now) or nil
             local priestHolyWord = ability.abilityKey == "priest_holy_word_serenity"
                 or ability.abilityKey == "priest_holy_word_sanctify"
             item.priestPreApotheosisSpend = priestApotheosisReady and priestHolyWord

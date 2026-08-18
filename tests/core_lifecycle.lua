@@ -57,6 +57,15 @@ specializationID = 258
 assert(addon:RefreshPlayerSupport(false) and not addon.supportedClass,
     "Shadow Priest must not display a healing priority pack")
 
+classToken = "MONK"
+specializationID = 270
+assert(addon:RefreshPlayerSupport(false) and addon.supportedClass,
+    "Mistweaver Monk must be supported")
+
+specializationID = 269
+assert(addon:RefreshPlayerSupport(false) and not addon.supportedClass,
+    "Windwalker Monk must not display a healing priority pack")
+
 local cancelled = false
 addon.pendingAcknowledgements = {
     [1] = { timer = { Cancel = function() cancelled = true end } },

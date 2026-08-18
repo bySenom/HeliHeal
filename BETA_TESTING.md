@@ -83,6 +83,7 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 ## Discipline Priest
 
 - Switching between Holy (257) and Discipline (256) selects the correct spec-specific priority pack and rebuilds the Priorities page without `/reload`.
+
 - Oracle and Voidweaver presets retain the selected Mythic+ or Raid content type after hero-talent changes.
 - Power Word: Shield and its Master the Darkness Void Shield override share one binding; either successful cast starts the same haste-scaled six-second base cooldown.
 - Power Word: Radiance uses one logical recommendation regardless of its real charge count. A confirmed cast starts a separate 14-second group-Atonement estimate before it can be recommended again.
@@ -93,6 +94,20 @@ Record the WoW build, HeliHeal version, class, hero talents, content preset and 
 - Voidweaver prioritizes Mind Blast before Penance and accepts the Void Blast override through the configured Smite binding.
 - Normal and Evangelism-instant Power Word: Radiance casts confirm directly from `UNIT_SPELLCAST_SUCCEEDED` and remove the recommendation immediately, even if no key input was correlated. HeliHeal intentionally never requests two back-to-back Radiance casts from unreadable combat context.
 - Shadow Word: Pain maintenance and random Shadow Mend/Flash Heal procs are intentionally not inferred without readable target/aura context.
+
+## Mistweaver Monk
+
+- Conduit of the Celestials and Master of Harmony retain the selected Mythic+ or Raid content type after talent changes.
+- Pool of Mists grants a third Renewing Mist charge; cached spell haste scales its nine-second recharge and the kick's ten-second base cooldown.
+- Renewing Mist shows local charge and coverage estimates; Lotus Infusion adds two seconds and Thunder Focus Tea adds ten seconds.
+- Focused Thunder permits exactly two Enveloping Mist, Renewing Mist or kick consumers; Master of Harmony's Endless Draught grants a second Thunder Focus Tea charge.
+- In Standard and AoE, Thunder Focus Tea prioritizes Rising Sun Kick or Rushing Wind Kick; Single Target prioritizes Enveloping Mist.
+- Morning Breeze resets Rising Sun Kick or Rushing Wind Kick when Thunder Focus Tea succeeds.
+- Pool of Mists reduces the opposite local recharge by one second; Rapid Diffusion adds a six-second Renewing Mist estimate and Rising Mist extends known estimates by four seconds up to double duration.
+- Heart of the Jade Serpent accelerates Renewing Mist, the active kick, Life Cocoon and Thunder Focus Tea by 75% for eight seconds, including cooldowns started during the window.
+- Chrysalis reduces Life Cocoon to 75 seconds, Uplifted Spirits reduces Revival/Restoral to 150 seconds, and Gift of the Celestials reduces Yu'lon/Chi-Ji to 60 seconds.
+- Sheilun's Gift replaces Vivify, Rushing Wind Kick replaces Rising Sun Kick, and Revival/Restoral plus Yu'lon/Chi-Ji follow their selected choice nodes.
+- The Priorities page scrolls through every bindable talent variant without clipping the Escape-to-clear hint.
 
 ## Recovery and diagnostics
 

@@ -7,3 +7,6 @@ manual-changelog:
 ignore:
   - tests
   - BETA_TESTING.md
+  - Libs/AceConfig-3.0
+  - Libs/AceGUI-3.0
+  - Media/HeliHealLogo.png

@@ -67,6 +67,45 @@ local TALENTS = {
     discUltimatePenitence = { 421453 },
     discPowerWordBarrier = { 62618 },
     discPainSuppression = { 33206 },
+    -- Celestial Conduit plus unique passive records from the same hero tree.
+    -- Keeping several representatives makes hero detection resilient to trait
+    -- definition changes without relying on localized subtree names.
+    monkConduit = { 443028, 443294, 443421, 1262667 },
+    -- Aspect of Harmony has separate talent/passive/aura spell records. The
+    -- selected trait definition has changed between Midnight builds, so use
+    -- multiple unique Master of Harmony records instead of relying on the old
+    -- 450508 ID alone. This also lets the snapshot recover when the keystone
+    -- definition is briefly omitted but another active hero node is readable.
+    monkHarmony = { 450508, 450763, 450769, 450529, 1270958, 1270990 },
+    monkEndlessDraught = { 450892 },
+    monkPoolOfMists = { 173841 },
+    monkGiftCelestials = { 388212 },
+    monkFocusedThunder = { 197895 },
+    monkSheilunsGift = { 399491 },
+    monkJadefireTeachings = { 467293 },
+    monkRushingWindKick = { 467307 },
+    monkUpliftedSpirits = { 388551 },
+    monkChrysalis = { 202424 },
+    monkMistWrap = { 197900 },
+    monkRapidDiffusion = { 388847 },
+    monkRisingMist = { 274909 },
+    monkLotusInfusion = { 458431 },
+    monkMorningBreeze = { 1277302 },
+    monkEmperorsElixir = { 1268807 },
+    monkMistsOfLife = { 388548 },
+    monkThunderFocusTea = { 116680 },
+    monkEnvelopingMist = { 124682 },
+    monkLifeCocoon = { 116849 },
+    monkRevival = { 115310 },
+    monkRestoral = { 388615 },
+    monkYulon = { 322118 },
+    monkChiji = { 325197 },
+    monkVeilOfPride = { 400053 },
+    monkTranquilTea = { 1270621 },
+    monkSpiritfont = { 1260511, 1260670, 1260677 },
+    monkDanceOfChiji = { 325202 },
+    monkYulonsAvatar = { 1262667 },
+    monkManaTea = { 115294 },
 }
 
 local SNAPSHOT_FLAGS = {
@@ -90,6 +129,15 @@ local SNAPSHOT_FLAGS = {
     "priestApotheosis", "priestDivineHymn", "priestGuardianSpirit",
     "discVoidweaver", "discEvangelism", "discVoidShield", "discLightsPromise",
     "discBrightPupil", "discUltimatePenitence", "discPowerWordBarrier", "discPainSuppression",
+    "monkConduit", "monkHarmony", "monkEndlessDraught", "monkPoolOfMists",
+    "monkGiftCelestials", "monkFocusedThunder", "monkSheilunsGift",
+    "monkJadefireTeachings", "monkRushingWindKick", "monkUpliftedSpirits",
+    "monkChrysalis", "monkMistWrap", "monkRapidDiffusion", "monkRisingMist",
+    "monkLotusInfusion", "monkMorningBreeze", "monkEmperorsElixir", "monkMistsOfLife",
+    "monkThunderFocusTea", "monkEnvelopingMist", "monkLifeCocoon",
+    "monkRevival", "monkRestoral", "monkYulon", "monkChiji",
+    "monkVeilOfPride", "monkTranquilTea", "monkSpiritfont",
+    "monkDanceOfChiji", "monkYulonsAvatar", "monkManaTea",
 }
 
 local function isKnownSpell(spellID)
@@ -174,6 +222,13 @@ function HeliHeal:RefreshTalentSnapshot(silent)
     if not ok then
         spells, configID, ranks = nil, nil, nil
     end
+    if not spells and self.talentSnapshot and self.talentSnapshot.available then
+        -- The trait API can briefly return no committed entries while loading
+        -- or changing zones. Preserve the last valid snapshot instead of
+        -- enabling the complete union of mutually exclusive talent abilities.
+        self.talentSnapshotPending = true
+        return false
+    end
     local snapshot = {
         available = spells ~= nil,
         configID = configID,
@@ -215,6 +270,8 @@ function HeliHeal:RefreshTalentSnapshot(silent)
             detectedHero = snapshot.priestOracle and "oracle" or (snapshot.discVoidweaver and "voidweaver")
         elseif self.classToken == "PRIEST" then
             detectedHero = snapshot.priestOracle and "oracle" or (snapshot.priestArchon and "archon")
+        elseif self.classToken == "MONK" then
+            detectedHero = snapshot.monkHarmony and "harmony" or (snapshot.monkConduit and "conduit")
         else
             detectedHero = (snapshot.elementalReverb or snapshot.mysticKnowledge) and "farseer"
                 or (snapshot.surgingTotem and "totemic")
@@ -222,7 +279,8 @@ function HeliHeal:RefreshTalentSnapshot(silent)
         local classPrefix = self.classToken == "DRUID" and "druid"
             or (self.classToken == "PALADIN" and "paladin"
             or (self.classToken == "PRIEST" and (self.specializationID == 256 and "disc" or "priest")
-            or "shaman"))
+            or (self.classToken == "MONK" and "monk"
+            or "shaman")))
         local detectedPreset = detectedHero and content and (classPrefix .. "_" .. detectedHero .. "_" .. content)
         if detectedPreset and ns.AbilityLibrary:GetPreset(detectedPreset) and detectedPreset ~= currentPreset then
             self.db.profile.rotationPreset = detectedPreset
@@ -315,6 +373,20 @@ function HeliHeal:PrintTalentSnapshot()
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end
+    if self.classToken == "MONK" then
+        local details = ("Conduit %s | Harmony %s | TFT %s | Endless Draught %s | Pool of Mists %s | Focused Thunder %s | Sheilun %s | Jadefire %s | Rushing Wind Kick %s | Gift of the Celestials %s | Rising Mist %s | Rapid Diffusion %s | Lotus Infusion %s | Morning Breeze %s | Chrysalis %s | Uplifted Spirits %s | Yu'lon %s | Chi-Ji %s")
+            :format(yesNo(snapshot.monkConduit), yesNo(snapshot.monkHarmony),
+                yesNo(snapshot.monkThunderFocusTea), yesNo(snapshot.monkEndlessDraught),
+                yesNo(snapshot.monkPoolOfMists), yesNo(snapshot.monkFocusedThunder),
+                yesNo(snapshot.monkSheilunsGift), yesNo(snapshot.monkJadefireTeachings),
+                yesNo(snapshot.monkRushingWindKick), yesNo(snapshot.monkGiftCelestials),
+                yesNo(snapshot.monkRisingMist), yesNo(snapshot.monkRapidDiffusion),
+                yesNo(snapshot.monkLotusInfusion), yesNo(snapshot.monkMorningBreeze),
+                yesNo(snapshot.monkChrysalis), yesNo(snapshot.monkUpliftedSpirits),
+                yesNo(snapshot.monkYulon), yesNo(snapshot.monkChiji))
+        self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
+        return
+    end
     local details = ("Echo %s | Elemental Reverb %s | Surging Totem %s | Unleash Life %s | Downpour %s | Double Dip %s | Mystic Knowledge %s | Set 2p %s | Set 4p %s")
         :format(yesNo(snapshot.echoOfTheElements),
             yesNo(snapshot.elementalReverb), yesNo(snapshot.surgingTotem), yesNo(snapshot.unleashLife),
@@ -335,6 +407,7 @@ function HeliHeal:CreateTalentListener()
         listener:RegisterEvent("UNIT_STATS")
         listener:RegisterEvent("SPELLS_CHANGED")
         listener:RegisterEvent("PLAYER_REGEN_ENABLED")
+        listener:RegisterEvent("PLAYER_REGEN_DISABLED")
         self:RefreshTalentSnapshot(true)
         self:RefreshSpellHasteSnapshot(true)
         return
@@ -349,7 +422,13 @@ function HeliHeal:CreateTalentListener()
     listener:RegisterEvent("UNIT_STATS")
     listener:RegisterEvent("SPELLS_CHANGED")
     listener:RegisterEvent("PLAYER_REGEN_ENABLED")
+    listener:RegisterEvent("PLAYER_REGEN_DISABLED")
     listener:SetScript("OnEvent", function(_, event, argument)
+        if event == "PLAYER_REGEN_DISABLED" then
+            HeliHeal:BeginMonkCombat(GetTime())
+            HeliHeal:RefreshDisplay()
+            return
+        end
         if event == "PLAYER_SPECIALIZATION_CHANGED" and argument and argument ~= "player" then return end
         if event == "UNIT_STATS" and argument ~= "player" then return end
         if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_SPECIALIZATION_CHANGED" then
@@ -363,10 +442,12 @@ function HeliHeal:CreateTalentListener()
         HeliHeal:RefreshTalentSnapshot(true)
         HeliHeal:RefreshSpellHasteSnapshot(true)
         if event == "PLAYER_REGEN_ENABLED" then
+            HeliHeal:EndMonkCombat(GetTime())
             HeliHeal:ReconcileOutOfCombatState(true)
         end
     end)
     self.talentListener = listener
     self:RefreshTalentSnapshot(true)
     self:RefreshSpellHasteSnapshot(true)
+    if InCombatLockdown and InCombatLockdown() then self:BeginMonkCombat(GetTime()) end
 end

@@ -38,8 +38,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist/HeliHeal
-          cp AbilityLibrary.lua BETA_TESTING.md Changelog.lua Core.lua Defaults.lua Display.lua HeliHeal.toc Input.lua LICENSE Localization.lua Namespace.lua Options.lua README.md TalentSnapshot.lua dist/HeliHeal/
-          cp -R Classes Libs Media dist/HeliHeal/
+          cp AbilityLibrary.lua Changelog.lua Core.lua Defaults.lua Display.lua HeliHeal.toc Input.lua LICENSE Localization.lua Namespace.lua Options.lua README.md TalentSnapshot.lua dist/HeliHeal/
+          mkdir -p dist/HeliHeal/Libs
+          cp -R Classes dist/HeliHeal/
+          mkdir -p dist/HeliHeal/Media
+          cp Media/HeliHealIcon.tga dist/HeliHeal/Media/
+          cp -R Libs/LibStub Libs/CallbackHandler-1.0 Libs/AceAddon-3.0 Libs/AceConsole-3.0 Libs/AceDB-3.0 dist/HeliHeal/Libs/
           cd dist
           zip -r "HeliHeal-${GITHUB_REF_NAME}.zip" HeliHeal
           sha256sum "HeliHeal-${GITHUB_REF_NAME}.zip" > "HeliHeal-${GITHUB_REF_NAME}.zip.sha256"

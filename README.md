@@ -10,7 +10,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 
 ## Features
 
-- Restoration Shaman, Restoration Druid, Holy Paladin, Holy Priest and Discipline Priest priority packs
+- Restoration Shaman, Restoration Druid, Holy Paladin, Holy Priest, Discipline Priest and Mistweaver Monk priority packs
 - Separate Mythic+ and Raid presets
 - Standard, AoE, Single Target and Mana Saving modes
 - Keyboard, modifier, mouse-button and mouse-wheel bindings
@@ -24,6 +24,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Live Holy Power synchronization for the player, with confirmed-cast fallback
 - Talent-aware Holy Priest Holy Word charges, recharge times and Serendipity reductions
 - Discipline Priest group/single-target Atonement estimates, Penance charges and haste-scaled cooldowns
+- Talent-aware Mistweaver Renewing Mist coverage, Thunder Focus Tea empowers and cooldown recovery
 - Movable, scalable and customizable display
 - Persistent AceDB profiles
 - One-time What's New popup and local update history
@@ -38,6 +39,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 | Holy Paladin | Herald of the Sun, Lightsmith | Mythic+, Raid |
 | Holy Priest | Archon, Oracle | Mythic+, Raid |
 | Discipline Priest | Oracle, Voidweaver | Mythic+, Raid |
+| Mistweaver Monk | Conduit of the Celestials, Master of Harmony | Mythic+, Raid |
 
 ## Installation
 
@@ -51,7 +53,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 
 HeliHeal observes configured action-bar and physical mouse inputs without replacing Blizzard's protected input handling. A recommendation advances only after Blizzard confirms that the expected player spell succeeded. Failed, interrupted or unmatched inputs do not consume it.
 
-Class mechanics such as Healing Stream charges, Stormstream uses, Riptide recharge, Rejuvenation coverage, Holy Power, Holy Word cooldown reduction and Discipline Priest charge/recharge rules are simulated locally from confirmed casts and an out-of-combat talent snapshot.
+Class mechanics such as Healing Stream charges, Stormstream uses, Riptide recharge, Rejuvenation and Renewing Mist coverage, Thunder Focus Tea empowers, Holy Power, Holy Word cooldown reduction and Discipline Priest charge/recharge rules are simulated locally from confirmed casts and an out-of-combat talent snapshot.
 
 ## Commands
 
@@ -69,7 +71,7 @@ Class mechanics such as Healing Stream charges, Stormstream uses, Riptide rechar
 
 ## Limitations
 
-HeliHeal does not inspect health, mana, targets, auras, range, healing results, combat logs or SecretValues. The only live combat resource it reads is the player's Blizzard-permitted secondary Holy Power value. Spell haste is cached outside combat, so temporary in-combat haste buffs do not alter local recharge estimates. It cannot automatically know when raid damage is incoming, whether a HoT was refreshed on the same target, or recommend unreadable random procs such as Divine Purpose, Surge of Light or Benediction before they are consumed. Guaranteed talent effects and confirmed casts remain available as a fallback; `/hh hp 0-5` can manually synchronize the Holy Power estimate.
+HeliHeal does not inspect health, mana, targets, auras, range, healing results, combat logs or SecretValues. The only live combat resource it reads is the player's Blizzard-permitted secondary Holy Power value. Spell haste is cached outside combat, so temporary in-combat haste buffs do not alter local recharge estimates. It cannot automatically know when raid damage is incoming, whether a HoT was refreshed on the same target, or recommend unreadable random procs such as Divine Purpose, Spiritfont or Dance of Chi-Ji before they are consumed. Mistweaver Mana Tea stacks and Master of Harmony vitality are intentionally not guessed because they depend on hidden throughput, mana spending and critical results. Guaranteed talent effects and confirmed casts remain available as a fallback; `/hh hp 0-5` can manually synchronize the Holy Power estimate.
 
 ## Feedback
 

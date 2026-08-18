@@ -41,6 +41,7 @@ local enUS = {
     ["TASTE DRÜCKEN • ESC HALTEN"] = "PRESS A KEY • HOLD ESC",
     ["ESC HALTEN ZUM LÖSCHEN"] = "HOLD ESC TO CLEAR",
     ["Hotkey-Feld anklicken und ESC 1,5 Sekunden halten, um die Belegung zu entfernen."] = "Click a hotkey field and hold ESC for 1.5 seconds to clear its binding.",
+    ["WIE %s"] = "SAME AS %s",
     ["Standard bleibt das Guide-Paket; Kontextmodi verändern nur dessen lokale Reihenfolge."] = "Standard retains the guide pack; context modes only change its local order.",
     ["EINZELZIEL"] = "SINGLE TARGET",
     ["MANA SPAREN"] = "MANA SAVING",
@@ -228,6 +229,7 @@ local enUS = {
     ["/hh öffnet dieses Fenster  •  ESC schließt es"] = "/hh opens this window  •  ESC closes it",
     ["SCHLIESSEN"] = "CLOSE",
     ["Lokale Laufzeit: %ss • Ziel: %d"] = "Local duration: %ss • Goal: %d",
+    ["Lokale Empfehlungspause: %ss"] = "Local recommendation delay: %ss",
     ["Lokaler CD: %ss"] = "Local cooldown: %ss",
     ["Filler • kein lokaler CD"] = "Filler • no local cooldown",
     ["HOTKEY DOPPELT"] = "DUPLICATE HOTKEY",
@@ -321,6 +323,19 @@ local enUS = {
     ["Panel, Icon-Hintergrund und sämtliche HUD-Texte besitzen eigene Farbeinstellungen."] = "The panel, icon background and all HUD text elements now have individual color settings.",
     ["Leuchtfeuer der Tugend wird talentabhängig in Holy-Paladin-M+-Standard und AoE mit 15 Sekunden Cooldown unterstützt."] = "Beacon of Virtue is now supported based on talent selection in Holy Paladin Mythic+ Standard and AoE modes with a 15-second cooldown.",
     ["CurseForge und GitHub verwenden jetzt gepflegte Markdown-Release-Notes ohne Git-Autorendaten."] = "CurseForge and GitHub now use curated Markdown release notes without Git author metadata.",
+    ["Mistweaver Monk unterstützt jetzt Conduit of the Celestials und Master of Harmony für Mythic+ und Raid."] = "Mistweaver Monk now supports Conduit of the Celestials and Master of Harmony for Mythic+ and Raid.",
+    ["Talent-Fähigkeiten bleiben bei einem vorübergehend nicht lesbaren Talentbaum sicher ausgeblendet; der letzte gültige Snapshot bleibt erhalten."] = "Talent abilities remain safely hidden while the talent tree is temporarily unreadable, and the last valid snapshot is retained.",
+    ["Renewing-Mist-Laufzeiten berücksichtigen Lotus Infusion, Thunder Focus Tea und Rising Mist in der HUD-Anzeige."] = "Renewing Mist durations now account for Lotus Infusion, Thunder Focus Tea and Rising Mist in the HUD.",
+    ["Geteilte Talent-Hotkeys nennen jetzt die tatsächlich ersetzte Fähigkeit statt immer Healing Rain."] = "Shared talent hotkeys now name the ability they actually replace instead of always showing Healing Rain.",
+    ["Das Optionsfenster passt sich automatisch an kleinere Auflösungen und UI-Skalierungen an."] = "The options window now fits smaller resolutions and UI scales automatically.",
+    ["GitHub- und CurseForge-Pakete enthalten denselben schlanken Runtime-Umfang ohne ungenutzte AceConfig- und AceGUI-Bibliotheken."] = "GitHub and CurseForge packages now use the same lean runtime scope without unused AceConfig and AceGUI libraries.",
+    ["Sheilun's Gift wird nach einem erfolgreichen Cast direkt bestätigt und verlässt die aktive Empfehlung."] = "Sheilun's Gift is now confirmed directly after a successful cast and leaves the active recommendation.",
+    ["Eine lokale achtsekündige Empfehlungspause bildet die Wolkenerzeugung ab, ohne einen falschen echten Spell-Cooldown anzuzeigen."] = "A local eight-second recommendation delay models cloud generation without displaying a false real spell cooldown.",
+    ["Mistweaver verwendet getrennte Conduit- und Harmony-Prioritäten für Mythic+ und Raid, während alle Talentvarianten bindbar bleiben."] = "Mistweaver now uses separate Conduit and Harmony priorities for Mythic+ and Raid while keeping every talent variant bindable.",
+    ["Der Standardmodus zeigt nun sowohl Tiger Palm und Blackout Kick als auch Spinning Crane Kick als hybriden Nahkampfpfad."] = "Standard mode now exposes Tiger Palm and Blackout Kick alongside Spinning Crane Kick as a hybrid melee path.",
+    ["Thunder Focus Tea, Renewing Mist, Sheilun's Gift, Teachings of the Monastery und Heart of the Jade Serpent werden lokal aus bestätigten Casts simuliert."] = "Thunder Focus Tea, Renewing Mist, Sheilun's Gift, Teachings of the Monastery and Heart of the Jade Serpent are now simulated locally from confirmed casts.",
+    ["Die Hero-Talent-Erkennung berücksichtigt aktuelle Conduit- und Aspect-of-Harmony-Spellvarianten und behält den gewählten Inhaltstyp bei."] = "Hero talent detection now recognizes current Conduit and Aspect of Harmony spell variants while preserving the selected content type.",
+    ["Notfallheilungen, große Cooldowns und nicht lesbare Procs bleiben auf passende Kontextmodi begrenzt."] = "Emergency heals, major cooldowns and unreadable procs remain limited to appropriate context modes.",
 }
 
 local deDE = {
@@ -345,6 +360,9 @@ local deDE = {
     ["First Beta: Customizable HUD and Profiles"] = "Erste Beta: Anpassbares HUD und Profile",
     ["Reliable Cast Tracking and Runtime Efficiency"] = "Zuverlässige Cast-Erkennung und Speichereffizienz",
     ["Advanced HUD Customization and Beacon of Virtue"] = "Erweiterte HUD-Anpassung und Leuchtfeuer der Tugend",
+    ["Mistweaver Support and Runtime Hardening"] = "Mistweaver-Unterstützung und Laufzeit-Stabilisierung",
+    ["Reliable Sheilun's Gift Recommendations"] = "Zuverlässige Sheilun's-Gift-Empfehlungen",
+    ["Mistweaver Dual Hero Priorities"] = "Getrennte Mistweaver-Hero-Prioritäten",
 }
 
 local translations = enUS

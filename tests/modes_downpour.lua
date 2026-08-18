@@ -26,6 +26,15 @@ addon.sessionCharges = {}
 addon.sessionSpendHistory = {}
 addon.pendingSwiftness = nil
 addon.pendingDownpour = nil
+addon.talentSnapshot = {
+    available = true,
+    surgingTotem = true,
+    downpour = true,
+    unleashLife = false,
+}
+addon.IsTalentActive = function(self, key)
+    return self.talentSnapshot.available and self.talentSnapshot[key] == true
+end
 addon.RefreshDisplay = function() end
 addon.RefreshOptionsUI = function() end
 addon.Print = function() end

@@ -603,7 +603,8 @@ function HeliHeal:BuildPrioritiesPage(parent)
         or (self.classToken == "PALADIN" and "Holy Paladin 12.1"
         or (self.classToken == "PRIEST" and (self.specializationID == 256
             and "Discipline Priest 12.1" or "Holy Priest 12.1")
-        or "Restoration Shaman 12.1"))
+        or (self.classToken == "MONK" and "Mistweaver Monk 12.1"
+        or "Restoration Shaman 12.1")))
     setPageHeader(page, className, L("Standard bleibt das Guide-Paket; Kontextmodi verändern nur dessen lokale Reihenfolge."))
 
     page.presetButtons = {}
@@ -627,6 +628,11 @@ function HeliHeal:BuildPrioritiesPage(parent)
         { "priest_archon_raid", "ARCHON RAID" },
         { "priest_oracle_mythicplus", "ORACLE M+" },
         { "priest_oracle_raid", "ORACLE RAID" },
+    } or self.classToken == "MONK" and {
+        { "monk_conduit_mythicplus", "CONDUIT M+" },
+        { "monk_conduit_raid", "CONDUIT RAID" },
+        { "monk_harmony_mythicplus", "HARMONY M+" },
+        { "monk_harmony_raid", "HARMONY RAID" },
     } or {
         { "shaman_totemic_mythicplus", "TOTEMIC M+" },
         { "shaman_totemic_raid", "TOTEMIC RAID" },
@@ -665,12 +671,25 @@ function HeliHeal:BuildPrioritiesPage(parent)
     local bindingHeader = text(page, L("BEOBACHTETER ACTIONBAR-HOTKEY"), 9, C.muted, "OUTLINE")
     bindingHeader:SetPoint("TOPLEFT", 494, -198)
 
+    local priorityScroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
+    priorityScroll:SetPoint("TOPLEFT", 18, -210)
+    priorityScroll:SetPoint("BOTTOMRIGHT", -30, 46)
+    local priorityContent = CreateFrame("Frame", nil, priorityScroll)
+    priorityContent:SetWidth(1)
+    priorityContent:SetHeight(1)
+    priorityScroll:SetScrollChild(priorityContent)
+    priorityScroll:SetScript("OnSizeChanged", function(_, width)
+        priorityContent:SetWidth(math.max(1, width))
+    end)
+    page.priorityScroll = priorityScroll
+    page.priorityContent = priorityContent
+
     page.slotRows = {}
-    for slotIndex = 1, 11 do
+    for slotIndex = 1, math.max(11, #(self.db.profile.slots or {})) do
         local capturedSlotIndex = slotIndex
-        local row = CreateFrame("Frame", nil, page, "BackdropTemplate")
-        row:SetPoint("TOPLEFT", 28, -214 - ((slotIndex - 1) * 37))
-        row:SetPoint("TOPRIGHT", -28, -214 - ((slotIndex - 1) * 37))
+        local row = CreateFrame("Frame", nil, priorityContent, "BackdropTemplate")
+        row:SetPoint("TOPLEFT", 10, -4 - ((slotIndex - 1) * 37))
+        row:SetPoint("TOPRIGHT", -10, -4 - ((slotIndex - 1) * 37))
         row:SetHeight(34)
         backdrop(row, C.panel, C.borderSoft)
 
@@ -1379,6 +1398,16 @@ function HeliHeal:CreateModernOptions()
     window:Hide()
     table.insert(UISpecialFrames, window:GetName())
 
+    local function fitToScreen()
+        local availableWidth = math.max(1, (UIParent:GetWidth() or 1040) - 24)
+        local availableHeight = math.max(1, (UIParent:GetHeight() or 700) - 24)
+        window:SetScale(math.min(1, availableWidth / 1040, availableHeight / 700))
+    end
+    window:RegisterEvent("DISPLAY_SIZE_CHANGED")
+    window:RegisterEvent("UI_SCALE_CHANGED")
+    window:SetScript("OnEvent", fitToScreen)
+    fitToScreen()
+
     window:SetScript("OnDragStart", function(self) self:StartMoving() end)
     window:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
     window:SetScript("OnHide", function()
@@ -1584,10 +1613,10 @@ function HeliHeal:RefreshOptionsUI()
             ability = self:GetSlot(slotIndex) or ability
             if ability.enabled then
                 visiblePriority = visiblePriority + 1
-                local y = -214 - ((visiblePriority - 1) * 37)
+                local y = -4 - ((visiblePriority - 1) * 37)
                 row:ClearAllPoints()
-                row:SetPoint("TOPLEFT", 28, y)
-                row:SetPoint("TOPRIGHT", -28, y)
+                row:SetPoint("TOPLEFT", 10, y)
+                row:SetPoint("TOPRIGHT", -10, y)
                 row.priority:SetText(("%02d"):format(visiblePriority))
             end
             row.icon:SetTexture(ability.icon)
@@ -1596,10 +1625,13 @@ function HeliHeal:RefreshOptionsUI()
             if ability.trackedDuration > 0 then
                 local goal = self:GetTrackedGoal(ability)
                 row.cooldownLabel:SetText(L("Lokale Laufzeit: %ss • Ziel: %d", ability.trackedDuration, goal))
+            elseif (ability.recommendationLockout or 0) > 0 then
+                row.cooldownLabel:SetText(L("Lokale Empfehlungspause: %ss", formatSeconds(ability.recommendationLockout)))
             else
                 row.cooldownLabel:SetText(ability.cooldown > 0 and L("Lokaler CD: %ss", formatSeconds(ability.cooldown)) or L("Filler • kein lokaler CD"))
             end
-            local conflict = conflictsByAbility[slot.abilityKey]
+            local bindingKey = slot.derivedBindingFrom or slot.abilityKey
+            local conflict = conflictsByAbility[bindingKey]
             if conflict then
                 row.cooldownLabel:SetText(row.cooldownLabel:GetText() .. " • " .. L("HOTKEY DOPPELT"))
                 row.cooldownLabel:SetTextColor(unpackColor(C.danger))
@@ -1608,8 +1640,15 @@ function HeliHeal:RefreshOptionsUI()
                 row.cooldownLabel:SetTextColor(unpackColor(C.muted))
                 row:SetBackdropBorderColor(unpackColor(C.borderSoft))
             end
+            local derivedSourceEnabled = false
+            local derivedSourceAbility
             if slot.derivedBindingFrom then
-                row.key.label:SetText(L("WIE HEALING RAIN"))
+                local sourceIndex = self:GetSlotIndexByAbilityKey(slot.derivedBindingFrom)
+                derivedSourceAbility = sourceIndex and self:GetSlot(sourceIndex)
+                derivedSourceEnabled = derivedSourceAbility and derivedSourceAbility.enabled or false
+            end
+            if slot.derivedBindingFrom and derivedSourceEnabled then
+                row.key.label:SetText(L("WIE %s", derivedSourceAbility.name or slot.derivedBindingFrom))
                 row.key:SetScript("OnClick", nil)
                 row.key:SetBackdropBorderColor(unpackColor(C.borderSoft))
                 row.key.label:SetTextColor(unpackColor(C.muted))
@@ -1624,6 +1663,9 @@ function HeliHeal:RefreshOptionsUI()
         else
             row:Hide()
         end
+    end
+    if prioritiesPage.priorityContent then
+        prioritiesPage.priorityContent:SetHeight(math.max(1, visiblePriority * 37 + 8))
     end
 
     window.pages.profiles.profileName:SetText(self.db:GetCurrentProfile())

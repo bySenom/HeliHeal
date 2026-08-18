@@ -1,8 +1,39 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.10-beta.1",
+    currentVersion = "0.9.13-beta.1",
     entries = {
+        {
+            version = "0.9.13-beta.1",
+            title = "Mistweaver Dual Hero Priorities",
+            changes = {
+                "Mistweaver verwendet getrennte Conduit- und Harmony-Prioritäten für Mythic+ und Raid, während alle Talentvarianten bindbar bleiben.",
+                "Der Standardmodus zeigt nun sowohl Tiger Palm und Blackout Kick als auch Spinning Crane Kick als hybriden Nahkampfpfad.",
+                "Thunder Focus Tea, Renewing Mist, Sheilun's Gift, Teachings of the Monastery und Heart of the Jade Serpent werden lokal aus bestätigten Casts simuliert.",
+                "Die Hero-Talent-Erkennung berücksichtigt aktuelle Conduit- und Aspect-of-Harmony-Spellvarianten und behält den gewählten Inhaltstyp bei.",
+                "Notfallheilungen, große Cooldowns und nicht lesbare Procs bleiben auf passende Kontextmodi begrenzt.",
+            },
+        },
+        {
+            version = "0.9.12-beta.1",
+            title = "Reliable Sheilun's Gift Recommendations",
+            changes = {
+                "Sheilun's Gift wird nach einem erfolgreichen Cast direkt bestätigt und verlässt die aktive Empfehlung.",
+                "Eine lokale achtsekündige Empfehlungspause bildet die Wolkenerzeugung ab, ohne einen falschen echten Spell-Cooldown anzuzeigen.",
+            },
+        },
+        {
+            version = "0.9.11-beta.1",
+            title = "Mistweaver Support and Runtime Hardening",
+            changes = {
+                "Mistweaver Monk unterstützt jetzt Conduit of the Celestials und Master of Harmony für Mythic+ und Raid.",
+                "Talent-Fähigkeiten bleiben bei einem vorübergehend nicht lesbaren Talentbaum sicher ausgeblendet; der letzte gültige Snapshot bleibt erhalten.",
+                "Renewing-Mist-Laufzeiten berücksichtigen Lotus Infusion, Thunder Focus Tea und Rising Mist in der HUD-Anzeige.",
+                "Geteilte Talent-Hotkeys nennen jetzt die tatsächlich ersetzte Fähigkeit statt immer Healing Rain.",
+                "Das Optionsfenster passt sich automatisch an kleinere Auflösungen und UI-Skalierungen an.",
+                "GitHub- und CurseForge-Pakete enthalten denselben schlanken Runtime-Umfang ohne ungenutzte AceConfig- und AceGUI-Bibliotheken.",
+            },
+        },
         {
             version = "0.9.10-beta.1",
             title = "Talent-Aware Restoration Druid Rotation",

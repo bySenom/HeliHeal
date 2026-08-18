@@ -1,21 +1,29 @@
-# HeliHeal 0.9.10 Beta 1
+# HeliHeal 0.9.13 Beta 1
 
 For **World of Warcraft: Midnight 12.1**.
 
 ## Changes
 
-- Swiftmend is no longer recommended until HeliHeal has locally confirmed a compatible heal-over-time effect; Verdant Infusion removes this restriction.
-- Rejuvenation duration now responds to Germination and Lingering Healing.
-- Prosperity, Early Spring and Passing Seasons now modify Swiftmend charges and supported cooldowns.
-- Soul of the Forest prioritizes Rejuvenation or Regrowth after Swiftmend, and Power of the Archdruid is tied to the correct talent sequence.
-- Convoke the Spirits, Incarnation: Tree of Life and Tranquility are shown only when their talents are selected.
-- Inner Peace and Flourish modify the local Tranquility and heal-over-time model.
-- Wild Growth, Nature's Swiftness, Swiftmend and major Restoration Druid cooldowns confirm directly from successful casts.
-- Expanded the Restoration Druid talent snapshot and diagnostics for major rotation-impacting talents.
+- Added complete Mistweaver Monk support for Conduit of the Celestials and Master of Harmony in Mythic+ and Raid.
+- Separated Conduit and Harmony priority paths while keeping every supported talent replacement bindable.
+- Standard mode now exposes both single-target and AoE melee fillers, including Spinning Crane Kick.
+- Added local Renewing Mist coverage, Sheilun cloud, Teachings of the Monastery and Thunder Focus Tea simulations.
+- Added supported Heart of the Jade Serpent cooldown recovery for Renewing Mist, Rising Sun Kick, Life Cocoon and Thunder Focus Tea.
+- Improved current hero-talent, choice-node and replacement-spell detection.
+- Confirmed Sheilun's Gift directly from successful casts and prevented it from behaving like a fake cooldown ability.
+- Preserved the last valid talent snapshot when Blizzard's trait API is temporarily unavailable.
+- Improved the priorities page for larger talent packs and smaller UI resolutions.
+- Aligned GitHub and CurseForge packages around the same lean runtime file set.
+
+## Limitations
+
+- Health, mana, targets, auras, combat logs and SecretValues remain unread.
+- Random Spiritfont, Dance of Chi-Ji and Strength of the Black Ox procs cannot be recommended automatically.
+- Mana Tea stacks and Master of Harmony vitality are not guessed.
 
 ## Validation
 
 - All automated Lua tests passed.
+- Runtime Lua syntax, TOC entries and package contents were verified.
 - The version tag matches `HeliHeal.toc`.
-- The packaged addon contains only runtime files and documentation.
-- This beta release is intended for continued in-game testing and player feedback.
+- This beta release is intended for in-game testing and player feedback.

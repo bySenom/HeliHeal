@@ -230,7 +230,8 @@ function HeliHeal:CommitConfiguredPlayerSpell(spellID)
     local now = GetTime()
     self.recentDirectConfirmations = self.recentDirectConfirmations or {}
     for slotIndex, configuredSlot in ipairs(self.db.profile.slots or {}) do
-        if configuredSlot.enabled and configuredSlot.confirmOnPlayerSuccess
+        local ability = self.GetSlot and self:GetSlot(slotIndex) or configuredSlot
+        if ability and ability.enabled and ability.confirmOnPlayerSuccess
             and self:SlotAcceptsSpell(configuredSlot, spellID) then
             local lastConfirmed = self.recentDirectConfirmations[slotIndex]
             if lastConfirmed and now - lastConfirmed < 0.25 then return false end
@@ -257,7 +258,8 @@ function HeliHeal:CommitAssistedCombatSpell(spellID)
     self.pendingAssistedCombat = nil
 
     for slotIndex, configuredSlot in ipairs(self.db.profile.slots or {}) do
-        if configuredSlot.enabled and self:SlotAcceptsSpell(configuredSlot, spellID) then
+        local ability = self.GetSlot and self:GetSlot(slotIndex) or configuredSlot
+        if ability and ability.enabled and self:SlotAcceptsSpell(configuredSlot, spellID) then
             self.inputLockedUntil[slotIndex] = GetTime()
                 + math.max(1.5, tonumber(configuredSlot.inputLockout) or 1.5)
             self:AcknowledgeSlot(slotIndex, spellID)
@@ -399,7 +401,15 @@ function HeliHeal:ObserveInputKey(inputKey)
 
     for slotIndex, configured in ipairs(self.db.profile.slots) do
         local configuredSpellID = configured and tonumber(configured.spellID) or 0
-        if configured and configured.enabled and not configured.derivedBindingFrom and configuredSpellID > 0 and configured.inputKey == inputKey then
+        local ability = configured and (self.GetSlot and self:GetSlot(slotIndex) or configured)
+        local derivedSourceEnabled = false
+        if configured and configured.derivedBindingFrom and self.GetSlotIndexByAbilityKey and self.GetSlot then
+            local sourceIndex = self:GetSlotIndexByAbilityKey(configured.derivedBindingFrom)
+            local sourceAbility = sourceIndex and self:GetSlot(sourceIndex)
+            derivedSourceEnabled = sourceAbility and sourceAbility.enabled or false
+        end
+        if configured and ability and ability.enabled and not derivedSourceEnabled
+            and configuredSpellID > 0 and configured.inputKey == inputKey then
             local now = GetTime()
             self.heldInputKeys = self.heldInputKeys or {}
             self.inputLockedUntil = self.inputLockedUntil or {}
