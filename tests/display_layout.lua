@@ -26,4 +26,26 @@ assert(addon:FormatHotkeyLabel("CTRL-ALT-MOUSEWHEELDOWN") == "C-A-WD",
 assert(addon:FormatHotkeyLabel("R") == "R",
     "short keyboard bindings must remain unchanged")
 
+GetCursorPosition = function() return 200, 100 end
+UIParent = { GetEffectiveScale = function() return 2 end }
+addon.db = {
+    profile = {
+        dispelCursorOffsetX = 24,
+        dispelCursorOffsetY = -24,
+    },
+}
+local positionUpdates = 0
+local cursorFrame = {
+    ClearAllPoints = function() end,
+    SetPoint = function(_, point, parent, relativePoint, x, y)
+        assert(point == "CENTER" and parent == UIParent and relativePoint == "BOTTOMLEFT")
+        assert(x == 124 and y == 26, "cursor coordinates must account for UI scale and offsets")
+        positionUpdates = positionUpdates + 1
+    end,
+}
+assert(addon:UpdateDispelCursorPosition(cursorFrame),
+    "the dispel cursor must accept a valid cursor position")
+assert(addon:UpdateDispelCursorPosition(cursorFrame) and positionUpdates == 1,
+    "an unchanged cursor must not trigger redundant layout work")
+
 print("display layout model: ok")

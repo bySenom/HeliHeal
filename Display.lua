@@ -244,6 +244,9 @@ function HeliHeal:CreateDisplay()
     dispelFrame.cooldown:SetHideCountdownNumbers(true)
     dispelFrame.remaining = dispelFrame:CreateFontString(nil, "OVERLAY")
     dispelFrame.remaining:SetPoint("CENTER")
+    dispelFrame:SetScript("OnUpdate", function(display)
+        HeliHeal:UpdateDispelCursorPosition(display)
+    end)
     dispelFrame:Hide()
     self.dispelCursorFrame = dispelFrame
 end
@@ -444,6 +447,28 @@ function HeliHeal:ApplyDisplaySettings()
     self:RefreshDisplay()
 end
 
+function HeliHeal:UpdateDispelCursorPosition(frame)
+    frame = frame or self.dispelCursorFrame
+    local profile = self.db and self.db.profile
+    if not frame or not profile or type(GetCursorPosition) ~= "function" then return false end
+
+    local cursorX, cursorY = GetCursorPosition()
+    local uiScale = UIParent and UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
+    uiScale = tonumber(uiScale) or 1
+    if uiScale <= 0 then uiScale = 1 end
+    local offsetX = clamp(profile.dispelCursorOffsetX, -100, 100, 24)
+    local offsetY = clamp(profile.dispelCursorOffsetY, -100, 100, -24)
+    local anchorX = (cursorX / uiScale) + offsetX
+    local anchorY = (cursorY / uiScale) + offsetY
+    if frame.cursorAnchorX == anchorX and frame.cursorAnchorY == anchorY then return true end
+
+    frame.cursorAnchorX = anchorX
+    frame.cursorAnchorY = anchorY
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", anchorX, anchorY)
+    return true
+end
+
 function HeliHeal:RefreshDispelCursor(now)
     local frame = self.dispelCursorFrame
     local profile = self.db and self.db.profile
@@ -458,13 +483,7 @@ function HeliHeal:RefreshDispelCursor(now)
         return
     end
 
-    local cursorX, cursorY = GetCursorPosition()
-    local uiScale = UIParent and UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
-    uiScale = tonumber(uiScale) or 1
-    if uiScale <= 0 then uiScale = 1 end
     local size = clamp(profile.dispelCursorSize, 20, 80, 34)
-    local offsetX = clamp(profile.dispelCursorOffsetX, -100, 100, 24)
-    local offsetY = clamp(profile.dispelCursorOffsetY, -100, 100, -24)
     local font = getHudFont(profile)
     local flags = getFontFlags(profile)
     local accentR, accentG, accentB = getColor(profile.accentColor, DEFAULT_ACCENT)
@@ -472,9 +491,7 @@ function HeliHeal:RefreshDispelCursor(now)
     local backgroundR, backgroundG, backgroundB = getColor(profile.iconBackgroundColor, DEFAULT_ICON_BACKGROUND)
 
     frame:SetSize(size, size)
-    frame:ClearAllPoints()
-    frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT",
-        (cursorX / uiScale) + offsetX, (cursorY / uiScale) + offsetY)
+    self:UpdateDispelCursorPosition(frame)
     frame:SetBackdropColor(backgroundR, backgroundG, backgroundB, 0.96)
     frame:SetBackdropBorderColor(accentR, accentG, accentB, 1)
     frame.icon:SetTexture(dispel.icon)
