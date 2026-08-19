@@ -6,7 +6,7 @@ ns.defaults = {
         language = "auto",
     },
     profile = {
-        schemaVersion = 3,
+        schemaVersion = 4,
         enabled = true,
         locked = false,
         scale = 1,
@@ -20,7 +20,7 @@ ns.defaults = {
         showCooldown = true,
         showDispelCursor = false,
         dispelCursorSize = 34,
-        dispelCursorOffsetX = 24,
+        dispelCursorOffsetX = 42,
         dispelCursorOffsetY = -24,
         showRoleLabel = true,
         hudFont = "friz",

@@ -25,8 +25,10 @@ local profile = {
 }
 addon.db = { profile = profile }
 assert(addon:MigrateProfile(profile), "legacy profile must migrate exactly once")
-assert(profile.schemaVersion == 3 and profile.rotationDataVersion == 12117,
+assert(profile.schemaVersion == 4 and profile.rotationDataVersion == 12117,
     "migration must stamp the schema and rotation data versions")
+assert(profile.dispelCursorOffsetX == 42,
+    "migration must move the original dispel cursor default away from the pointer")
 assert(profile.primaryIconWidth == 77 and profile.primaryIconHeight == 77
     and profile.secondaryIconWidth == 41 and profile.secondaryIconHeight == 41,
     "migration must preserve legacy icon sizes as independent dimensions")

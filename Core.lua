@@ -34,7 +34,7 @@ local HEALER_DISPELS = {
     MONK = { spellID = 115450, name = "Detox", cooldown = 8 },
 }
 
-local CURRENT_SCHEMA_VERSION = 3
+local CURRENT_SCHEMA_VERSION = 4
 local ROTATION_DATA_VERSION = 12117
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
@@ -221,6 +221,12 @@ function HeliHeal:MigrateProfile(profile)
         profile.secondaryIconHeight = tonumber(rawget(profile, "secondaryIconHeight")) or oldSecondarySize
         profile.primaryIconZoom = tonumber(rawget(profile, "primaryIconZoom")) or 1
         profile.secondaryIconZoom = tonumber(rawget(profile, "secondaryIconZoom")) or 1
+    end
+    if originalVersion < 4 then
+        local oldDispelOffset = tonumber(rawget(profile, "dispelCursorOffsetX"))
+        if oldDispelOffset == nil or oldDispelOffset == 24 then
+            profile.dispelCursorOffsetX = 42
+        end
     end
     profile.schemaVersion = CURRENT_SCHEMA_VERSION
     profile.rotationDataVersion = ROTATION_DATA_VERSION
