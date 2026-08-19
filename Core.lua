@@ -45,6 +45,18 @@ local function copyTable(source)
     return result
 end
 
+local PERSISTENT_RUNTIME_FIELDS = {
+    "sessionUses", "sessionCharges", "sessionSpendHistory", "sessionTimedEffects",
+    "sessionAtonements", "holyPowerBaseline", "holyPowerFreeSpenderBaseline",
+    "sessionHolyPower", "holyPowerEvents", "nextHolyPowerEventID",
+    "pendingFreeHolyPowerSpenders", "pendingSwiftness", "pendingDownpour",
+    "pendingUnleash", "pendingArchdruid", "pendingDruidSoul",
+    "unleashConsumptionHistory", "riptideRechargeRateUntil", "priestApotheosisUntil",
+    "pendingMonkTea", "monkJadeSerpentUntil", "monkConduitHeartAt",
+    "sessionMonkRenewingMists", "monkSheilunClouds", "monkSheilunCombatStartedAt",
+    "monkSheilunLeftCombatAt", "monkTeachingsStacks",
+}
+
 function HeliHeal:ResetInputState()
     if self.CancelPendingAcknowledgements then self:CancelPendingAcknowledgements() end
     self.inputGeneration = (self.inputGeneration or 0) + 1
@@ -86,6 +98,44 @@ function HeliHeal:ResetRuntimeState()
     self.monkSheilunCombatStartedAt = nil
     self.monkSheilunLeftCombatAt = nil
     self.monkTeachingsStacks = 0
+end
+
+function HeliHeal:CaptureZoneRuntimeState()
+    if not self.supportedClass then return false end
+    local runtime = {}
+    for _, field in ipairs(PERSISTENT_RUNTIME_FIELDS) do
+        local value = self[field]
+        if value ~= nil then
+            runtime[field] = type(value) == "table" and copyTable(value) or value
+        end
+    end
+    self.zoneRuntimeSnapshot = {
+        classToken = self.classToken,
+        specializationID = self.specializationID,
+        rotationPreset = self.db and self.db.profile and self.db.profile.rotationPreset,
+        runtime = runtime,
+    }
+    return true
+end
+
+function HeliHeal:RestoreZoneRuntimeState()
+    local snapshot = self.zoneRuntimeSnapshot
+    self.zoneRuntimeSnapshot = nil
+    if not snapshot or not self.supportedClass
+        or snapshot.classToken ~= self.classToken
+        or snapshot.specializationID ~= self.specializationID
+        or snapshot.rotationPreset ~= (self.db and self.db.profile and self.db.profile.rotationPreset) then
+        return false
+    end
+    self:ResetRuntimeState()
+    for _, field in ipairs(PERSISTENT_RUNTIME_FIELDS) do
+        local value = snapshot.runtime[field]
+        if value ~= nil then
+            self[field] = type(value) == "table" and copyTable(value) or value
+        end
+    end
+    if self.frame then self:RefreshDisplay() end
+    return true
 end
 
 function HeliHeal:MigrateProfile(profile)
@@ -146,8 +196,11 @@ function HeliHeal:RefreshPlayerSupport(resetOnChange)
     local previousSpecialization = self.specializationID
     local previousSupport = self.supportedClass
     local _, classToken = UnitClass("player")
+    if not classToken then classToken = previousClass end
     self.classToken = classToken
-    self.specializationID = self:GetPlayerSpecializationID()
+    local specializationID = self:GetPlayerSpecializationID()
+    if not specializationID and classToken == previousClass then specializationID = previousSpecialization end
+    self.specializationID = specializationID
     local supportedSpecs = HEALER_SPECIALIZATIONS[classToken]
     self.supportedClass = type(supportedSpecs) == "table"
         and supportedSpecs[self.specializationID] == true

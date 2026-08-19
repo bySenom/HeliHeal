@@ -399,6 +399,7 @@ function HeliHeal:CreateTalentListener()
     if self.talentListener then
         local listener = self.talentListener
         listener:RegisterEvent("PLAYER_ENTERING_WORLD")
+        listener:RegisterEvent("PLAYER_LEAVING_WORLD")
         listener:RegisterEvent("TRAIT_CONFIG_LIST_UPDATED")
         listener:RegisterEvent("TRAIT_CONFIG_UPDATED")
         listener:RegisterEvent("ACTIVE_COMBAT_CONFIG_CHANGED")
@@ -414,6 +415,7 @@ function HeliHeal:CreateTalentListener()
     end
     local listener = CreateFrame("Frame")
     listener:RegisterEvent("PLAYER_ENTERING_WORLD")
+    listener:RegisterEvent("PLAYER_LEAVING_WORLD")
     listener:RegisterEvent("TRAIT_CONFIG_LIST_UPDATED")
     listener:RegisterEvent("TRAIT_CONFIG_UPDATED")
     listener:RegisterEvent("ACTIVE_COMBAT_CONFIG_CHANGED")
@@ -424,6 +426,10 @@ function HeliHeal:CreateTalentListener()
     listener:RegisterEvent("PLAYER_REGEN_ENABLED")
     listener:RegisterEvent("PLAYER_REGEN_DISABLED")
     listener:SetScript("OnEvent", function(_, event, argument)
+        if event == "PLAYER_LEAVING_WORLD" then
+            HeliHeal:CaptureZoneRuntimeState()
+            return
+        end
         if event == "PLAYER_REGEN_DISABLED" then
             HeliHeal:BeginMonkCombat(GetTime())
             HeliHeal:RefreshDisplay()
@@ -441,6 +447,9 @@ function HeliHeal:CreateTalentListener()
         end
         HeliHeal:RefreshTalentSnapshot(true)
         HeliHeal:RefreshSpellHasteSnapshot(true)
+        if event == "PLAYER_ENTERING_WORLD" then
+            HeliHeal:RestoreZoneRuntimeState()
+        end
         if event == "PLAYER_REGEN_ENABLED" then
             HeliHeal:EndMonkCombat(GetTime())
             HeliHeal:ReconcileOutOfCombatState(true)
