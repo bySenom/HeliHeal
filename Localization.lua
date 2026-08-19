@@ -345,6 +345,10 @@ local enUS = {
     ["Die Hero-Talent-Erkennung berücksichtigt aktuelle Conduit- und Aspect-of-Harmony-Spellvarianten und behält den gewählten Inhaltstyp bei."] = "Hero talent detection now recognizes current Conduit and Aspect of Harmony spell variants while preserving the selected content type.",
     ["Notfallheilungen, große Cooldowns und nicht lesbare Procs bleiben auf passende Kontextmodi begrenzt."] = "Emergency heals, major cooldowns and unreadable procs remain limited to appropriate context modes.",
     ["Eine optionale Cursor-Anzeige verfolgt den Dispel-Cooldown nach einem bestätigten erfolgreichen Cast."] = "An optional cursor display tracks the dispel cooldown after a confirmed successful cast.",
+    ["Das Dispel-Icon folgt der Maus flüssig pro Frame und vermeidet unnötige Layout-Aktualisierungen bei stillstehendem Cursor."] = "The dispel icon now follows the cursor smoothly every frame while avoiding redundant layout updates when the cursor is stationary.",
+    ["Größe und Abstand der Dispel-Anzeige sind konfigurierbar; der neue Standardabstand hält das Icon vom Mauszeiger frei."] = "The dispel display size and offset are configurable, with a new default offset that keeps the icon clear of the pointer.",
+    ["Lokale Timer und simulierte Zustände bleiben bei unterstützten Ladebildschirmen und Zonenwechseln erhalten."] = "Local timers and simulated states now persist across supported loading screens and zone transitions.",
+    ["Actionbar-Eingaben mit mehrstelligen MultiActionBar-Buttons werden ohne Lua-Fehler erkannt."] = "Action-bar inputs using multi-digit MultiActionBar buttons are now recognized without Lua errors.",
 }
 
 local deDE = {
@@ -372,6 +376,7 @@ local deDE = {
     ["Mistweaver Support and Runtime Hardening"] = "Mistweaver-Unterstützung und Laufzeit-Stabilisierung",
     ["Reliable Sheilun's Gift Recommendations"] = "Zuverlässige Sheilun's-Gift-Empfehlungen",
     ["Mistweaver Dual Hero Priorities"] = "Getrennte Mistweaver-Hero-Prioritäten",
+    ["Dispel Cursor and Runtime Reliability"] = "Dispel-Cursor und zuverlässiger Laufzeitstatus",
 }
 
 local translations = enUS

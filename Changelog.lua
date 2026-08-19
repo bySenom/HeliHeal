@@ -1,8 +1,19 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.13-beta.1",
+    currentVersion = "0.9.14-beta.1",
     entries = {
+        {
+            version = "0.9.14-beta.1",
+            title = "Dispel Cursor and Runtime Reliability",
+            changes = {
+                "Eine optionale Cursor-Anzeige verfolgt den Dispel-Cooldown nach einem bestätigten erfolgreichen Cast.",
+                "Das Dispel-Icon folgt der Maus flüssig pro Frame und vermeidet unnötige Layout-Aktualisierungen bei stillstehendem Cursor.",
+                "Größe und Abstand der Dispel-Anzeige sind konfigurierbar; der neue Standardabstand hält das Icon vom Mauszeiger frei.",
+                "Lokale Timer und simulierte Zustände bleiben bei unterstützten Ladebildschirmen und Zonenwechseln erhalten.",
+                "Actionbar-Eingaben mit mehrstelligen MultiActionBar-Buttons werden ohne Lua-Fehler erkannt.",
+            },
+        },
         {
             version = "0.9.13-beta.1",
             title = "Mistweaver Dual Hero Priorities",
@@ -12,7 +23,6 @@ ns.changelog = {
                 "Thunder Focus Tea, Renewing Mist, Sheilun's Gift, Teachings of the Monastery und Heart of the Jade Serpent werden lokal aus bestätigten Casts simuliert.",
                 "Die Hero-Talent-Erkennung berücksichtigt aktuelle Conduit- und Aspect-of-Harmony-Spellvarianten und behält den gewählten Inhaltstyp bei.",
                 "Notfallheilungen, große Cooldowns und nicht lesbare Procs bleiben auf passende Kontextmodi begrenzt.",
-                "Eine optionale Cursor-Anzeige verfolgt den Dispel-Cooldown nach einem bestätigten erfolgreichen Cast.",
             },
         },
         {

@@ -1,29 +1,26 @@
-# HeliHeal 0.9.13 Beta 1
+# HeliHeal 0.9.14 Beta 1
 
 For **World of Warcraft: Midnight 12.1**.
 
 ## Changes
 
-- Added complete Mistweaver Monk support for Conduit of the Celestials and Master of Harmony in Mythic+ and Raid.
-- Separated Conduit and Harmony priority paths while keeping every supported talent replacement bindable.
-- Standard mode now exposes both single-target and AoE melee fillers, including Spinning Crane Kick.
-- Added local Renewing Mist coverage, Sheilun cloud, Teachings of the Monastery and Thunder Focus Tea simulations.
-- Added supported Heart of the Jade Serpent cooldown recovery for Renewing Mist, Rising Sun Kick, Life Cocoon and Thunder Focus Tea.
-- Improved current hero-talent, choice-node and replacement-spell detection.
-- Confirmed Sheilun's Gift directly from successful casts and prevented it from behaving like a fake cooldown ability.
-- Preserved the last valid talent snapshot when Blizzard's trait API is temporarily unavailable.
-- Improved the priorities page for larger talent packs and smaller UI resolutions.
-- Aligned GitHub and CurseForge packages around the same lean runtime file set.
+- Added an optional healer-dispel cooldown icon beside the mouse cursor.
+- Tracks Purify Spirit, Nature's Cure, Cleanse, Purify and Detox from Blizzard-confirmed successful casts.
+- Moves the dispel icon smoothly every frame while keeping cooldown and rotation updates throttled.
+- Added configurable cursor-icon size and horizontal/vertical offsets.
+- Increased the default horizontal offset so the icon no longer overlaps the mouse pointer.
+- Preserved local cooldowns, charges and simulated states across supported loading screens and zone transitions.
+- Fixed multi-digit MultiActionBar button parsing, including buttons 10 through 12.
 
 ## Limitations
 
-- Health, mana, targets, auras, combat logs and SecretValues remain unread.
-- Random Spiritfont, Dance of Chi-Ji and Strength of the Black Ox procs cannot be recommended automatically.
-- Mana Tea stacks and Master of Harmony vitality are not guessed.
+- The dispel display uses a local eight-second timer after a confirmed cast; it does not inspect debuffs, targets or combat auras.
+- Health, mana, targets, range, healing results, combat logs and SecretValues remain unread.
 
 ## Validation
 
-- All automated Lua tests passed.
-- Runtime Lua syntax, TOC entries and package contents were verified.
+- All 25 automated Lua tests passed.
+- All runtime Lua files passed syntax validation.
+- The package contains only runtime files, documentation and required embedded libraries.
 - The version tag matches `HeliHeal.toc`.
 - This beta release is intended for in-game testing and player feedback.
