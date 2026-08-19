@@ -62,9 +62,13 @@ local function getActionSlot(bindingAction)
         end
         return ((math.max(1, page) - 1) * 12) + button
     end
-    local prefix, multiButton = bindingAction and bindingAction:match("^(MULTIACTIONBAR%dBUTTON)(%d+)$")
+    local prefix, multiButton
+    if bindingAction then
+        prefix, multiButton = bindingAction:match("^(MULTIACTIONBAR%dBUTTON)(%d+)$")
+    end
+    multiButton = tonumber(multiButton)
     local firstSlot = prefix and MULTI_BAR_ACTION_SLOTS[prefix]
-    return firstSlot and firstSlot + tonumber(multiButton) - 1 or nil
+    return firstSlot and multiButton and (firstSlot + multiButton - 1) or nil
 end
 
 function HeliHeal:GetLiveGCDRemaining(now)
