@@ -63,6 +63,14 @@ local enUS = {
     ["Zeigt den beobachteten Input unter dem Icon."] = "Shows the observed input below the icon.",
     ["Cooldown-Zahl"] = "Cooldown number",
     ["Zeigt den lokal simulierten Cooldown mittig auf dem Icon."] = "Shows the locally simulated cooldown on the icon.",
+    ["Dispel-Cooldown am Mauszeiger"] = "Dispel cooldown at cursor",
+    ["Zeigt nach einem bestätigten Dispel dessen lokalen Cooldown neben der Maus."] = "Shows the local cooldown next to the cursor after a confirmed dispel.",
+    ["Dispel-Icon-Größe"] = "Dispel icon size",
+    ["Größe der Dispel-Cooldown-Anzeige am Mauszeiger."] = "Size of the dispel cooldown display at the cursor.",
+    ["Dispel-Cursor X"] = "Dispel cursor X",
+    ["Horizontaler Abstand der Dispel-Anzeige zum Mauszeiger."] = "Horizontal offset of the dispel display from the cursor.",
+    ["Dispel-Cursor Y"] = "Dispel cursor Y",
+    ["Vertikaler Abstand der Dispel-Anzeige zum Mauszeiger."] = "Vertical offset of the dispel display from the cursor.",
     ["SCHRIFT, GRÖSSE & FARBEN"] = "FONT, SIZE & COLORS",
     ["HUD-Schriftart"] = "HUD font",
     ["Wählt die Schriftart für alle Texte im Priority-HUD."] = "Selects the font used by all text in the priority HUD.",
@@ -336,6 +344,7 @@ local enUS = {
     ["Thunder Focus Tea, Renewing Mist, Sheilun's Gift, Teachings of the Monastery und Heart of the Jade Serpent werden lokal aus bestätigten Casts simuliert."] = "Thunder Focus Tea, Renewing Mist, Sheilun's Gift, Teachings of the Monastery and Heart of the Jade Serpent are now simulated locally from confirmed casts.",
     ["Die Hero-Talent-Erkennung berücksichtigt aktuelle Conduit- und Aspect-of-Harmony-Spellvarianten und behält den gewählten Inhaltstyp bei."] = "Hero talent detection now recognizes current Conduit and Aspect of Harmony spell variants while preserving the selected content type.",
     ["Notfallheilungen, große Cooldowns und nicht lesbare Procs bleiben auf passende Kontextmodi begrenzt."] = "Emergency heals, major cooldowns and unreadable procs remain limited to appropriate context modes.",
+    ["Eine optionale Cursor-Anzeige verfolgt den Dispel-Cooldown nach einem bestätigten erfolgreichen Cast."] = "An optional cursor display tracks the dispel cooldown after a confirmed successful cast.",
 }
 
 local deDE = {

@@ -16,6 +16,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Keyboard, modifier, mouse-button and mouse-wheel bindings
 - Mouse-button support over unit and raid frames
 - Successful-cast confirmation and live GCD locking
+- Optional healer-dispel cooldown display beside the mouse cursor
 - Local cooldown, charge and HoT estimates
 - Optional AOE, SINGLE, BURST and SAVE role labels on contextual healing icons
 - Per-element HUD sizing, positioning, icon zoom, fonts, outlines and colors

@@ -229,6 +229,23 @@ function HeliHeal:CreateDisplay()
     end)
 
     self.frame = frame
+
+    local dispelFrame = CreateFrame("Frame", "HeliHealDispelCursorFrame", UIParent, "BackdropTemplate")
+    dispelFrame:SetFrameStrata("TOOLTIP")
+    dispelFrame:EnableMouse(false)
+    dispelFrame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+    dispelFrame.icon = dispelFrame:CreateTexture(nil, "ARTWORK")
+    dispelFrame.icon:SetPoint("TOPLEFT", 3, -3)
+    dispelFrame.icon:SetPoint("BOTTOMRIGHT", -3, 3)
+    dispelFrame.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    dispelFrame.cooldown = CreateFrame("Cooldown", nil, dispelFrame, "CooldownFrameTemplate")
+    dispelFrame.cooldown:SetAllPoints(dispelFrame.icon)
+    dispelFrame.cooldown:SetDrawEdge(false)
+    dispelFrame.cooldown:SetHideCountdownNumbers(true)
+    dispelFrame.remaining = dispelFrame:CreateFontString(nil, "OVERLAY")
+    dispelFrame.remaining:SetPoint("CENTER")
+    dispelFrame:Hide()
+    self.dispelCursorFrame = dispelFrame
 end
 
 function HeliHeal:GetDisplayOrder(now)
@@ -420,15 +437,63 @@ function HeliHeal:ApplyDisplaySettings()
     frame:SetScale(profile.scale)
     frame:EnableMouse(not profile.locked)
     frame:SetShown(profile.enabled and self.supportedClass)
+    if self.dispelCursorFrame and (not profile.enabled or not self.supportedClass
+        or not profile.showDispelCursor) then
+        self.dispelCursorFrame:Hide()
+    end
     self:RefreshDisplay()
+end
+
+function HeliHeal:RefreshDispelCursor(now)
+    local frame = self.dispelCursorFrame
+    local profile = self.db and self.db.profile
+    if not frame or not profile or not profile.enabled or not self.supportedClass
+        or not profile.showDispelCursor or type(GetCursorPosition) ~= "function" then
+        if frame then frame:Hide() end
+        return
+    end
+    local dispel, remaining, usedAt = self:GetDispelCooldownState(now)
+    if not dispel or remaining <= 0 or not usedAt then
+        frame:Hide()
+        return
+    end
+
+    local cursorX, cursorY = GetCursorPosition()
+    local uiScale = UIParent and UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
+    uiScale = tonumber(uiScale) or 1
+    if uiScale <= 0 then uiScale = 1 end
+    local size = clamp(profile.dispelCursorSize, 20, 80, 34)
+    local offsetX = clamp(profile.dispelCursorOffsetX, -100, 100, 24)
+    local offsetY = clamp(profile.dispelCursorOffsetY, -100, 100, -24)
+    local font = getHudFont(profile)
+    local flags = getFontFlags(profile)
+    local accentR, accentG, accentB = getColor(profile.accentColor, DEFAULT_ACCENT)
+    local cooldownR, cooldownG, cooldownB = getColor(profile.cooldownColor, DEFAULT_COOLDOWN)
+    local backgroundR, backgroundG, backgroundB = getColor(profile.iconBackgroundColor, DEFAULT_ICON_BACKGROUND)
+
+    frame:SetSize(size, size)
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT",
+        (cursorX / uiScale) + offsetX, (cursorY / uiScale) + offsetY)
+    frame:SetBackdropColor(backgroundR, backgroundG, backgroundB, 0.96)
+    frame:SetBackdropBorderColor(accentR, accentG, accentB, 1)
+    frame.icon:SetTexture(dispel.icon)
+    frame.icon:SetDesaturated(true)
+    frame.cooldown:SetCooldown(usedAt, dispel.cooldown)
+    frame.remaining:SetFont(font, clamp(profile.cooldownFontSize, 10, 30, 14), flags)
+    frame.remaining:SetTextColor(cooldownR, cooldownG, cooldownB, 1)
+    frame.remaining:SetText(formatRemaining(remaining))
+    frame:Show()
 end
 
 function HeliHeal:RefreshDisplay()
     if not self.frame or not self.db.profile.enabled then
+        if self.dispelCursorFrame then self.dispelCursorFrame:Hide() end
         return
     end
 
     local now = GetTime()
+    self:RefreshDispelCursor(now)
     local order = self:GetDisplayOrder(now)
     local profile = self.db.profile
     local primaryWidth = clamp(profile.primaryIconWidth or profile.primaryIconSize, 32, 160, 62)

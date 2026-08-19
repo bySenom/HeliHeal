@@ -220,4 +220,15 @@ now = 100.1
 assert(not addon:RecordPlayerSpellSucceeded(31884) and acknowledgements[5] == 1,
     "duplicate success events inside the correlation window must not acknowledge twice")
 
+local dispelConfirmations = 0
+addon.RecordDispelSpellSucceeded = function(_, spellID)
+    if spellID ~= 77130 then
+        return false
+    end
+    dispelConfirmations = dispelConfirmations + 1
+    return true
+end
+assert(addon:RecordPlayerSpellSucceeded(77130) and dispelConfirmations == 1,
+    "a successful healer dispel must start the cursor cooldown without a rotation slot")
+
 print("Input guard OK: direct and Assisted Combat casts, exact GCD locks and live Holy Power sync")

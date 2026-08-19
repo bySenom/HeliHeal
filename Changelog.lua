@@ -12,6 +12,7 @@ ns.changelog = {
                 "Thunder Focus Tea, Renewing Mist, Sheilun's Gift, Teachings of the Monastery und Heart of the Jade Serpent werden lokal aus bestätigten Casts simuliert.",
                 "Die Hero-Talent-Erkennung berücksichtigt aktuelle Conduit- und Aspect-of-Harmony-Spellvarianten und behält den gewählten Inhaltstyp bei.",
                 "Notfallheilungen, große Cooldowns und nicht lesbare Procs bleiben auf passende Kontextmodi begrenzt.",
+                "Eine optionale Cursor-Anzeige verfolgt den Dispel-Cooldown nach einem bestätigten erfolgreichen Cast.",
             },
         },
         {

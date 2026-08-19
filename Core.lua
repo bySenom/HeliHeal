@@ -26,6 +26,14 @@ local HEALER_SPECIALIZATIONS = {
     MONK = 270,
 }
 
+local HEALER_DISPELS = {
+    SHAMAN = { spellID = 77130, name = "Purify Spirit", cooldown = 8 },
+    DRUID = { spellID = 88423, name = "Nature's Cure", cooldown = 8 },
+    PALADIN = { spellID = 4987, name = "Cleanse", cooldown = 8 },
+    PRIEST = { spellID = 527, name = "Purify", cooldown = 8 },
+    MONK = { spellID = 115450, name = "Detox", cooldown = 8 },
+}
+
 local CURRENT_SCHEMA_VERSION = 3
 local ROTATION_DATA_VERSION = 12117
 local STORMSTREAM_CAST_SPELL_IDS = {
@@ -54,7 +62,7 @@ local PERSISTENT_RUNTIME_FIELDS = {
     "unleashConsumptionHistory", "riptideRechargeRateUntil", "priestApotheosisUntil",
     "pendingMonkTea", "monkJadeSerpentUntil", "monkConduitHeartAt",
     "sessionMonkRenewingMists", "monkSheilunClouds", "monkSheilunCombatStartedAt",
-    "monkSheilunLeftCombatAt", "monkTeachingsStacks",
+    "monkSheilunLeftCombatAt", "monkTeachingsStacks", "dispelUsedAt",
 }
 
 function HeliHeal:ResetInputState()
@@ -98,6 +106,44 @@ function HeliHeal:ResetRuntimeState()
     self.monkSheilunCombatStartedAt = nil
     self.monkSheilunLeftCombatAt = nil
     self.monkTeachingsStacks = 0
+    self.dispelUsedAt = nil
+end
+
+function HeliHeal:GetDispelInfo()
+    local configured = HEALER_DISPELS[self.classToken]
+    if not configured or not self.supportedClass then return nil end
+    local name, icon = configured.name, ns.media and ns.media.fallbackIcon
+    if C_Spell and type(C_Spell.GetSpellInfo) == "function" then
+        local ok, info = pcall(C_Spell.GetSpellInfo, configured.spellID)
+        if ok and type(info) == "table" then
+            name = info.name or name
+            icon = info.iconID or icon
+        end
+    end
+    return {
+        spellID = configured.spellID,
+        name = name,
+        icon = icon,
+        cooldown = configured.cooldown,
+    }
+end
+
+function HeliHeal:RecordDispelSpellSucceeded(spellID, now)
+    local dispel = self:GetDispelInfo()
+    if not dispel or tonumber(spellID) ~= dispel.spellID then return false end
+    self.dispelUsedAt = now or GetTime()
+    if self.frame then self:RefreshDisplay() end
+    return true
+end
+
+function HeliHeal:GetDispelCooldownState(now)
+    local dispel = self:GetDispelInfo()
+    if not dispel then return nil end
+    now = now or GetTime()
+    local usedAt = tonumber(self.dispelUsedAt)
+    local remaining = usedAt and math.max(0, usedAt + dispel.cooldown - now) or 0
+    if remaining <= 0 then self.dispelUsedAt = nil end
+    return dispel, remaining, usedAt
 end
 
 function HeliHeal:CaptureZoneRuntimeState()
@@ -253,6 +299,7 @@ function HeliHeal:OnDisable()
     if self.talentListener then self.talentListener:UnregisterAllEvents() end
     self:ResetRuntimeState()
     if self.frame then self.frame:Hide() end
+    if self.dispelCursorFrame then self.dispelCursorFrame:Hide() end
 end
 
 function HeliHeal:RefreshFromProfile()

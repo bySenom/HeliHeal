@@ -772,6 +772,7 @@ function HeliHeal:BuildStylePage(parent)
         { L("Hotkey"), L("Zeigt den beobachteten Input unter dem Icon."), "showHotkey" },
         { L("Rollen-Hinweis"), L("Zeigt AOE, SINGLE, BURST oder SAVE mittig auf passenden Heilfähigkeiten."), "showRoleLabel" },
         { L("Cooldown-Zahl"), L("Zeigt den lokal simulierten Cooldown mittig auf dem Icon."), "showCooldown" },
+        { L("Dispel-Cooldown am Mauszeiger"), L("Zeigt nach einem bestätigten Dispel dessen lokalen Cooldown neben der Maus."), "showDispelCursor" },
     }
 
     local scroll = CreateFrame("ScrollFrame", nil, page)
@@ -925,6 +926,12 @@ function HeliHeal:BuildStylePage(parent)
         "panelPaddingY", 0, 40, 1, pixels)
     addSlider("icons", "Panel-Deckkraft", "Deckkraft des gemeinsamen HUD-Hintergrunds.",
         "panelBackgroundAlpha", 0, 1, 0.05, percent)
+    addSlider("icons", "Dispel-Icon-Größe", "Größe der Dispel-Cooldown-Anzeige am Mauszeiger.",
+        "dispelCursorSize", 20, 80, 1, pixels)
+    addSlider("icons", "Dispel-Cursor X", "Horizontaler Abstand der Dispel-Anzeige zum Mauszeiger.",
+        "dispelCursorOffsetX", -100, 100, 1, signedPixels)
+    addSlider("icons", "Dispel-Cursor Y", "Vertikaler Abstand der Dispel-Anzeige zum Mauszeiger.",
+        "dispelCursorOffsetY", -100, 100, 1, signedPixels)
 
     addSlider("hotkey", "Hotkey-Textgröße", "Größe der Tastenbezeichnung unter dem Icon.",
         "hotkeyFontSize", 7, 20, 1, pixels)
@@ -1070,6 +1077,7 @@ function HeliHeal:BuildStylePage(parent)
             "primaryIconWidth", "primaryIconHeight", "primaryIconZoom", "primaryIconOffsetX", "primaryIconOffsetY",
             "secondaryIconWidth", "secondaryIconHeight", "secondaryIconZoom", "secondaryIconOffsetX", "secondaryIconOffsetY",
             "iconInset", "panelPaddingX", "panelPaddingY", "panelBackgroundAlpha",
+            "dispelCursorSize", "dispelCursorOffsetX", "dispelCursorOffsetY",
             "roleLabelSize", "roleLabelOffsetX", "roleLabelOffsetY",
             "hotkeyFontSize", "hotkeyOffsetX", "hotkeyOffsetY", "hotkeyBadgeHeight", "hotkeyBadgeMinWidth",
             "hotkeyBadgePadding", "cooldownFontSize", "cooldownOffsetX", "cooldownOffsetY",
