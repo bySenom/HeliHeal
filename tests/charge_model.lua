@@ -94,6 +94,7 @@ expect(2, 0, nil, "second sequential recharge")
 now = 100
 addon:AcknowledgeSlot(2)
 assert(addon.pendingSwiftness and addon.pendingSwiftness.slotIndex == 2, "swiftness must remain armed")
+assert(addon.pendingSwiftness.expiresAt == nil, "swiftness must remain armed until a consumer succeeds")
 assert(addon.sessionUses[2] == nil, "swiftness cooldown must not start on key press")
 expect(2, 1, nil, "swiftness grants one stormstream use")
 

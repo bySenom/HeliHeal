@@ -34,6 +34,27 @@ local HEALER_DISPELS = {
     MONK = { spellID = 115450, name = "Detox", cooldown = 8 },
 }
 
+-- Nature's Swiftness does not begin its cooldown when the buff is armed.
+-- UNIT_SPELLCAST_SUCCEEDED for one of these consumers is the first safe,
+-- target-independent signal that the local cooldown may start.
+local SWIFTNESS_CONSUMER_SPELL_IDS = {
+    DRUID = {
+        [8936] = true,  -- Regrowth
+        [20484] = true, -- Rebirth
+        [339] = true,   -- Entangling Roots
+    },
+    SHAMAN = {
+        [8004] = true,   -- Healing Surge
+        [1064] = true,   -- Chain Heal
+        [73920] = true,  -- Healing Rain
+        [77472] = true,  -- Healing Wave
+        [197995] = true, -- Wellspring
+        [188196] = true, -- Lightning Bolt
+        [188443] = true, -- Chain Lightning
+        [117014] = true, -- Elemental Blast
+    },
+}
+
 local CURRENT_SCHEMA_VERSION = 4
 local ROTATION_DATA_VERSION = 12117
 local STORMSTREAM_CAST_SPELL_IDS = {
@@ -1454,9 +1475,15 @@ function HeliHeal:ArmSwiftness(slotIndex, ability, now)
         armedAt = now,
         consumerAbilityKey = ability.preferredSwiftnessConsumer or "chain_heal",
         bonusGrantedTo = ability.grantsBonusChargeTo,
-        expiresAt = now + 15,
     }
     return true
+end
+
+function HeliHeal:ConsumeSwiftnessForSpell(spellID, now)
+    if not self.pendingSwiftness then return false end
+    local consumers = SWIFTNESS_CONSUMER_SPELL_IDS[self.classToken]
+    if not consumers or not consumers[tonumber(spellID)] then return false end
+    return self:ConsumeSwiftness(now)
 end
 
 function HeliHeal:ConsumeSwiftness(now)
@@ -1666,7 +1693,11 @@ function HeliHeal:RefundAbility(abilityName)
     local key = (abilityName or ""):lower():gsub("[%s_%-]", "")
     key = aliases[key] or key
     if key == "natures_swiftness" and not self:GetSlotIndexByAbilityKey(key) then
-        key = "ancestral_swiftness"
+        if self:GetSlotIndexByAbilityKey("druid_natures_swiftness") then
+            key = "druid_natures_swiftness"
+        else
+            key = "ancestral_swiftness"
+        end
     end
     if key == "downpour" then
         if self.talentSnapshot and self.talentSnapshot.available and not self:IsTalentActive("downpour") then

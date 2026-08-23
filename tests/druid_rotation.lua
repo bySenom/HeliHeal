@@ -176,14 +176,29 @@ assert(addon:GetSlot(swiftnessIndex).confirmOnPlayerSuccess,
     "Nature's Swiftness must use direct successful-cast confirmation")
 assert(addon:RecordPlayerSpellSucceeded(132158),
     "Nature's Swiftness must confirm without a correlated action-bar input")
-assert(addon.sessionUses[swiftnessIndex] == now,
-    "a successful Nature's Swiftness cast must start its local cooldown")
+assert(addon.pendingSwiftness and addon.pendingSwiftness.slotIndex == swiftnessIndex,
+    "Nature's Swiftness activation must arm its local consumer state")
+assert(addon.pendingSwiftness.expiresAt == nil,
+    "the armed Nature's Swiftness state must remain until a confirmed consumer")
+assert(addon.sessionUses[swiftnessIndex] == nil,
+    "Nature's Swiftness activation must not start its local cooldown")
 local swiftnessItem
 for _, item in ipairs(addon:GetDisplayOrder(now)) do
     if item.ability.abilityKey == "druid_natures_swiftness" then swiftnessItem = item end
 end
+assert(not swiftnessItem,
+    "an armed Nature's Swiftness must leave the ready strip without pretending to be on cooldown")
+
+now = now + 1
+assert(addon:RecordPlayerSpellSucceeded(8936),
+    "a confirmed Regrowth must consume the armed Nature's Swiftness")
+assert(not addon.pendingSwiftness and addon.sessionUses[swiftnessIndex] == now,
+    "Nature's Swiftness cooldown must begin on the confirmed consumer")
+for _, item in ipairs(addon:GetDisplayOrder(now)) do
+    if item.ability.abilityKey == "druid_natures_swiftness" then swiftnessItem = item end
+end
 assert(swiftnessItem and math.abs(swiftnessItem.remaining - 60) < 0.001,
-    ("the HUD must move Nature's Swiftness into its sixty-second waiting state (got %s)")
+    ("the HUD must start Nature's Swiftness's sixty-second wait after consumption (got %s)")
         :format(swiftnessItem and tostring(swiftnessItem.remaining) or "missing"))
 addon.talentSnapshot.druidPassingSeasons = true
 assert(addon:GetSlot(swiftnessIndex).cooldown == 45,

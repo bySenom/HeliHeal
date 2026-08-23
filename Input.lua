@@ -220,6 +220,8 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID)
     if not spellID then return false end
     local dispelConfirmed = self.RecordDispelSpellSucceeded
         and self:RecordDispelSpellSucceeded(spellID, GetTime()) or false
+    local swiftnessConsumed = self.ConsumeSwiftnessForSpell
+        and self:ConsumeSwiftnessForSpell(spellID, GetTime()) or false
     self.recentSuccessfulSpells = self.recentSuccessfulSpells or {}
     self.recentSuccessfulSpells[spellID] = GetTime()
     if self:CommitObservedSpell(spellID) or self:CommitAssistedCombatSpell(spellID)
@@ -229,7 +231,7 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID)
         return true
     end
     self:ScheduleHolyPowerSync()
-    return dispelConfirmed
+    return dispelConfirmed or swiftnessConsumed
 end
 
 function HeliHeal:CommitConfiguredPlayerSpell(spellID)

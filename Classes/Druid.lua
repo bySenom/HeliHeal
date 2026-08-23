@@ -45,6 +45,8 @@ local abilities = {
         cooldown = 60,
         cooldownTalent = "druidPassingSeasons",
         cooldownReduction = 15,
+        armsSwiftness = true,
+        preferredSwiftnessConsumer = "druid_regrowth",
         confirmOnPlayerSuccess = true,
         inputLockout = 1.0,
     },
@@ -52,6 +54,7 @@ local abilities = {
         spellID = 8936,
         name = "Regrowth",
         cooldown = 0,
+        consumesSwiftness = true,
         inputLockout = 1.5,
     },
     druid_convoke = {

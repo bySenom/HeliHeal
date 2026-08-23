@@ -126,4 +126,10 @@ end
 assert(not unleashPreview or unleashPreview.remaining > 0,
     "Unleash Life may remain only as an explicitly cooling-down preview")
 
+now = 6
+assert(addon:RecordPlayerSpellSucceeded(188196),
+    "a successful Lightning Bolt must consume an armed shaman Nature's Swiftness")
+assert(not addon.pendingSwiftness and addon.sessionUses[swiftnessIndex] == now,
+    "shaman Nature's Swiftness cooldown must begin on its confirmed Nature-spell consumer")
+
 print("Stormstream sequence OK: 2/2 -> 3/2 -> Stormstream -> exactly two normal HST uses")
