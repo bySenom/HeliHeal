@@ -116,6 +116,16 @@ function HeliHeal:GetBadgeAwareSpacing(previousIconSize, previousBadgeWidth, ico
     return math.max(preferredSpacing or 0, previousOverhang + currentOverhang + 2)
 end
 
+function HeliHeal:GetPrimaryChoiceGroup(order, mode)
+    if type(order) ~= "table" or (mode or self:GetHealingMode()) ~= "standard" then return nil end
+    local first, second = order[1], order[2]
+    local firstGroup = first and first.ability and first.ability.choiceGroup
+    local secondGroup = second and second.ability and second.ability.choiceGroup
+    if not firstGroup or firstGroup == "" or firstGroup ~= secondGroup then return nil end
+    if (first.remaining or 0) > 0 or (second.remaining or 0) > 0 then return nil end
+    return firstGroup
+end
+
 function HeliHeal:CreateDisplay()
     local frame = CreateFrame("Frame", "HeliHealPriorityFrame", UIParent, "BackdropTemplate")
     frame:SetClampedToScreen(true)
@@ -219,6 +229,20 @@ function HeliHeal:CreateDisplay()
 
         frame.slots[index] = button
     end
+
+    frame.choiceBadge = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    frame.choiceBadge:SetSize(24, 16)
+    frame.choiceBadge:SetFrameLevel(frame:GetFrameLevel() + 10)
+    frame.choiceBadge:EnableMouse(false)
+    frame.choiceBadge:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+    frame.choiceBadge:SetBackdropColor(0.018, 0.026, 0.034, 0.98)
+    frame.choiceBadge:SetBackdropBorderColor(0.02, 0.88, 0.7, 1)
+    frame.choiceBadge.label = frame.choiceBadge:CreateFontString(nil, "OVERLAY")
+    frame.choiceBadge.label:SetFont(ns.media.font, 8, "OUTLINE")
+    frame.choiceBadge.label:SetPoint("CENTER", 0, 0)
+    frame.choiceBadge.label:SetText(L("ODER"))
+    frame.choiceBadge.label:SetTextColor(0.02, 0.88, 0.7, 1)
+    frame.choiceBadge:Hide()
 
     frame:SetScript("OnUpdate", function(_, elapsed)
         HeliHeal.updateElapsed = (HeliHeal.updateElapsed or 0) + elapsed
@@ -513,6 +537,8 @@ function HeliHeal:RefreshDisplay()
     self:RefreshDispelCursor(now)
     local order = self:GetDisplayOrder(now)
     local profile = self.db.profile
+    local primaryChoiceGroup = profile.showChoiceIndicator ~= false
+        and self:GetPrimaryChoiceGroup(order) or nil
     local primaryWidth = clamp(profile.primaryIconWidth or profile.primaryIconSize, 32, 160, 62)
     local primaryHeight = clamp(profile.primaryIconHeight or profile.primaryIconSize, 32, 160, 62)
     local secondaryWidth = clamp(profile.secondaryIconWidth or profile.secondaryIconSize, 24, 128, 46)
@@ -541,6 +567,7 @@ function HeliHeal:RefreshDisplay()
     local totalWidth = 0
     local previousSize
     local previousBadgeWidth
+    local previousOffsetY
     local lastOverhang = 0
     local configuredPaddingX = clamp(profile.panelPaddingX, 0, 40, 2)
     local configuredPaddingY = clamp(profile.panelPaddingY, 0, 40, 2)
@@ -576,14 +603,18 @@ function HeliHeal:RefreshDisplay()
         clamp(profile.headerOffsetX, -80, 80, 10), clamp(profile.headerOffsetY, -50, 30, -9))
     self.frame.title:SetTextColor(headerR, headerG, headerB, 1)
     self.frame.title:SetText("HELIHEAL  •  " .. self:GetHealingModeLabel():upper())
+    self.frame.choiceBadge:Hide()
 
     for displayIndex = 1, DISPLAY_SLOT_COUNT do
         local button = self.frame.slots[displayIndex]
         local item = order[displayIndex]
         if item then
-            local width = displayIndex == 1 and primaryWidth or secondaryWidth
-            local height = displayIndex == 1 and primaryHeight or secondaryHeight
-            local currentOffsetY = displayIndex == 1 and primaryOffsetY or secondaryOffsetY
+            local choiceMember = primaryChoiceGroup and displayIndex <= 2
+                and item.ability.choiceGroup == primaryChoiceGroup or false
+            local usePrimaryStyle = displayIndex == 1 or choiceMember
+            local width = usePrimaryStyle and primaryWidth or secondaryWidth
+            local height = usePrimaryStyle and primaryHeight or secondaryHeight
+            local currentOffsetY = usePrimaryStyle and primaryOffsetY or secondaryOffsetY
             local configuredSlot = self.db.profile.slots[item.slotIndex]
             local hotkeyLabel = configuredSlot.inputKey or ("P" .. item.slotIndex)
             if profile.compactHotkeys ~= false then
@@ -614,11 +645,22 @@ function HeliHeal:RefreshDisplay()
             else
                 local badgeSpacing = self:GetBadgeAwareSpacing(
                     previousSize, previousBadgeWidth, width, layoutBadgeWidth, spacing)
-                if displayIndex == 2 then badgeSpacing = badgeSpacing + secondaryOffsetX end
-                local previousOffsetY = displayIndex == 2 and primaryOffsetY or secondaryOffsetY
+                if displayIndex == 2 and not primaryChoiceGroup then
+                    badgeSpacing = badgeSpacing + secondaryOffsetX
+                end
                 button:SetPoint("LEFT", self.frame.slots[displayIndex - 1], "RIGHT",
-                    badgeSpacing, currentOffsetY - previousOffsetY)
+                    badgeSpacing, currentOffsetY - (previousOffsetY or 0))
                 totalWidth = totalWidth + badgeSpacing + width
+                if displayIndex == 2 and primaryChoiceGroup then
+                    self.frame.choiceBadge:ClearAllPoints()
+                    self.frame.choiceBadge:SetPoint("CENTER", self.frame.slots[1], "RIGHT", badgeSpacing / 2, 0)
+                    self.frame.choiceBadge:SetBackdropColor(panelR, panelG, panelB, 0.98)
+                    self.frame.choiceBadge:SetBackdropBorderColor(accentR, accentG, accentB, 1)
+                    self.frame.choiceBadge.label:SetFont(hudFont, 8, fontFlags)
+                    self.frame.choiceBadge.label:SetText(L("ODER"))
+                    self.frame.choiceBadge.label:SetTextColor(accentR, accentG, accentB, 1)
+                    self.frame.choiceBadge:Show()
+                end
             end
 
             button.icon:ClearAllPoints()
@@ -630,7 +672,7 @@ function HeliHeal:RefreshDisplay()
                 button.icon:SetAllPoints()
                 button.shadow:Hide()
             end
-            local crop = getIconCrop(displayIndex == 1 and profile.primaryIconZoom or profile.secondaryIconZoom)
+            local crop = getIconCrop(usePrimaryStyle and profile.primaryIconZoom or profile.secondaryIconZoom)
             button.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
 
             button.icon:SetTexture(item.ability.icon)
@@ -649,7 +691,7 @@ function HeliHeal:RefreshDisplay()
                     profile.roleColors and profile.roleColors[roleLabel], DEFAULT_ROLE_COLORS[roleLabel])
             end
             local roleSize = clamp(profile.roleLabelSize, 7, 24, 10)
-            button.roleLabel:SetFont(hudFont, displayIndex == 1 and roleSize or math.max(7, roleSize - 2), fontFlags)
+            button.roleLabel:SetFont(hudFont, usePrimaryStyle and roleSize or math.max(7, roleSize - 2), fontFlags)
             button.roleLabel:ClearAllPoints()
             button.roleLabel:SetPoint("CENTER", button, "CENTER",
                 clamp(profile.roleLabelOffsetX, -80, 80, 0), clamp(profile.roleLabelOffsetY, -80, 80, 0))
@@ -680,7 +722,7 @@ function HeliHeal:RefreshDisplay()
             button.roleLabel:SetShown(roleLabel ~= nil and item.remaining <= 0
                 and not item.trackedText and not (item.charges and item.charges > 1))
             button.name:SetShown(profile.showAbilityName)
-            button.priorityBadge:SetShown(profile.showPriorityBadge)
+            button.priorityBadge:SetShown(profile.showPriorityBadge and not choiceMember)
 
             if item.remaining > 0 and item.usedAt and item.cooldownDuration > 0 then
                 button.cooldown:SetCooldown(item.usedAt, item.cooldownDuration)
@@ -688,7 +730,7 @@ function HeliHeal:RefreshDisplay()
                 button.keyBadge:SetBackdropBorderColor(0.18, 0.24, 0.27, 1)
             else
                 button.cooldown:Clear()
-                if displayIndex == 1 then
+                if displayIndex == 1 or choiceMember then
                     button:SetBackdropBorderColor(accentR, accentG, accentB, profile.showIconBorder and 1 or 0)
                     button.keyBadge:SetBackdropBorderColor(accentR, accentG, accentB, 1)
                 else
@@ -699,6 +741,7 @@ function HeliHeal:RefreshDisplay()
             button:Show()
             previousSize = width
             previousBadgeWidth = layoutBadgeWidth
+            previousOffsetY = currentOffsetY
             lastOverhang = overhang
         else
             button:Hide()

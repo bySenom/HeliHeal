@@ -771,6 +771,7 @@ function HeliHeal:BuildStylePage(parent)
         { L("Icon-Rahmen"), L("Schmaler Rahmen und Schatten um jedes Spell-Icon."), "showIconBorder" },
         { L("Hotkey"), L("Zeigt den beobachteten Input unter dem Icon."), "showHotkey" },
         { L("Rollen-Hinweis"), L("Zeigt AOE, SINGLE, BURST oder SAVE mittig auf passenden Heilfähigkeiten."), "showRoleLabel" },
+        { L("Situationsauswahl"), L("Zeigt gleichwertige situative Fähigkeiten als ODER-Auswahl an."), "showChoiceIndicator" },
         { L("Cooldown-Zahl"), L("Zeigt den lokal simulierten Cooldown mittig auf dem Icon."), "showCooldown" },
         { L("Dispel-Cooldown am Mauszeiger"), L("Zeigt nach einem bestätigten Dispel dessen lokalen Cooldown neben der Maus."), "showDispelCursor" },
     }

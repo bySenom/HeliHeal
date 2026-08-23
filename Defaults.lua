@@ -23,6 +23,7 @@ ns.defaults = {
         dispelCursorOffsetX = 42,
         dispelCursorOffsetY = -24,
         showRoleLabel = true,
+        showChoiceIndicator = true,
         hudFont = "friz",
         hudFontOutline = "OUTLINE",
         primaryIconSize = 62,

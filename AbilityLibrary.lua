@@ -49,6 +49,7 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.confirmOnPlayerSuccess = record.confirmOnPlayerSuccess == true
     record.hastedCooldown = record.hastedCooldown == true
     record.roleLabel = type(record.roleLabel) == "string" and record.roleLabel:upper() or nil
+    record.choiceGroup = type(record.choiceGroup) == "string" and record.choiceGroup or nil
     self.abilities[key] = record
     return record
 end
@@ -151,6 +152,7 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             confirmOnPlayerSuccess = ability.confirmOnPlayerSuccess,
             hastedCooldown = ability.hastedCooldown,
             roleLabel = ability.roleLabel,
+            choiceGroup = ability.choiceGroup,
             derivedBindingFrom = ability.derivedBindingFrom,
             inputKey = bindings and bindings[bindingKey] or "",
         }
@@ -212,6 +214,7 @@ function AbilityLibrary:Resolve(slot)
         confirmOnPlayerSuccess = slot.confirmOnPlayerSuccess == true,
         hastedCooldown = slot.hastedCooldown == true,
         roleLabel = type(slot.roleLabel) == "string" and slot.roleLabel:upper() or nil,
+        choiceGroup = type(slot.choiceGroup) == "string" and slot.choiceGroup or nil,
         derivedBindingFrom = slot.derivedBindingFrom,
         enabled = slot.enabled ~= false and spellID > 0,
     }

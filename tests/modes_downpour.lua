@@ -41,6 +41,11 @@ addon.Print = function() end
 
 local riptideIndex = addon:GetSlotIndexByAbilityKey("riptide")
 assert(addon:GetSlot(riptideIndex).cooldown == 6, "Totemic Riptide must use the six-second base recharge")
+local chainIndex = addon:GetSlotIndexByAbilityKey("chain_heal")
+local waveIndex = addon:GetSlotIndexByAbilityKey("healing_wave")
+assert(addon:GetSlot(chainIndex).choiceGroup == "shaman_healing_filler"
+    and addon:GetSlot(waveIndex).choiceGroup == "shaman_healing_filler",
+    "Chain Heal and Healing Wave must resolve as one situational filler choice")
 
 local function firstKey()
     return addon:GetDisplayOrder(now)[1].ability.abilityKey

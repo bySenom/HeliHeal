@@ -26,6 +26,18 @@ assert(addon:FormatHotkeyLabel("CTRL-ALT-MOUSEWHEELDOWN") == "C-A-WD",
 assert(addon:FormatHotkeyLabel("R") == "R",
     "short keyboard bindings must remain unchanged")
 
+local situationalPair = {
+    { ability = { choiceGroup = "healing_filler" }, remaining = 0 },
+    { ability = { choiceGroup = "healing_filler" }, remaining = 0 },
+}
+assert(addon:GetPrimaryChoiceGroup(situationalPair, "standard") == "healing_filler",
+    "two ready abilities in one choice group must form a Standard-mode choice pair")
+assert(not addon:GetPrimaryChoiceGroup(situationalPair, "aoe"),
+    "explicit AoE mode must preserve its ordered priority instead of showing an equal choice")
+situationalPair[2].remaining = 3
+assert(not addon:GetPrimaryChoiceGroup(situationalPair, "standard"),
+    "a cooling-down alternative must not form a ready choice pair")
+
 GetCursorPosition = function() return 200, 100 end
 UIParent = { GetEffectiveScale = function() return 2 end }
 addon.db = {
