@@ -121,6 +121,12 @@ function HeliHeal:GetChoiceBadgeBottomOffset(showAbilityName, abilityNameFontSiz
     return math.max(4, (abilityNameOffsetY or 4) + (abilityNameFontSize or 9) + 2)
 end
 
+function HeliHeal:GetManaBadgeBottomOffset(baseOffset, hasChoicePair)
+    -- AUTO/MANA and OR share the same horizontal area above the first two
+    -- icons. Keep OR closest to the choice and move AUTO/MANA one row higher.
+    return (baseOffset or 4) + (hasChoicePair and 18 or 0)
+end
+
 function HeliHeal:GetPrimaryChoiceGroup(order, mode)
     if type(order) ~= "table" or (mode or self:GetHealingMode()) ~= "standard" then return nil end
     local first, second = order[1], order[2]
@@ -674,6 +680,8 @@ function HeliHeal:RefreshDisplay()
                         profile.showAbilityName,
                         abilityNameFontSize,
                         clamp(profile.abilityNameOffsetY, -40, 60, 4))
+                    badgeBottomOffset = self:GetManaBadgeBottomOffset(
+                        badgeBottomOffset, primaryChoiceGroup ~= nil)
                     self.frame.manaBadge:ClearAllPoints()
                     self.frame.manaBadge:SetPoint("BOTTOM", button, "TOP", 0, badgeBottomOffset)
                     self.frame.manaBadge:SetBackdropColor(panelR, panelG, panelB, 0.98)

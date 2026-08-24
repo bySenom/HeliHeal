@@ -1,8 +1,17 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.15-beta.1",
+    currentVersion = "0.9.16-beta.1",
     entries = {
+        {
+            version = "0.9.16-beta.1",
+            title = "HUD Badge Layout Hotfix",
+            changes = {
+                "AUTO/MANA und ODER überlappen sich bei einer situativen Fähigkeitsauswahl nicht mehr.",
+                "ODER bleibt direkt über den Auswahl-Icons, während AUTO/MANA stabil eine Zeile darüber erscheint.",
+                "Das Icon-Frame behält seine Position, wenn die Auswahlhinweise ein- oder ausgeblendet werden.",
+            },
+        },
         {
             version = "0.9.15-beta.1",
             title = "Automatic Mana Saving and Shaman Mana Model",
