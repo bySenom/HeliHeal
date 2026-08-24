@@ -1,8 +1,21 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.14-beta.1",
+    currentVersion = "0.9.15-beta.1",
     entries = {
+        {
+            version = "0.9.15-beta.1",
+            title = "Automatic Mana Saving and Shaman Mana Model",
+            changes = {
+                "Ein optionaler Beta-Modus wechselt bei einer einstellbaren lokalen Mana-Schwelle automatisch zu Mana sparen.",
+                "Das persistente Shamanen-Mana-Modell berücksichtigt feste 12.1-Zauberkosten und die zwischengespeicherte Regeneration inklusive Wasserschild.",
+                "Totem des Heilenden Flusses und seine Stormstream-Aliase verbrauchen pro tatsächlichem Einsatz nur einmal Mana.",
+                "Das automatisch durch das Totem ausgelöste Kettenheilen wird als kostenloser Folgecast erkannt.",
+                "Der Mana-Sparmodus verwendet eine deutlich günstigere Priorität ohne Kettenheilung oder Wogendes Totem.",
+                "Situative AoE- und Einzelziel-Füllzauber erscheinen im Standardmodus als stabile ODER-Auswahl oberhalb der Icons.",
+                "Der Cooldown von Schnelligkeit der Natur beginnt erst, wenn der verstärkte Naturzauber erfolgreich verbraucht wurde.",
+            },
+        },
         {
             version = "0.9.14-beta.1",
             title = "Dispel Cursor and Runtime Reliability",

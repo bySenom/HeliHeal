@@ -116,6 +116,11 @@ function HeliHeal:GetBadgeAwareSpacing(previousIconSize, previousBadgeWidth, ico
     return math.max(preferredSpacing or 0, previousOverhang + currentOverhang + 2)
 end
 
+function HeliHeal:GetChoiceBadgeBottomOffset(showAbilityName, abilityNameFontSize, abilityNameOffsetY)
+    if not showAbilityName then return 4 end
+    return math.max(4, (abilityNameOffsetY or 4) + (abilityNameFontSize or 9) + 2)
+end
+
 function HeliHeal:GetPrimaryChoiceGroup(order, mode)
     if type(order) ~= "table" or (mode or self:GetHealingMode()) ~= "standard" then return nil end
     local first, second = order[1], order[2]
@@ -124,6 +129,12 @@ function HeliHeal:GetPrimaryChoiceGroup(order, mode)
     if not firstGroup or firstGroup == "" or firstGroup ~= secondGroup then return nil end
     if (first.remaining or 0) > 0 or (second.remaining or 0) > 0 then return nil end
     return firstGroup
+end
+
+function HeliHeal:ShouldShowAutomaticManaBadge()
+    local profile = self.db and self.db.profile
+    return profile and profile.autoManaMode == true and self.Mana
+        and self.Mana.current ~= nil and self.Mana.maximum ~= nil
 end
 
 function HeliHeal:CreateDisplay()
@@ -243,6 +254,20 @@ function HeliHeal:CreateDisplay()
     frame.choiceBadge.label:SetText(L("ODER"))
     frame.choiceBadge.label:SetTextColor(0.02, 0.88, 0.7, 1)
     frame.choiceBadge:Hide()
+
+    frame.manaBadge = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    frame.manaBadge:SetSize(58, 16)
+    frame.manaBadge:SetFrameLevel(frame:GetFrameLevel() + 10)
+    frame.manaBadge:EnableMouse(false)
+    frame.manaBadge:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+    frame.manaBadge:SetBackdropColor(0.018, 0.026, 0.034, 0.98)
+    frame.manaBadge:SetBackdropBorderColor(0.02, 0.88, 0.7, 1)
+    frame.manaBadge.label = frame.manaBadge:CreateFontString(nil, "OVERLAY")
+    frame.manaBadge.label:SetFont(ns.media.font, 8, "OUTLINE")
+    frame.manaBadge.label:SetPoint("CENTER", 0, 0)
+    frame.manaBadge.label:SetText("MANA")
+    frame.manaBadge.label:SetTextColor(0.02, 0.88, 0.7, 1)
+    frame.manaBadge:Hide()
 
     frame:SetScript("OnUpdate", function(_, elapsed)
         HeliHeal.updateElapsed = (HeliHeal.updateElapsed or 0) + elapsed
@@ -535,6 +560,7 @@ function HeliHeal:RefreshDisplay()
 
     local now = GetTime()
     self:RefreshDispelCursor(now)
+    if self.Mana and self.Mana:EvaluateAutoMode(now) then return end
     local order = self:GetDisplayOrder(now)
     local profile = self.db.profile
     local primaryChoiceGroup = profile.showChoiceIndicator ~= false
@@ -604,6 +630,7 @@ function HeliHeal:RefreshDisplay()
     self.frame.title:SetTextColor(headerR, headerG, headerB, 1)
     self.frame.title:SetText("HELIHEAL  •  " .. self:GetHealingModeLabel():upper())
     self.frame.choiceBadge:Hide()
+    self.frame.manaBadge:Hide()
 
     for displayIndex = 1, DISPLAY_SLOT_COUNT do
         local button = self.frame.slots[displayIndex]
@@ -642,6 +669,30 @@ function HeliHeal:RefreshDisplay()
                 button:SetPoint("BOTTOMLEFT", self.frame, "BOTTOMLEFT",
                     sidePadding + overhang + primaryLeftSafety + primaryOffsetX, bottomPadding + primaryOffsetY)
                 totalWidth = overhang + primaryLeftSafety + primaryOffsetX + width
+                if self:ShouldShowAutomaticManaBadge() then
+                    local badgeBottomOffset = self:GetChoiceBadgeBottomOffset(
+                        profile.showAbilityName,
+                        abilityNameFontSize,
+                        clamp(profile.abilityNameOffsetY, -40, 60, 4))
+                    self.frame.manaBadge:ClearAllPoints()
+                    self.frame.manaBadge:SetPoint("BOTTOM", button, "TOP", 0, badgeBottomOffset)
+                    self.frame.manaBadge:SetBackdropColor(panelR, panelG, panelB, 0.98)
+                    local manaSavingActive = self.Mana.autoModeActive == true
+                        and self:GetHealingMode() == "mana"
+                    self.frame.manaBadge:SetBackdropBorderColor(accentR, accentG, accentB,
+                        manaSavingActive and 1 or 0.55)
+                    self.frame.manaBadge.label:SetFont(hudFont, 8, fontFlags)
+                    local manaPercent = self.Mana and self.Mana:GetPercent()
+                    self.frame.manaBadge.label:SetText(manaPercent
+                        and ("%s %d%%"):format(manaSavingActive and "MANA" or "AUTO",
+                            math.floor((manaPercent * 100) + 0.5))
+                        or (manaSavingActive and "MANA" or "AUTO"))
+                    self.frame.manaBadge.label:SetTextColor(
+                        manaSavingActive and accentR or 0.60,
+                        manaSavingActive and accentG or 0.70,
+                        manaSavingActive and accentB or 0.74, 1)
+                    self.frame.manaBadge:Show()
+                end
             else
                 local badgeSpacing = self:GetBadgeAwareSpacing(
                     previousSize, previousBadgeWidth, width, layoutBadgeWidth, spacing)
@@ -652,8 +703,13 @@ function HeliHeal:RefreshDisplay()
                     badgeSpacing, currentOffsetY - (previousOffsetY or 0))
                 totalWidth = totalWidth + badgeSpacing + width
                 if displayIndex == 2 and primaryChoiceGroup then
+                    local choiceBadgeBottomOffset = self:GetChoiceBadgeBottomOffset(
+                        profile.showAbilityName,
+                        abilityNameFontSize,
+                        clamp(profile.abilityNameOffsetY, -40, 60, 4))
                     self.frame.choiceBadge:ClearAllPoints()
-                    self.frame.choiceBadge:SetPoint("CENTER", self.frame.slots[1], "RIGHT", badgeSpacing / 2, 0)
+                    self.frame.choiceBadge:SetPoint("BOTTOM", self.frame.slots[1], "TOPRIGHT",
+                        badgeSpacing / 2, choiceBadgeBottomOffset)
                     self.frame.choiceBadge:SetBackdropColor(panelR, panelG, panelB, 0.98)
                     self.frame.choiceBadge:SetBackdropBorderColor(accentR, accentG, accentB, 1)
                     self.frame.choiceBadge.label:SetFont(hudFont, 8, fontFlags)

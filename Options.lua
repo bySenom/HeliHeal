@@ -664,15 +664,43 @@ function HeliHeal:BuildPrioritiesPage(parent)
         page.modeButtons[modeKey] = button
     end
 
+    local manaSettingsOffset = 0
+    if self.classToken == "SHAMAN" and self.specializationID == 264 then
+        manaSettingsOffset = 72
+        local manaRow = createSettingRow(page, -190,
+            L("Automatischer Mana-Sparmodus"),
+            L("Nutzt die gespeicherte lokale Mana-Schätzung; eine manuelle Kalibrierung ist nur optional."))
+        manaRow.betaBadge = CreateFrame("Frame", nil, manaRow, "BackdropTemplate")
+        manaRow.betaBadge:SetSize(38, 16)
+        manaRow.betaBadge:SetPoint("LEFT", manaRow.title, "RIGHT", 8, 0)
+        backdrop(manaRow.betaBadge, C.accentDark, C.accent)
+        manaRow.betaBadge.label = text(manaRow.betaBadge, "BETA", 8, C.text, "OUTLINE")
+        manaRow.betaBadge.label:SetPoint("CENTER", 0, 0)
+        local threshold = createSlider(manaRow, 20, 30, 1,
+            function() return self.db.profile.autoManaThreshold or 25 end,
+            function(value) self.db.profile.autoManaThreshold = math.floor(value + 0.5) end,
+            function(value) return ("%d%%"):format(math.floor(value + 0.5)) end)
+        threshold:SetPoint("RIGHT", -150, 0)
+        local autoToggle = createToggle(manaRow,
+            function() return self.db.profile.autoManaMode == true end,
+            function(value)
+                self.db.profile.autoManaMode = value
+                if self.Mana then self.Mana:SetAutoModeEnabled(value) end
+            end)
+        autoToggle:SetPoint("RIGHT", -20, 0)
+        page.manaAutoToggle = autoToggle
+        page.manaThresholdSlider = threshold
+    end
+
     local priorityHeader = text(page, "PRIO", 9, C.muted, "OUTLINE")
-    priorityHeader:SetPoint("TOPLEFT", 34, -198)
+    priorityHeader:SetPoint("TOPLEFT", 34, -198 - manaSettingsOffset)
     local abilityHeader = text(page, L("FESTE GUIDE-FÄHIGKEIT"), 9, C.muted, "OUTLINE")
-    abilityHeader:SetPoint("TOPLEFT", 126, -198)
+    abilityHeader:SetPoint("TOPLEFT", 126, -198 - manaSettingsOffset)
     local bindingHeader = text(page, L("BEOBACHTETER ACTIONBAR-HOTKEY"), 9, C.muted, "OUTLINE")
-    bindingHeader:SetPoint("TOPLEFT", 494, -198)
+    bindingHeader:SetPoint("TOPLEFT", 494, -198 - manaSettingsOffset)
 
     local priorityScroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-    priorityScroll:SetPoint("TOPLEFT", 18, -210)
+    priorityScroll:SetPoint("TOPLEFT", 18, -210 - manaSettingsOffset)
     priorityScroll:SetPoint("BOTTOMRIGHT", -30, 46)
     local priorityContent = CreateFrame("Frame", nil, priorityScroll)
     priorityContent:SetWidth(1)
@@ -1607,6 +1635,8 @@ function HeliHeal:RefreshOptionsUI()
         button:SetBackdropBorderColor(unpackColor(active and C.accent or C.border))
         button.label:SetTextColor(unpackColor(active and C.accent or C.muted))
     end
+    if prioritiesPage.manaAutoToggle then prioritiesPage.manaAutoToggle:Refresh() end
+    if prioritiesPage.manaThresholdSlider then prioritiesPage.manaThresholdSlider:Refresh() end
 
 
     local conflictsByAbility = {}

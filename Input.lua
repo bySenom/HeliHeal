@@ -215,9 +215,10 @@ function HeliHeal:CommitObservedSpell(spellID)
     return false
 end
 
-function HeliHeal:RecordPlayerSpellSucceeded(spellID)
+function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
     spellID = tonumber(spellID)
     if not spellID then return false end
+    if self.Mana then self.Mana:OnSpellSucceeded(spellID, castGUID, GetTime()) end
     local dispelConfirmed = self.RecordDispelSpellSucceeded
         and self:RecordDispelSpellSucceeded(spellID, GetTime()) or false
     local swiftnessConsumed = self.ConsumeSwiftnessForSpell
@@ -539,7 +540,7 @@ function HeliHeal:CreateInputListener()
         end
         if unit ~= "player" or not spellID then return end
         if event == "UNIT_SPELLCAST_SUCCEEDED" then
-            HeliHeal:RecordPlayerSpellSucceeded(spellID)
+            HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
         else
             HeliHeal:RejectObservedSpell(spellID)
             HeliHeal:RejectAssistedCombatSpell(spellID)

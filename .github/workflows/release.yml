@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist/HeliHeal
-          cp AbilityLibrary.lua Changelog.lua Core.lua Defaults.lua Display.lua HeliHeal.toc Input.lua LICENSE Localization.lua Namespace.lua Options.lua README.md TalentSnapshot.lua dist/HeliHeal/
+          cp AbilityLibrary.lua Changelog.lua Core.lua Defaults.lua Display.lua HeliHeal.toc Input.lua LICENSE Localization.lua ManaTracker.lua Namespace.lua Options.lua README.md TalentSnapshot.lua dist/HeliHeal/
           mkdir -p dist/HeliHeal/Libs
           cp -R Classes dist/HeliHeal/
           mkdir -p dist/HeliHeal/Media

@@ -284,6 +284,7 @@ function HeliHeal:RefreshPlayerSupport(resetOnChange)
         or previousSupport ~= self.supportedClass
     if changed and resetOnChange then
         self:ResetRuntimeState()
+        if self.Mana and self.Mana.Initialize then self.Mana:Initialize(self) end
         if self.db then self:EnsureRotationProfile() end
         if self.frame then
             self:ApplyDisplaySettings()
@@ -312,6 +313,7 @@ end
 
 function HeliHeal:OnEnable()
     self.inputListenerEnabled = true
+    self:CreateManaTracker()
     self:CreateInputListener()
     self:CreateDisplay()
     self:SetupOptions()
@@ -324,6 +326,7 @@ function HeliHeal:OnDisable()
     if self.mouseInputListener then self.mouseInputListener:UnregisterAllEvents() end
     if self.castInputListener then self.castInputListener:UnregisterAllEvents() end
     if self.talentListener then self.talentListener:UnregisterAllEvents() end
+    if self.Mana then self.Mana:Disable() end
     self:ResetRuntimeState()
     if self.frame then self.frame:Hide() end
     if self.dispelCursorFrame then self.dispelCursorFrame:Hide() end
@@ -333,6 +336,7 @@ function HeliHeal:RefreshFromProfile()
     self:ResetRuntimeState()
     self:MigrateProfile(self.db.profile)
     self:EnsureRotationProfile()
+    if self.Mana and self.Mana.ResetAutoModeState then self.Mana:ResetAutoModeState() end
     if self.frame then
         self:ApplyDisplaySettings()
         self:RefreshDisplay()
@@ -483,6 +487,7 @@ function HeliHeal:ReconcileOutOfCombatState(silent)
     self:IsDownpourReady(now)
     if not self:IsUnleashReady(now) then self.unleashConsumptionHistory = {} end
     self:IsArchdruidReady(now)
+    if self.Mana then self.Mana:RefreshOutOfCombatSnapshot(true) end
     self:RefreshDisplay()
     if not silent then self:Print(L("Lokalen Zustand außerhalb des Kampfes abgeglichen.")) end
     return true
@@ -534,6 +539,8 @@ function HeliHeal:BuildDiagnosticReport()
         "atonementSingle=" .. tostring(self.sessionAtonements and self.sessionAtonements.singleUntil or 0),
         "spellHaste=" .. tostring(self.cachedSpellHaste or "unavailable"),
         "holyPower=" .. tostring(self.sessionHolyPower or 0),
+        "mana=" .. tostring(self.Mana and self.Mana.current or "unavailable"),
+        "manaReliability=" .. tostring(self.Mana and self.Mana.reliability or "UNKNOWN"),
         "freeSpenders=" .. tostring(self.pendingFreeHolyPowerSpenders or 0),
         "pendingInputs=" .. countEntries(self.pendingAcknowledgements),
     }, "; ")
@@ -586,11 +593,12 @@ function HeliHeal:GetHealingModeLabel()
     return L(HEALING_MODE_LABELS[self:GetHealingMode()] or HEALING_MODE_LABELS.standard)
 end
 
-function HeliHeal:SetHealingMode(mode, silent)
+function HeliHeal:SetHealingMode(mode, silent, automatic)
     mode = HEALING_MODE_ALIASES[(mode or ""):lower()] or mode
     if not HEALING_MODE_LABELS[mode] then
         return false
     end
+    if self.Mana and not automatic then self.Mana:OnManualModeChanged() end
     self.db.profile.healingMode = mode
     self:RefreshDisplay()
     if self.RefreshOptionsUI then self:RefreshOptionsUI() end
@@ -1813,6 +1821,40 @@ function HeliHeal:HandleSlashCommand(input)
     elseif command == "hp" or command == "holypower" then
         if not self:SetHolyPowerEstimate(argument) then
             self:Print(L("Verwendung: /hh hp 0-5"))
+        end
+    elseif command == "mana" then
+        local manaCommand, manaArgument = argument:lower():match("^(%S*)%s*(.-)%s*$")
+        if manaCommand == "probe" or manaCommand == "api" then
+            self:Print("[Mana Probe] " .. self.Mana:GetAPIProbeText())
+        elseif manaCommand == "full" or manaCommand == "voll" then
+            if self.Mana:SetManualPercent(100) then
+                self:Print("[Mana] Manual baseline set to 100%.")
+            else
+                self:Print("[Mana] Manual calibration is only available outside combat.")
+            end
+        elseif manaCommand == "set" then
+            if self.Mana:SetManualPercent(manaArgument) then
+                self:Print(("[Mana] Manual baseline set to %s%%."):format(manaArgument))
+            else
+                self:Print("[Mana] Usage: /hh mana set 0-100 (outside combat)")
+            end
+        elseif manaCommand == "debug" then
+            if manaArgument == "on" or manaArgument == "an" then
+                self.db.profile.manaDebug = true
+            elseif manaArgument == "off" or manaArgument == "aus" then
+                self.db.profile.manaDebug = false
+            else
+                self.db.profile.manaDebug = not self.db.profile.manaDebug
+            end
+            self:Print("[Mana] Debug " .. (self.db.profile.manaDebug and "ON" or "OFF"))
+        elseif manaCommand == "sync" then
+            if not self.Mana:RefreshOutOfCombatSnapshot(true) then
+                self:Print("[Mana] Sync is only available outside combat for Restoration Shaman.")
+            else
+                self:Print("[Mana] " .. self.Mana:GetStatusText())
+            end
+        else
+            self:Print("[Mana] " .. self.Mana:GetStatusText())
         end
     elseif command == "talents" or command == "talente" then
         if argument:lower() == "refresh" or argument:lower() == "neu" then

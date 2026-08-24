@@ -56,6 +56,15 @@ addon:SetHealingMode("single", true)
 assert(firstKey() == "riptide", "single-target mode must be an optional reordered view")
 addon:SetHealingMode("mana", true)
 assert(firstKey() == "healing_stream_combo", "mana mode must remain selectable")
+local manaKeys = namespace.AbilityLibrary:GetPresetPriorityKeys("shaman_totemic_mythicplus", "mana")
+assert(table.concat(manaKeys, ",") == table.concat({
+    "healing_stream_combo", "riptide", "unleash_life", "natures_swiftness", "healing_wave",
+}, ","), "mana mode must expose only the conservative five-ability priority")
+for _, abilityKey in ipairs(manaKeys) do
+    assert(abilityKey ~= "chain_heal" and abilityKey ~= "surging_totem"
+        and abilityKey ~= "healing_rain" and abilityKey ~= "downpour",
+        "mana mode must not leak expensive group spenders or setup spells")
+end
 
 addon:SetHealingMode("aoe", true)
 local rainIndex = addon:GetSlotIndexByAbilityKey("healing_rain")

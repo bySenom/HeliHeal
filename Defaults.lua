@@ -1,6 +1,9 @@
 local _, ns = ...
 
 ns.defaults = {
+    char = {
+        manaState = {},
+    },
     global = {
         lastSeenChangelogVersion = "",
         language = "auto",
@@ -83,6 +86,9 @@ ns.defaults = {
         },
         rotationPreset = "shaman_totemic_mythicplus",
         healingMode = "standard",
+        manaDebug = false,
+        autoManaMode = false,
+        autoManaThreshold = 25,
         rotationDataVersion = 12117,
         bindings = {},
         point = "CENTER",

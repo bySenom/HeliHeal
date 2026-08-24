@@ -8,6 +8,7 @@ local abilities = {
     healing_stream_combo = {
         spellID = 5394,
         name = "Healing Stream / Stormstream Totem",
+        manaCost = 4500,
         -- Midnight 12.1 recharge time per normal Healing Stream Totem charge.
         cooldown = 17,
         inputLockout = 1.0,
@@ -22,6 +23,7 @@ local abilities = {
     riptide = {
         spellID = 61295,
         name = "Riptide",
+        manaCost = 3800,
         cooldown = 6,
         maxCharges = 2,
         inputLockout = 1.5,
@@ -30,6 +32,7 @@ local abilities = {
     natures_swiftness = {
         spellID = 378081,
         name = "Nature's Swiftness",
+        manaCost = 0,
         cooldown = 60,
         grantsBonusChargeTo = "healing_stream_combo",
         armsSwiftness = true,
@@ -39,6 +42,7 @@ local abilities = {
     ancestral_swiftness = {
         spellID = 443454,
         name = "Ancestral Swiftness",
+        manaCost = 0,
         cooldown = 30,
         grantsBonusChargeTo = "healing_stream_combo",
         armsSwiftness = true,
@@ -46,12 +50,13 @@ local abilities = {
         confirmOnPlayerSuccess = true,
     },
     surging_totem = {
-        spellID = 444995, name = "Surging Totem", cooldown = 25,
+        spellID = 444995, name = "Surging Totem", cooldown = 25, manaCost = 16250,
         requiresTalent = "surgingTotem",
     },
     unleash_life = {
         spellID = 73685,
         name = "Unleash Life",
+        manaCost = 2000,
         cooldown = 20,
         requiresTalent = "unleashLife",
         inputLockout = 1.5,
@@ -73,11 +78,11 @@ local abilities = {
         derivedBindingFrom = "healing_rain",
     },
     chain_heal = {
-        spellID = 1064, name = "Chain Heal", cooldown = 0, roleLabel = "AOE",
+        spellID = 1064, name = "Chain Heal", cooldown = 0, manaCost = 10700, roleLabel = "AOE",
         choiceGroup = "shaman_healing_filler", inputLockout = 1.5, consumesSwiftness = true,
     },
     healing_wave = {
-        spellID = 77472, name = "Healing Wave", cooldown = 0, roleLabel = "SINGLE",
+        spellID = 77472, name = "Healing Wave", cooldown = 0, manaCost = 5950, roleLabel = "SINGLE",
         choiceGroup = "shaman_healing_filler", inputLockout = 1.5, consumesSwiftness = true,
     },
 }
@@ -116,8 +121,10 @@ local function modes(swiftness, includeSurging)
     single[#single + 1] = "healing_wave"
     single[#single + 1] = "chain_heal"
 
-    local mana = { "healing_stream_combo", "riptide", "unleash_life", swiftness, "healing_wave", "chain_heal" }
-    if includeSurging then mana[#mana + 1] = "surging_totem" end
+    -- Keep Mana Saving genuinely conservative. Expensive group spenders and
+    -- setup spells must not become primary merely because the cheap actions
+    -- ahead of them are unavailable.
+    local mana = { "healing_stream_combo", "riptide", "unleash_life", swiftness, "healing_wave" }
     return { aoe = aoe, single = single, mana = mana }
 end
 

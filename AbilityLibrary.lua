@@ -26,6 +26,7 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.maxCharges = math.max(1, math.floor(tonumber(record.maxCharges) or 1))
     record.maxBonusCharges = math.max(0, math.floor(tonumber(record.maxBonusCharges) or 0))
     record.inputLockout = math.max(0, tonumber(record.inputLockout) or 1.0)
+    record.manaCost = record.manaCost ~= nil and math.max(0, tonumber(record.manaCost) or 0) or nil
     record.trackedDuration = math.max(0, tonumber(record.trackedDuration) or 0)
     record.trackedGoal = math.max(0, math.floor(tonumber(record.trackedGoal) or 0))
     record.atonementScope = (record.atonementScope == "group" or record.atonementScope == "single")

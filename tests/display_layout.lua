@@ -19,6 +19,12 @@ assert(addon:GetBadgeAwareSpacing(46, 46, 46, 46, 12) == 12,
     "configured spacing must remain unchanged when badges already fit")
 assert(addon:GetBadgeAwareSpacing(46, 70, 46, 70, 30) == 30,
     "configured spacing must win when it is larger than the required badge gap")
+assert(addon:GetChoiceBadgeBottomOffset(false, 9, 4) == 4,
+    "the choice badge must sit just above the icons when ability names are hidden")
+assert(addon:GetChoiceBadgeBottomOffset(true, 9, 4) == 15,
+    "the choice badge must clear a visible ability name")
+assert(addon:GetChoiceBadgeBottomOffset(true, 12, 10) == 24,
+    "the choice badge must respect customized ability-name size and offset")
 assert(addon:FormatHotkeyLabel("SHIFT-BUTTON1") == "S-M1",
     "modifier mouse bindings must use a compact HUD label")
 assert(addon:FormatHotkeyLabel("CTRL-ALT-MOUSEWHEELDOWN") == "C-A-WD",
@@ -37,6 +43,18 @@ assert(not addon:GetPrimaryChoiceGroup(situationalPair, "aoe"),
 situationalPair[2].remaining = 3
 assert(not addon:GetPrimaryChoiceGroup(situationalPair, "standard"),
     "a cooling-down alternative must not form a ready choice pair")
+
+addon.db = { profile = { autoManaMode = true } }
+addon.Mana = { autoModeActive = true, current = 20000, maximum = 100000 }
+addon.GetHealingMode = function() return "mana" end
+assert(addon:ShouldShowAutomaticManaBadge(),
+    "the HUD must identify an automatically activated Mana Saving mode")
+addon.Mana.autoModeActive = false
+assert(addon:ShouldShowAutomaticManaBadge(),
+    "the HUD must expose the armed automatic mode and its estimate before activation")
+addon.db.profile.autoManaMode = false
+assert(not addon:ShouldShowAutomaticManaBadge(),
+    "the automatic status badge must hide when the feature is disabled")
 
 GetCursorPosition = function() return 200, 100 end
 UIParent = { GetEffectiveScale = function() return 2 end }

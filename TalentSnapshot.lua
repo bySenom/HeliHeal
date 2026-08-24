@@ -411,6 +411,13 @@ function HeliHeal:CreateTalentListener()
         listener:RegisterEvent("PLAYER_REGEN_DISABLED")
         self:RefreshTalentSnapshot(true)
         self:RefreshSpellHasteSnapshot(true)
+        if HeliHeal.Mana then
+            if InCombatLockdown and InCombatLockdown() then
+                HeliHeal.Mana:BeginCombat(GetTime())
+            else
+                HeliHeal.Mana:RefreshOutOfCombatSnapshot(true)
+            end
+        end
         return
     end
     local listener = CreateFrame("Frame")
@@ -432,6 +439,7 @@ function HeliHeal:CreateTalentListener()
         end
         if event == "PLAYER_REGEN_DISABLED" then
             HeliHeal:BeginMonkCombat(GetTime())
+            if HeliHeal.Mana then HeliHeal.Mana:BeginCombat(GetTime()) end
             HeliHeal:RefreshDisplay()
             return
         end
@@ -452,11 +460,17 @@ function HeliHeal:CreateTalentListener()
         end
         if event == "PLAYER_REGEN_ENABLED" then
             HeliHeal:EndMonkCombat(GetTime())
+            if HeliHeal.Mana then HeliHeal.Mana:EndCombat(GetTime()) end
             HeliHeal:ReconcileOutOfCombatState(true)
+        elseif HeliHeal.Mana then
+            HeliHeal.Mana:RefreshOutOfCombatSnapshot(true)
         end
     end)
     self.talentListener = listener
     self:RefreshTalentSnapshot(true)
     self:RefreshSpellHasteSnapshot(true)
-    if InCombatLockdown and InCombatLockdown() then self:BeginMonkCombat(GetTime()) end
+    if InCombatLockdown and InCombatLockdown() then
+        self:BeginMonkCombat(GetTime())
+        if self.Mana then self.Mana:BeginCombat(GetTime()) end
+    end
 end
