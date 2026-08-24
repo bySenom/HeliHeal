@@ -35,7 +35,7 @@ local addon = {
         reliability = "ESTIMATED",
         classToken = "SHAMAN",
         specializationID = 264,
-        modelVersion = 4,
+        modelVersion = 5,
         savedAt = epoch,
     } } },
     Print = function() end,
@@ -97,6 +97,35 @@ assert(addon.Mana:GetCurrent() == 80000 and addon.Mana:GetMax() == 100000,
     "the tracker must restore its persisted local ledger without a mana API")
 assert(addon.Mana:GetReliability() == "ESTIMATED",
     "a restored local ledger must disclose that it is estimated")
+
+addon.Mana.current = 100000
+addon.Mana.lastUpdatedAt = now
+assert(not addon.Mana:OnSpellSucceeded(1064, "Automatic-Raid-Chain-Heal", now, false),
+    "an automatic Raid proc without a correlated player input must not spend mana")
+assert(addon.Mana.current == 100000,
+    "free Tier, Totem and proc casts must leave the local mana ledger unchanged")
+
+addon.Mana.current = 50000
+addon.Mana.maximum = 100000
+addon.Mana.regenPerSecond = 0
+addon.Mana.outOfCombatRegenPerSecond = 0
+addon.Mana.waterShieldRegenPerSecond = 0
+addon.Mana.lastUpdatedAt = now
+assert(addon.Mana:OnSpellSucceeded(1232065, "Buff-Food", now),
+    "a confirmed Midnight buff-food cast must start local refreshment regeneration")
+assert(addon.Mana:Update(now + 5) == 65000,
+    "the first five refreshment ticks must ramp through 1, 2, 3, 4 and 5 percent")
+assert(addon.Mana:StopRefreshment(now + 5, "movement"),
+    "movement must stop the local food regeneration model")
+assert(addon.Mana:Update(now + 10) == 65000,
+    "stopped refreshment must not continue restoring mana")
+addon.Mana.current = 50000
+addon.Mana.lastUpdatedAt = now
+assert(addon.Mana:OnSpellSucceeded(1277461, "Tea", now),
+    "an eight-percent Midnight tea must be recognized")
+assert(addon.Mana:Update(now + 8) == 86000,
+    "an eight-percent tea must ramp from one through eight percent")
+addon.Mana:StopRefreshment(now + 8, "test")
 
 combat = true
 addon.Mana.inCombat = true
@@ -294,7 +323,7 @@ local thresholdAddon = {
         reliability = "ESTIMATED",
         classToken = "SHAMAN",
         specializationID = 264,
-        modelVersion = 4,
+        modelVersion = 5,
     } } },
     Print = function() end,
 }

@@ -1,8 +1,19 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.16-beta.1",
+    currentVersion = "0.9.17-beta.1",
     entries = {
+        {
+            version = "0.9.17-beta.1",
+            title = "Dynamic Shaman Talents and Mana Reliability",
+            changes = {
+                "Kostenlose automatische Raid-, Tier- und Totem-Folgezauber belasten das lokale Mana-Modell nicht mehr.",
+                "Instant-Casts werden erst nach einer passenden beobachteten Spielereingabe als Mana-Ausgabe bestätigt.",
+                "Mitternacht-Bufffood und Getränke regenerieren Mana lokal mit ihrer ansteigenden Wiederherstellungsrate.",
+                "Rip Current reduziert die simulierte Wiederaufladezeit von Springflut talentabhängig von sechs auf fünf Sekunden.",
+                "Leben entfesseln erscheint im Totemic-Raid-Preset dynamisch, sobald das Talent gewählt wurde.",
+            },
+        },
         {
             version = "0.9.16-beta.1",
             title = "HUD Badge Layout Hotfix",

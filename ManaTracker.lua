@@ -19,7 +19,7 @@ local CHAIN_HEAL = 1064
 local TRIGGERED_CHAIN_HEAL_WINDOW = 1.25
 local AUTO_MANA_RESUME_PERCENT = 0.50
 local DEFAULT_RESTO_SHAMAN_MANA = 262500
-local MANA_MODEL_VERSION = 4
+local MANA_MODEL_VERSION = 5
 -- Water Shield (52127) restores 714 mana every five seconds in the current
 -- Midnight build. This deterministic periodic gain is separate from the
 -- combat-dependent melee return, which the local ledger deliberately does not
@@ -27,6 +27,16 @@ local MANA_MODEL_VERSION = 4
 local WATER_SHIELD_MANA_PER_TICK = 714
 local WATER_SHIELD_TICK_SECONDS = 5
 local WATER_SHIELD_REGEN_PER_SECOND = WATER_SHIELD_MANA_PER_TICK / WATER_SHIELD_TICK_SECONDS
+local REFRESHMENT_DURATION = 20
+local REFRESHMENT_SPELLS = {
+    [1269919] = 6, -- Midnight Drink
+    [1269918] = 7, -- Midnight Drink
+    [1277461] = 8, -- Midnight crafted tea
+    [1232065] = 7, -- Midnight Food & Drink
+    [1283374] = 7, -- Refreshment wrapper
+    [1232913] = 7, -- Refreshment wrapper
+    [1280485] = 7, -- Refreshment wrapper
+}
 
 local EXTRA_SHAMAN_SPELLS = {
     [77130] = "Purify Spirit",
@@ -144,10 +154,58 @@ function Mana:ReadManaRegenRates()
 end
 
 function Mana:RefreshRegenSnapshot()
+    -- Do not let GetManaRegen cache an active food/drink aura as the normal
+    -- passive baseline; refreshment is simulated separately below.
+    if self.refreshmentStartedAt then return self.regenPerSecond ~= nil end
     local combatRegen, outOfCombatRegen = self:ReadManaRegenRates()
     self.regenPerSecond = combatRegen
     self.outOfCombatRegenPerSecond = outOfCombatRegen
     return combatRegen ~= nil
+end
+
+function Mana:GetRefreshmentCumulativePercent(elapsed, capPercent)
+    local ticks = math.max(0, math.min(REFRESHMENT_DURATION,
+        math.floor(tonumber(elapsed) or 0)))
+    local cap = math.max(1, math.floor(tonumber(capPercent) or 1))
+    local rampTicks = math.min(ticks, cap)
+    return (rampTicks * (rampTicks + 1) / 2) + (math.max(0, ticks - cap) * cap)
+end
+
+function Mana:GetRefreshmentGain(previous, now)
+    if not self.refreshmentStartedAt or not self.maximum then return 0 end
+    local before = math.max(0, previous - self.refreshmentStartedAt)
+    local after = math.max(0, now - self.refreshmentStartedAt)
+    local beforePercent = self:GetRefreshmentCumulativePercent(before, self.refreshmentCapPercent)
+    local afterPercent = self:GetRefreshmentCumulativePercent(after, self.refreshmentCapPercent)
+    return self.maximum * math.max(0, afterPercent - beforePercent) / 100
+end
+
+function Mana:StartRefreshment(capPercent, now)
+    if not self:IsSupported() or self.inCombat or isCombatActive() then return false end
+    now = now or GetTime()
+    capPercent = math.max(1, math.floor(tonumber(capPercent) or 1))
+    if self.refreshmentStartedAt and now - self.refreshmentStartedAt < 0.5 then
+        self.refreshmentCapPercent = math.max(self.refreshmentCapPercent or 1, capPercent)
+        return true
+    end
+    if self.refreshmentStartedAt then self:StopRefreshment(now, "replaced") end
+    self:Update(now)
+    self.refreshmentStartedAt = now
+    self.refreshmentUntil = now + REFRESHMENT_DURATION
+    self.refreshmentCapPercent = capPercent
+    self:Debug("Refreshment started: ramping to %d%%/s", capPercent)
+    return true
+end
+
+function Mana:StopRefreshment(now, reason)
+    if not self.refreshmentStartedAt then return false end
+    now = now or GetTime()
+    self:Update(now)
+    self.refreshmentStartedAt = nil
+    self.refreshmentUntil = nil
+    self.refreshmentCapPercent = nil
+    self:Debug("Refreshment stopped: %s", reason or "cancelled")
+    return true
 end
 
 function Mana:GetEffectiveRegenPerSecond()
@@ -361,6 +419,7 @@ function Mana:BeginCombat(now)
     -- Apply all locally simulated out-of-combat regeneration before the
     -- combat clock starts. No live UnitPower read is involved.
     self:Update(now)
+    self:StopRefreshment(now, "combat")
     self.inCombat = true
     self.combatStartMana = self.current
     self.combatStartedAt = now
@@ -391,11 +450,17 @@ function Mana:Update(now)
     local elapsed = math.max(0, now - previous)
     self.lastUpdatedAt = now
     local regen = self:GetEffectiveRegenPerSecond()
-    if elapsed > 0 and regen > 0 then
+    local refreshmentGain = elapsed > 0 and self:GetRefreshmentGain(previous, now) or 0
+    if elapsed > 0 and (regen > 0 or refreshmentGain > 0) then
         local before = self.current
         self.current = math.min(self.maximum or self.current,
-            self.current + (regen * elapsed))
+            self.current + (regen * elapsed) + refreshmentGain)
         self.pendingRegenDebug = (self.pendingRegenDebug or 0) + (self.current - before)
+    end
+    if self.refreshmentUntil and now >= self.refreshmentUntil then
+        self.refreshmentStartedAt = nil
+        self.refreshmentUntil = nil
+        self.refreshmentCapPercent = nil
     end
     self:PersistState(false)
     return self.current
@@ -407,7 +472,7 @@ function Mana:FlushRegenDebug()
     if gain >= 1 then self:Debug("Passive regen: +%s", formatMana(gain)) end
 end
 
-function Mana:OnSpellSucceeded(spellID, castGUID, now)
+function Mana:OnSpellSucceeded(spellID, castGUID, now, playerInitiated)
     if not self:IsSupported() then return false end
     spellID = tonumber(spellID)
     if not spellID then return false end
@@ -416,6 +481,15 @@ function Mana:OnSpellSucceeded(spellID, castGUID, now)
     if not self.inCombat and not self.localTracking then return false end
     if castGUID and castGUID == self.lastCastGUID then return false end
     if castGUID then self.lastCastGUID = castGUID end
+
+    local refreshmentCap = REFRESHMENT_SPELLS[spellID]
+    if refreshmentCap then return self:StartRefreshment(refreshmentCap, now) end
+    if self.refreshmentStartedAt then self:StopRefreshment(now, "player-cast") end
+    if playerInitiated == false then
+        self:Debug("%s: automatic/unbound success ignored",
+            self.spellNames[spellID] or ("Spell " .. spellID))
+        return false
+    end
 
     -- Some replacement/proc actions emit multiple UNIT_SPELLCAST_SUCCEEDED
     -- events with different spell IDs and GUIDs for one physical cast. Fold
@@ -665,6 +739,9 @@ function Mana:Initialize(owner)
     self.baselineDegraded = false
     self.lastCastGUID = nil
     self.recentManaSpellSuccess = {}
+    self.refreshmentStartedAt = nil
+    self.refreshmentUntil = nil
+    self.refreshmentCapPercent = nil
     self:ResetAutoModeState()
     self:RefreshRegenSnapshot()
     if not self:RestorePersistedState() then

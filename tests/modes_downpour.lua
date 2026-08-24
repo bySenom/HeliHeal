@@ -41,6 +41,10 @@ addon.Print = function() end
 
 local riptideIndex = addon:GetSlotIndexByAbilityKey("riptide")
 assert(addon:GetSlot(riptideIndex).cooldown == 6, "Totemic Riptide must use the six-second base recharge")
+addon.talentSnapshot.ripCurrent = true
+assert(addon:GetSlot(riptideIndex).cooldown == 5,
+    "Rip Current must reduce Totemic Riptide recharge to five seconds")
+addon.talentSnapshot.ripCurrent = false
 local chainIndex = addon:GetSlotIndexByAbilityKey("chain_heal")
 local waveIndex = addon:GetSlotIndexByAbilityKey("healing_wave")
 assert(addon:GetSlot(chainIndex).choiceGroup == "shaman_healing_filler"
@@ -87,5 +91,24 @@ assert(addon.sessionUses[rainIndex] == now, "Downpour must not restart Healing R
 
 addon:SetHealingMode("standard", true)
 assert(firstKey() == "healing_stream_combo", "returning to standard must restore the untouched guide order")
+
+-- Talent abilities must belong to the neutral Raid priority even when they
+-- were not selected when the preset was first opened. GetSlot then controls
+-- visibility from the current out-of-combat talent snapshot.
+addon.db.profile.rotationPreset = "shaman_totemic_raid"
+addon.db.profile.slots = namespace.AbilityLibrary:BuildPresetSlots(
+    addon.db.profile.rotationPreset, addon.db.profile.bindings)
+addon.resolvedSlotCache = {}
+addon.activePriorityRanksCache = nil
+local function raidShowsUnleash()
+    for _, item in ipairs(addon:GetDisplayOrder(now)) do
+        if item.ability.abilityKey == "unleash_life" then return true end
+    end
+    return false
+end
+addon.talentSnapshot.unleashLife = false
+assert(not raidShowsUnleash(), "unselected Unleash Life must stay hidden in Totemic Raid")
+addon.talentSnapshot.unleashLife = true
+assert(raidShowsUnleash(), "selected Unleash Life must appear dynamically in Totemic Raid")
 
 print("Healing modes OK: Standard preserved, optional AoE/Single/Mana, derived Downpour state")

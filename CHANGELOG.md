@@ -1,12 +1,14 @@
-# HeliHeal 0.9.16 Beta 1
+# HeliHeal 0.9.17 Beta 1
 
 For **World of Warcraft: Midnight 12.1**.
 
 ## Changes
 
-- Fixed the `AUTO`/`MANA` badge overlapping the `OR` choice indicator.
-- Kept `OR` directly above the situational ability pair while moving `AUTO`/`MANA` one stable row higher.
-- Preserved the HUD position when either badge appears or disappears.
+- Ignore free automatic Raid, tier-set and Totem follow-up casts in the local mana ledger.
+- Correlate mana costs with observed player input, including instant casts and the One Button Assistant.
+- Add local Midnight buff-food and drink regeneration with ramping recovery rates.
+- Detect Rip Current and reduce Riptide recharge from six to five seconds when talented.
+- Show Unleash Life dynamically in the Totemic Raid priority when the talent is selected.
 
 ## Limitations
 

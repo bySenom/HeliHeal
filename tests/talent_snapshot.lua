@@ -12,11 +12,11 @@ C_SpellBook = {
     IsSpellKnown = function(spellID) return spellID == 1264866 or spellID == 1264867 end,
 }
 
-local selectedSpellIDs = { 333919, 462488, 1252882, 1270453, 443418, 73685 }
+local selectedSpellIDs = { 333919, 462488, 1252882, 1270453, 443418, 73685, 1254251 }
 C_ClassTalents = { GetActiveConfigID = function() return 77 end }
 C_Traits = {
     GetConfigInfo = function() return { treeIDs = { 10 } } end,
-    GetTreeNodes = function() return { 101, 102, 103, 104, 105, 106 } end,
+    GetTreeNodes = function() return { 101, 102, 103, 104, 105, 106, 107 } end,
     GetNodeInfo = function(_, nodeID)
         if nodeID == 105 then
             return { subTreeID = 900, subTreeActive = false, entryIDsWithCommittedRanks = { { entryID = 1105, rank = 1 } } }
@@ -60,6 +60,7 @@ assert(addon:IsTalentActive("downpour"), "Downpour must be detected")
 assert(addon:IsTalentActive("doubleDip"), "Double Dip must be detected")
 assert(addon:IsTalentActive("mysticKnowledge"), "Mystic Knowledge must be detected")
 assert(addon:IsTalentActive("unleashLife"), "Unleash Life must be detected")
+assert(addon:IsTalentActive("ripCurrent"), "Rip Current must be detected")
 assert(not addon:IsTalentActive("elementalReverb"), "unselected talents must remain inactive")
 assert(addon:IsTalentActive("restorationTier2") and addon:IsTalentActive("restorationTier4"),
     "equipped Restoration set bonuses must be cached with the build")
@@ -69,13 +70,14 @@ assert(addon.db.profile.rotationPreset == "shaman_farseer_mythicplus",
 local riptideIndex = addon:GetSlotIndexByAbilityKey("riptide")
 local riptide = addon:GetSlot(riptideIndex)
 assert(riptide.maxCharges == 2, "base charge plus Echo must produce two Riptide charges")
+assert(riptide.cooldown == 5, "Rip Current must reduce Riptide recharge to five seconds")
 assert(addon:SpendCharge(riptideIndex, riptide, now), "Riptide charge must be spendable")
 local riptideState = addon:GetChargeState(riptideIndex, riptide, now)
-assert(riptideState.nextRechargeAt == 6, "Riptide starts with the six-second base recharge")
+assert(riptideState.nextRechargeAt == 5, "Riptide starts with the five-second Rip Current recharge")
 
 now = 1
 addon:ApplyMysticKnowledge(now)
-assert(math.abs(riptideState.nextRechargeAt - (1 + (5 / 1.1))) < 0.001,
+assert(math.abs(riptideState.nextRechargeAt - (1 + (4 / 1.1))) < 0.001,
     "Mystic Knowledge must accelerate remaining Riptide recharge by ten percent")
 
 addon:ArmDownpour(now)

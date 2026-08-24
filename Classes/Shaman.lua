@@ -25,6 +25,8 @@ local abilities = {
         name = "Riptide",
         manaCost = 3800,
         cooldown = 6,
+        cooldownTalent = "ripCurrent",
+        cooldownReduction = 1,
         maxCharges = 2,
         inputLockout = 1.5,
         consumesSwiftness = true,
@@ -143,6 +145,7 @@ registerPreset("shaman_totemic_raid", "Totemic • Raid", "Totemic", "Raid", {
     "riptide",
     "natures_swiftness",
     "surging_totem",
+    "unleash_life",
     "chain_heal",
     "healing_wave",
 }, modes("natures_swiftness", true))

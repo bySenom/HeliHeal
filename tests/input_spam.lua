@@ -68,6 +68,18 @@ addon.pendingAcknowledgements = {}
 addon.heldInputKeys = {}
 addon.inputLockedUntil = {}
 
+local manaSuccesses = {}
+addon.Mana = {
+    OnSpellSucceeded = function(_, spellID, castGUID, succeededAt, playerInitiated)
+        manaSuccesses[#manaSuccesses + 1] = {
+            spellID = spellID,
+            castGUID = castGUID,
+            succeededAt = succeededAt,
+            playerInitiated = playerInitiated,
+        }
+    end,
+}
+
 local acknowledgements = {}
 addon.AcknowledgeSlot = function(_, slotIndex)
     acknowledgements[slotIndex] = (acknowledgements[slotIndex] or 0) + 1
@@ -123,10 +135,15 @@ now = 30
 addon:ReleaseInputKey("1")
 assert(not addon:RecordPlayerSpellSucceeded(1064),
     "instant success arriving before the secure post-hook must be cached")
+assert(manaSuccesses[#manaSuccesses].playerInitiated == false,
+    "a success arriving before its action hook must not spend mana prematurely")
 now = 30.05
 addon:ObserveInputKey("1")
 assert(acknowledgements[2] == 2 and not addon.pendingAcknowledgements[2],
     "the post-hook must consume a matching recent instant-cast success immediately")
+assert(manaSuccesses[#manaSuccesses].spellID == 1064
+    and manaSuccesses[#manaSuccesses].playerInitiated == true,
+    "the later matching action hook must confirm the deferred mana spend")
 
 now = 40
 addon:ReleaseInputKey("1")
@@ -194,6 +211,8 @@ assert(addon:ObserveAssistedCombatBinding("ACTIONBUTTON1"),
     "the standard action bar must recognize Blizzard's Assisted Combat action")
 assert(addon:RecordPlayerSpellSucceeded(275773),
     "the actual spell success must confirm an Assisted Combat cast without a spell binding")
+assert(manaSuccesses[#manaSuccesses].playerInitiated == true,
+    "an observed Assisted Combat action must remain a player-initiated mana event")
 assert(acknowledgements[4] == 1,
     "a known Assisted Combat spell must advance its matching HeliHeal cooldown exactly once")
 assert(nextFrameCallback, "Assisted Combat success must schedule authoritative Holy Power sync")

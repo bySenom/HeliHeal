@@ -215,18 +215,35 @@ function HeliHeal:CommitObservedSpell(spellID)
     return false
 end
 
+function HeliHeal:HasObservedPlayerInputForSpell(spellID)
+    for slotIndex, pending in pairs(self.pendingAcknowledgements or {}) do
+        local configuredSlot = self.db.profile.slots[slotIndex]
+        if pending and self:SlotAcceptsSpell(configuredSlot, spellID) then return true end
+    end
+    local assisted = self.pendingAssistedCombat
+    if assisted and assisted.generation == (self.inputGeneration or 0)
+        and (not assisted.expectedSpellID or assisted.expectedSpellID == tonumber(spellID)) then
+        return true
+    end
+    return false
+end
+
 function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
     spellID = tonumber(spellID)
     if not spellID then return false end
-    if self.Mana then self.Mana:OnSpellSucceeded(spellID, castGUID, GetTime()) end
+    local manaPlayerInitiated = self:HasObservedPlayerInputForSpell(spellID)
     local dispelConfirmed = self.RecordDispelSpellSucceeded
         and self:RecordDispelSpellSucceeded(spellID, GetTime()) or false
     local swiftnessConsumed = self.ConsumeSwiftnessForSpell
         and self:ConsumeSwiftnessForSpell(spellID, GetTime()) or false
     self.recentSuccessfulSpells = self.recentSuccessfulSpells or {}
     self.recentSuccessfulSpells[spellID] = GetTime()
-    if self:CommitObservedSpell(spellID) or self:CommitAssistedCombatSpell(spellID)
-        or self:CommitConfiguredPlayerSpell(spellID) then
+    local committed = self:CommitObservedSpell(spellID) or self:CommitAssistedCombatSpell(spellID)
+        or self:CommitConfiguredPlayerSpell(spellID)
+    if self.Mana then
+        self.Mana:OnSpellSucceeded(spellID, castGUID, GetTime(), manaPlayerInitiated)
+    end
+    if committed then
         self.recentSuccessfulSpells[spellID] = nil
         self:ScheduleHolyPowerSync()
         return true
@@ -333,7 +350,11 @@ function HeliHeal:CommitRecentSpellForSlot(slotIndex)
             self.recentSuccessfulSpells[spellID] = nil
         elseif self:SlotAcceptsSpell(configuredSlot, spellID) then
             self.recentSuccessfulSpells[spellID] = nil
-            return self:CommitObservedSpell(spellID)
+            local committed = self:CommitObservedSpell(spellID)
+            if committed and self.Mana then
+                self.Mana:OnSpellSucceeded(spellID, nil, now, true)
+            end
+            return committed
         end
     end
     return false
@@ -368,6 +389,9 @@ function HeliHeal:CommitRecentSpellForAssistedCombat()
     self.recentSuccessfulSpells[newestSpellID] = nil
     pending.expectedSpellID = tonumber(newestSpellID)
     local committed = self:CommitAssistedCombatSpell(newestSpellID)
+    if committed and self.Mana then
+        self.Mana:OnSpellSucceeded(newestSpellID, nil, now, true)
+    end
     if committed then self:ScheduleHolyPowerSync() end
     return committed
 end

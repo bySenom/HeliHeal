@@ -5,6 +5,7 @@ local L = ns.L or function(value, ...) return select("#", ...) > 0 and value:for
 local TALENTS = {
     echoOfTheElements = { 333919 },
     elementalReverb = { 443418 },
+    ripCurrent = { 1254251 },
     downpour = { 462488 },
     doubleDip = { 1252882 },
     mysticKnowledge = { 1270453 },
@@ -109,7 +110,7 @@ local TALENTS = {
 }
 
 local SNAPSHOT_FLAGS = {
-    "echoOfTheElements", "elementalReverb", "downpour", "doubleDip",
+    "echoOfTheElements", "elementalReverb", "ripCurrent", "downpour", "doubleDip",
     "mysticKnowledge", "surgingTotem", "unleashLife", "restorationTier2", "restorationTier4",
     "druidGermination", "druidLingeringHealing", "druidVerdantInfusion", "druidProsperity",
     "druidPassingSeasons", "druidEarlySpring", "druidPowerArchdruid", "druidLifetreading", "druidKeeper", "druidWildstalker",
@@ -387,9 +388,9 @@ function HeliHeal:PrintTalentSnapshot()
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end
-    local details = ("Echo %s | Elemental Reverb %s | Surging Totem %s | Unleash Life %s | Downpour %s | Double Dip %s | Mystic Knowledge %s | Set 2p %s | Set 4p %s")
+    local details = ("Echo %s | Elemental Reverb %s | Rip Current %s | Surging Totem %s | Unleash Life %s | Downpour %s | Double Dip %s | Mystic Knowledge %s | Set 2p %s | Set 4p %s")
         :format(yesNo(snapshot.echoOfTheElements),
-            yesNo(snapshot.elementalReverb), yesNo(snapshot.surgingTotem), yesNo(snapshot.unleashLife),
+            yesNo(snapshot.elementalReverb), yesNo(snapshot.ripCurrent), yesNo(snapshot.surgingTotem), yesNo(snapshot.unleashLife),
             yesNo(snapshot.downpour), yesNo(snapshot.doubleDip), yesNo(snapshot.mysticKnowledge),
             yesNo(snapshot.restorationTier2), yesNo(snapshot.restorationTier4))
     self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
@@ -409,6 +410,7 @@ function HeliHeal:CreateTalentListener()
         listener:RegisterEvent("SPELLS_CHANGED")
         listener:RegisterEvent("PLAYER_REGEN_ENABLED")
         listener:RegisterEvent("PLAYER_REGEN_DISABLED")
+        listener:RegisterEvent("PLAYER_STARTED_MOVING")
         self:RefreshTalentSnapshot(true)
         self:RefreshSpellHasteSnapshot(true)
         if HeliHeal.Mana then
@@ -432,9 +434,15 @@ function HeliHeal:CreateTalentListener()
     listener:RegisterEvent("SPELLS_CHANGED")
     listener:RegisterEvent("PLAYER_REGEN_ENABLED")
     listener:RegisterEvent("PLAYER_REGEN_DISABLED")
+    listener:RegisterEvent("PLAYER_STARTED_MOVING")
     listener:SetScript("OnEvent", function(_, event, argument)
         if event == "PLAYER_LEAVING_WORLD" then
             HeliHeal:CaptureZoneRuntimeState()
+            return
+        end
+        if event == "PLAYER_STARTED_MOVING" then
+            if HeliHeal.Mana then HeliHeal.Mana:StopRefreshment(GetTime(), "movement") end
+            HeliHeal:RefreshDisplay()
             return
         end
         if event == "PLAYER_REGEN_DISABLED" then
