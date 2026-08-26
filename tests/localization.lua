@@ -15,6 +15,12 @@ local english = loadLocale("enUS")
 assert(english.L("Übersicht") == "Overview", "enUS must translate the German source key")
 assert(english.L("HUD-Schriftart") == "HUD font" and english.L("Rollenfarben") == "Role colors",
     "appearance customization controls must be localized for English clients")
+assert(english.L("Optionsfenster-Hintergrund") == "Options window background"
+    and english.L("Klassenfarbe verwenden") == "Use class color",
+    "options window theme controls must be localized for English clients")
+assert(english.L("GEFAHRENBEREICH") == "DANGER ZONE"
+    and english.L("UI NEU LADEN") == "RELOAD UI",
+    "reworked profile management must be localized for English clients")
 assert(english.L("Haupt-Icon-Breite") == "Primary icon width"
     and english.L("Hotkey-Mindestbreite") == "Hotkey minimum width"
     and english.L("Header-Textgröße") == "Header text size",

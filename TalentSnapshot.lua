@@ -464,10 +464,16 @@ function HeliHeal:CreateTalentListener()
         if event == "TRAIT_CONFIG_UPDATED" then
             local activeConfigID = C_ClassTalents and C_ClassTalents.GetActiveConfigID
                 and C_ClassTalents.GetActiveConfigID()
-            if activeConfigID and argument and argument ~= activeConfigID then return end
+            if activeConfigID and argument and argument ~= activeConfigID then
+                if HeliHeal.RefreshOptionsUI then HeliHeal:RefreshOptionsUI() end
+                return
+            end
         end
         HeliHeal:RefreshTalentSnapshot(true)
         HeliHeal:RefreshSpellHasteSnapshot(true)
+        if event == "TRAIT_CONFIG_LIST_UPDATED" and HeliHeal.RefreshOptionsUI then
+            HeliHeal:RefreshOptionsUI()
+        end
         if event == "PLAYER_ENTERING_WORLD" then
             HeliHeal:RestoreZoneRuntimeState()
         end

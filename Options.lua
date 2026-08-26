@@ -22,22 +22,49 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 local FONT = ns.media.font
 local KEY_CLEAR_HOLD_SECONDS = 1.5
 local MODIFIER_KEYS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LALT = true, RALT = true }
+local THEMED_OBJECTS = setmetatable({}, { __mode = "k" })
 
 local function unpackColor(color)
     return color[1], color[2], color[3], color[4]
 end
 
+local function paletteRole(color)
+    for role, palette in pairs(C) do
+        if color == palette then return role end
+    end
+end
+
+local function rememberTheme(object, property, color, alpha)
+    local role = paletteRole(color)
+    if not role then return end
+    local state = THEMED_OBJECTS[object] or {}
+    state[property] = role
+    if property == "texture" then state.textureAlpha = alpha end
+    THEMED_OBJECTS[object] = state
+end
+
+local function themeTexture(texture, color, alpha)
+    rememberTheme(texture, "texture", color, alpha)
+    texture:SetColorTexture(color[1], color[2], color[3], alpha or color[4])
+end
+
 local function backdrop(frame, background, border, edgeSize)
+    background = background or C.panel
+    border = border or C.border
+    rememberTheme(frame, "background", background)
+    rememberTheme(frame, "border", border)
     frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = edgeSize or 1 })
-    frame:SetBackdropColor(unpackColor(background or C.panel))
-    frame:SetBackdropBorderColor(unpackColor(border or C.border))
+    frame:SetBackdropColor(unpackColor(background))
+    frame:SetBackdropBorderColor(unpackColor(border))
 end
 
 local function text(parent, value, size, color, flags)
     local label = parent:CreateFontString(nil, "OVERLAY")
+    color = color or C.text
+    rememberTheme(label, "text", color)
     label:SetFont(FONT, size or 12, flags or "")
     label:SetText(value or "")
-    label:SetTextColor(unpackColor(color or C.text))
+    label:SetTextColor(unpackColor(color))
     label:SetJustifyH("LEFT")
     return label
 end
@@ -160,14 +187,14 @@ local function createSlider(parent, minValue, maxValue, step, getValue, setValue
 
     slider.fill = slider:CreateTexture(nil, "ARTWORK")
     slider.fill:SetTexture(WHITE)
-    slider.fill:SetColorTexture(unpackColor(C.accent))
+    themeTexture(slider.fill, C.accent)
     slider.fill:SetPoint("LEFT", slider.track, "LEFT")
     slider.fill:SetHeight(4)
 
     slider:SetThumbTexture(WHITE)
     local thumb = slider:GetThumbTexture()
     thumb:SetSize(12, 18)
-    thumb:SetColorTexture(unpackColor(C.accent))
+    themeTexture(thumb, C.accent)
 
     slider.value = text(slider, "", 11, C.text, "OUTLINE")
     slider.value:SetPoint("LEFT", slider, "RIGHT", 14, 0)
@@ -368,7 +395,7 @@ local function setPageHeader(page, titleText, subtitleText)
     subtitle:SetPoint("TOPLEFT", titleLabel, "BOTTOMLEFT", 1, -9)
     local line = page:CreateTexture(nil, "ARTWORK")
     line:SetTexture(WHITE)
-    line:SetColorTexture(unpackColor(C.accent))
+    themeTexture(line, C.accent)
     line:SetPoint("TOPLEFT", 28, -88)
     line:SetPoint("TOPRIGHT", -28, -88)
     line:SetHeight(2)
@@ -409,6 +436,61 @@ local function formatSeconds(value)
     local rounded = math.floor(value + 0.5)
     if math.abs(value - rounded) < 0.05 then return tostring(rounded) end
     return ("%.1f"):format(value)
+end
+
+local function validThemeColor(value, fallback)
+    if type(value) ~= "table" then value = fallback end
+    local red = math.max(0, math.min(1, tonumber(value and (value.r or value[1])) or fallback[1]))
+    local green = math.max(0, math.min(1, tonumber(value and (value.g or value[2])) or fallback[2]))
+    local blue = math.max(0, math.min(1, tonumber(value and (value.b or value[3])) or fallback[3]))
+    return red, green, blue
+end
+
+local function currentClassColor()
+    if type(UnitClass) ~= "function" then return nil end
+    local ok, _, classToken = pcall(UnitClass, "player")
+    if not ok or not classToken then return nil end
+    local palette = (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[classToken])
+        or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[classToken])
+    if not palette then return nil end
+    return validThemeColor(palette, C.accent)
+end
+
+function HeliHeal:ResolveOptionsWindowTheme()
+    local global = self.db and self.db.global or {}
+    local defaults = ns.defaults.global
+    local background = global.optionsWindowBackgroundColor or defaults.optionsWindowBackgroundColor
+    local accent = global.optionsWindowAccentColor or defaults.optionsWindowAccentColor
+    local backgroundR, backgroundG, backgroundB = validThemeColor(background, defaults.optionsWindowBackgroundColor)
+    local accentR, accentG, accentB = validThemeColor(accent, defaults.optionsWindowAccentColor)
+    if global.optionsWindowUseClassColor then
+        local classR, classG, classB = currentClassColor()
+        if classR then accentR, accentG, accentB = classR, classG, classB end
+    end
+    C.bg[1], C.bg[2], C.bg[3], C.bg[4] = backgroundR, backgroundG, backgroundB, 0.98
+    C.accent[1], C.accent[2], C.accent[3], C.accent[4] = accentR, accentG, accentB, 1
+    C.accentDark[1], C.accentDark[2], C.accentDark[3], C.accentDark[4] =
+        accentR * 0.4, accentG * 0.4, accentB * 0.4, 1
+end
+
+function HeliHeal:ApplyOptionsWindowTheme()
+    self:ResolveOptionsWindowTheme()
+    for object, state in pairs(THEMED_OBJECTS) do
+        if state.background and object.SetBackdropColor then
+            object:SetBackdropColor(unpackColor(C[state.background]))
+        end
+        if state.border and object.SetBackdropBorderColor then
+            object:SetBackdropBorderColor(unpackColor(C[state.border]))
+        end
+        if state.text and object.SetTextColor then
+            object:SetTextColor(unpackColor(C[state.text]))
+        end
+        if state.texture and object.SetColorTexture then
+            local color = C[state.texture]
+            object:SetColorTexture(color[1], color[2], color[3], state.textureAlpha or color[4])
+        end
+    end
+    if self.optionsWindow then self:RefreshOptionsUI() end
 end
 
 function HeliHeal:BuildOverviewPage(parent)
@@ -678,22 +760,67 @@ function HeliHeal:BuildPrioritiesPage(parent)
         page.modeButtons[modeKey] = button
     end
 
-    local settingsOffset = 72
-    local talentLinkRow = createSettingRow(page, -190,
-        L("Talent-Build-Verknüpfung"),
-        L("Verknüpft den aktiven Blizzard-Talent-Build mit dem gewählten Preset und Modus."))
-    talentLinkRow.title:SetWidth(390)
-    talentLinkRow.description:SetWidth(390)
-    talentLinkRow.linkButton = createButton(talentLinkRow, L("VERKNÜPFEN"), 126, 30, false)
-    talentLinkRow.linkButton:SetPoint("RIGHT", -150, 0)
-    talentLinkRow.linkButton:SetScript("OnClick", function() self:LinkActiveTalentBuild() end)
-    talentLinkRow.removeButton = createButton(talentLinkRow, L("LÖSCHEN"), 126, 30, false)
-    talentLinkRow.removeButton:SetPoint("RIGHT", -14, 0)
-    talentLinkRow.removeButton:SetScript("OnClick", function() self:UnlinkActiveTalentBuild() end)
-    page.talentLinkRow = talentLinkRow
+    local settingsOffset = 110
+    local assignmentRow = createSettingRow(page, -190,
+        L("Automatische Rotationszuordnung"),
+        L("Weise gespeicherte Blizzard-Talent-Builds direkt einem Preset und Modus zu."))
+    assignmentRow:SetHeight(100)
+    assignmentRow.title:ClearAllPoints()
+    assignmentRow.title:SetPoint("TOPLEFT", 14, -10)
+    assignmentRow.description:ClearAllPoints()
+    assignmentRow.description:SetPoint("TOPLEFT", 14, -29)
+
+    assignmentRow.buildCaption = text(assignmentRow, L("TALENT-BUILD"), 8, C.muted, "OUTLINE")
+    assignmentRow.buildCaption:SetPoint("TOPLEFT", 14, -47)
+    assignmentRow.presetCaption = text(assignmentRow, L("ROTATION"), 8, C.muted, "OUTLINE")
+    assignmentRow.presetCaption:SetPoint("TOPLEFT", 212, -47)
+    assignmentRow.modeCaption = text(assignmentRow, L("MODUS"), 8, C.muted, "OUTLINE")
+    assignmentRow.modeCaption:SetPoint("TOPLEFT", 400, -47)
+
+    assignmentRow.buildSelector = createDropdownSelector(assignmentRow, page, {},
+        function() return page.assignmentConfigID end,
+        function(value)
+            page.assignmentConfigID = value
+            page.loadedAssignmentConfigID = nil
+            self:RefreshOptionsUI()
+        end)
+    assignmentRow.buildSelector:SetSize(190, 30)
+    assignmentRow.buildSelector:SetPoint("TOPLEFT", 14, -61)
+
+    local presetOptions = {}
+    for _, preset in ipairs(presets) do
+        presetOptions[#presetOptions + 1] = { value = preset[1], label = preset[2] }
+    end
+    assignmentRow.presetSelector = createDropdownSelector(assignmentRow, page, presetOptions,
+        function() return page.assignmentPreset end,
+        function(value) page.assignmentPreset = value end)
+    assignmentRow.presetSelector:SetSize(180, 30)
+    assignmentRow.presetSelector:SetPoint("TOPLEFT", 212, -61)
+
+    local modeOptions = {}
+    for _, mode in ipairs(modes) do
+        modeOptions[#modeOptions + 1] = { value = mode[1], label = mode[2] }
+    end
+    assignmentRow.modeSelector = createDropdownSelector(assignmentRow, page, modeOptions,
+        function() return page.assignmentMode end,
+        function(value) page.assignmentMode = value end)
+    assignmentRow.modeSelector:SetSize(116, 30)
+    assignmentRow.modeSelector:SetPoint("TOPLEFT", 400, -61)
+
+    assignmentRow.assignButton = createButton(assignmentRow, L("ZUWEISEN"), 82, 30, false)
+    assignmentRow.assignButton:SetPoint("TOPLEFT", 524, -61)
+    assignmentRow.assignButton:SetScript("OnClick", function()
+        self:SetTalentBuildBinding(page.assignmentConfigID, page.assignmentPreset, page.assignmentMode)
+    end)
+    assignmentRow.removeButton = createButton(assignmentRow, L("LÖSCHEN"), 86, 30, false)
+    assignmentRow.removeButton:SetPoint("TOPLEFT", 614, -61)
+    assignmentRow.removeButton:SetScript("OnClick", function()
+        self:UnlinkTalentBuild(page.assignmentConfigID)
+    end)
+    page.assignmentRow = assignmentRow
 
     if self.classToken == "SHAMAN" and self.specializationID == 264 then
-        local manaRow = createSettingRow(page, -262,
+        local manaRow = createSettingRow(page, -300,
             L("Automatischer Mana-Sparmodus"),
             L("Nutzt die gespeicherte lokale Mana-Schätzung; eine manuelle Kalibrierung ist nur optional."))
         manaRow.betaBadge = CreateFrame("Frame", nil, manaRow, "BackdropTemplate")
@@ -770,7 +897,7 @@ function HeliHeal:BuildPrioritiesPage(parent)
         row.key:SetPoint("RIGHT", -9, 0)
         row.key.clearHoldProgress = row.key:CreateTexture(nil, "ARTWORK")
         row.key.clearHoldProgress:SetTexture(WHITE)
-        row.key.clearHoldProgress:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.3)
+        themeTexture(row.key.clearHoldProgress, C.accent, 0.3)
         row.key.clearHoldProgress:SetPoint("TOPLEFT", 1, -1)
         row.key.clearHoldProgress:SetPoint("BOTTOMLEFT", 1, 1)
         row.key.clearHoldProgress:SetWidth(1)
@@ -843,14 +970,14 @@ function HeliHeal:BuildStylePage(parent)
 
     local track = page:CreateTexture(nil, "BACKGROUND")
     track:SetTexture(WHITE)
-    track:SetColorTexture(unpackColor(C.borderSoft))
+    themeTexture(track, C.borderSoft)
     track:SetPoint("TOPRIGHT", -13, -152)
     track:SetPoint("BOTTOMRIGHT", -13, 18)
     track:SetWidth(3)
 
     local thumb = page:CreateTexture(nil, "ARTWORK")
     thumb:SetTexture(WHITE)
-    thumb:SetColorTexture(unpackColor(C.accent))
+    themeTexture(thumb, C.accent)
     thumb:SetWidth(3)
 
     local function updateScroll()
@@ -1053,6 +1180,38 @@ function HeliHeal:BuildStylePage(parent)
         end
     end
 
+    local function optionsColorValue(key)
+        return self.db.global[key] or ns.defaults.global[key]
+    end
+    local function optionsColorSetter(key)
+        return function(red, green, blue)
+            self.db.global[key] = { red, green, blue }
+            self:ApplyOptionsWindowTheme()
+        end
+    end
+
+    local optionsBackground = createColorSwatch(content, 112, L("FENSTER"),
+        function() return optionsColorValue("optionsWindowBackgroundColor") end,
+        optionsColorSetter("optionsWindowBackgroundColor"))
+    addControlRow("colors", L("Optionsfenster-Hintergrund"),
+        L("Ändert die Grundfarbe dieses Einstellungsfensters."), optionsBackground)
+
+    local optionsAccent = createColorSwatch(content, 112, L("AKZENT"),
+        function() return optionsColorValue("optionsWindowAccentColor") end,
+        optionsColorSetter("optionsWindowAccentColor"))
+    addControlRow("colors", L("Optionsfenster-Akzent"),
+        L("Farbe für aktive Schaltflächen, Linien und Markierungen im Optionsfenster."), optionsAccent)
+
+    local classColorToggle = createToggle(content,
+        function() return self.db.global.optionsWindowUseClassColor == true end,
+        function(value)
+            self.db.global.optionsWindowUseClassColor = value == true
+            self:ApplyOptionsWindowTheme()
+        end)
+    addControlRow("colors", L("Klassenfarbe verwenden"),
+        L("Verwendet die aktuelle Spielerklasse als Akzentfarbe; die eigene Akzentfarbe bleibt gespeichert."),
+        classColorToggle)
+
     local accentColor = createColorSwatch(content, 112, L("AKZENT"),
         function() return colorValue("accentColor") end, colorSetter("accentColor"))
     addControlRow("colors", L("HUD-Akzentfarbe"), L("Farbe für aktive Icon-Rahmen und die obere Akzentlinie."), accentColor)
@@ -1187,33 +1346,49 @@ function HeliHeal:BuildProfilesPage(parent)
     page:SetAllPoints()
     setPageHeader(page, L("Profile & Reset"), L("Separate Konfigurationen über AceDB verwalten oder sicher zurücksetzen."))
 
-    local profileCard = CreateFrame("Frame", nil, page, "BackdropTemplate")
-    profileCard:SetPoint("TOPLEFT", 20, -110)
-    profileCard:SetPoint("TOPRIGHT", -20, -110)
-    profileCard:SetHeight(252)
-    backdrop(profileCard, C.panel, C.borderSoft)
-    local profileCaption = text(profileCard, L("AKTIVES PROFIL"), 10, C.accent, "OUTLINE")
-    profileCaption:SetPoint("TOPLEFT", 20, -18)
-    page.profileName = text(profileCard, "", 22, C.text, "OUTLINE")
-    page.profileName:SetPoint("TOPLEFT", profileCaption, "BOTTOMLEFT", 0, -12)
+    local activeCard = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    activeCard:SetPoint("TOPLEFT", 20, -110)
+    activeCard:SetPoint("TOPRIGHT", -20, -110)
+    activeCard:SetHeight(100)
+    backdrop(activeCard, C.panel, C.accentDark)
+    local activeBar = activeCard:CreateTexture(nil, "ARTWORK")
+    activeBar:SetTexture(WHITE)
+    themeTexture(activeBar, C.accent)
+    activeBar:SetPoint("TOPLEFT")
+    activeBar:SetPoint("BOTTOMLEFT")
+    activeBar:SetWidth(3)
 
-    local existingLabel = text(profileCard, L("VORHANDENE PROFILE"), 9, C.muted, "OUTLINE")
-    existingLabel:SetPoint("TOPLEFT", 420, -20)
+    local profileCaption = text(activeCard, L("AKTIVES PROFIL"), 9, C.accent, "OUTLINE")
+    profileCaption:SetPoint("TOPLEFT", 20, -17)
+    page.profileName = text(activeCard, "", 24, C.text, "OUTLINE")
+    page.profileName:SetPoint("TOPLEFT", profileCaption, "BOTTOMLEFT", 0, -8)
+    local profileHint = text(activeCard, L("Alle Änderungen werden in diesem Profil gespeichert."), 9, C.muted)
+    profileHint:SetPoint("TOPLEFT", page.profileName, "BOTTOMLEFT", 1, -6)
+
+    local existingLabel = text(activeCard, L("VORHANDENE PROFILE"), 9, C.muted, "OUTLINE")
+    existingLabel:SetPoint("TOPRIGHT", -20, -18)
     local profileOptions = {}
-    local profileSelector = createDropdownSelector(profileCard, page, profileOptions,
+    local profileSelector = createDropdownSelector(activeCard, page, profileOptions,
         function() return self.db:GetCurrentProfile() end,
         function(value) self.db:SetProfile(value) end)
-    profileSelector:SetSize(330, 34)
-    profileSelector:SetPoint("TOPLEFT", existingLabel, "BOTTOMLEFT", 0, -8)
+    profileSelector:SetSize(300, 34)
+    profileSelector:SetPoint("TOPRIGHT", -20, -42)
     page.profileSelector = profileSelector
 
-    local createLabel = text(profileCard, L("NEUES PROFIL"), 9, C.muted, "OUTLINE")
-    createLabel:SetPoint("TOPLEFT", 20, -112)
-    page.profileInput = createEditBox(profileCard, 270, L("Profilname"))
-    page.profileInput:SetPoint("TOPLEFT", createLabel, "BOTTOMLEFT", 0, -8)
-    local create = createButton(profileCard, L("LEER ERSTELLEN"), 142, 34, false)
+    local createCard = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    createCard:SetPoint("TOPLEFT", 20, -222)
+    createCard:SetPoint("TOPRIGHT", -20, -222)
+    createCard:SetHeight(112)
+    backdrop(createCard, C.panel, C.borderSoft)
+    local createLabel = text(createCard, L("NEUES PROFIL"), 10, C.accent, "OUTLINE")
+    createLabel:SetPoint("TOPLEFT", 20, -16)
+    local createHint = text(createCard, L("Erstelle eine leere Konfiguration oder kopiere das aktuell aktive Profil."), 9, C.muted)
+    createHint:SetPoint("TOPLEFT", createLabel, "BOTTOMLEFT", 0, -6)
+    page.profileInput = createEditBox(createCard, 250, L("Profilname"))
+    page.profileInput:SetPoint("TOPLEFT", 20, -61)
+    local create = createButton(createCard, L("LEER ERSTELLEN"), 142, 34, false)
     create:SetPoint("LEFT", page.profileInput, "RIGHT", 10, 0)
-    local duplicate = createButton(profileCard, L("AKTUELLES KOPIEREN"), 174, 34, true)
+    local duplicate = createButton(createCard, L("AKTUELLES KOPIEREN"), 174, 34, true)
     duplicate:SetPoint("LEFT", create, "RIGHT", 8, 0)
 
     local function requestedProfileName()
@@ -1248,21 +1423,63 @@ function HeliHeal:BuildProfilesPage(parent)
     end)
     page.profileInput:SetScript("OnEnterPressed", function() duplicate:Click() end)
 
-    local deleteLabel = text(profileCard, L("NICHT AKTIVES PROFIL LÖSCHEN"), 9, C.muted, "OUTLINE")
-    deleteLabel:SetPoint("TOPLEFT", 20, -192)
+    local maintenance = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    maintenance:SetPoint("TOPLEFT", 20, -346)
+    maintenance:SetPoint("TOPRIGHT", -20, -346)
+    maintenance:SetHeight(126)
+    backdrop(maintenance, C.panel, C.borderSoft)
+    local maintenanceCaption = text(maintenance, L("WARTUNG & RESET"), 10, C.accent, "OUTLINE")
+    maintenanceCaption:SetPoint("TOPLEFT", 20, -16)
+    local actions = {
+        { L("TIMER RESET"), L("Nur lokale Timer"), function() self:ResetSession() end },
+        { L("HOTKEYS RESET"), L("Alle Klassen-Hotkeys"), function() self:ResetSlots() end },
+        { L("PROFIL RESET"), L("Aktives Profil"), function() self.db:ResetProfile() end },
+        { L("UI NEU LADEN"), L("Interface aktualisieren"), function()
+            if C_UI and C_UI.Reload then C_UI.Reload() else ReloadUI() end
+        end },
+    }
+    for index, action in ipairs(actions) do
+        local callback = action[3]
+        local actionButton = createButton(maintenance, action[1], 164, 34, index == 4)
+        actionButton:SetPoint("TOPLEFT", 20 + ((index - 1) * 177), -48)
+        actionButton:SetScript("OnClick", callback)
+        local description = text(maintenance, action[2], 8, C.muted)
+        description:SetPoint("TOP", actionButton, "BOTTOM", 0, -8)
+    end
+
+    local dangerCard = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    dangerCard:SetPoint("TOPLEFT", 20, -484)
+    dangerCard:SetPoint("TOPRIGHT", -20, -484)
+    dangerCard:SetHeight(82)
+    backdrop(dangerCard, { 0.065, 0.025, 0.03, 0.92 }, C.danger)
+    local deleteLabel = text(dangerCard, L("GEFAHRENBEREICH"), 9, C.danger, "OUTLINE")
+    deleteLabel:SetPoint("TOPLEFT", 20, -17)
+    local deleteHint = text(dangerCard, L("Löscht ein nicht aktives Profil dauerhaft."), 9, C.muted)
+    deleteHint:SetPoint("TOPLEFT", deleteLabel, "BOTTOMLEFT", 0, -7)
     local deleteSelection
-    local deleteSelector = createDropdownSelector(profileCard, page, {},
+    local deleteSelector = createDropdownSelector(dangerCard, page, {},
         function() return deleteSelection end,
         function(value)
             deleteSelection = value
             page.pendingDeleteProfile = nil
             page.deleteButton.label:SetText(L("PROFIL LÖSCHEN"))
         end)
-    deleteSelector:SetSize(270, 34)
-    deleteSelector:SetPoint("TOPLEFT", deleteLabel, "BOTTOMLEFT", 0, -8)
+    deleteSelector:SetSize(220, 34)
+    deleteSelector:SetPoint("RIGHT", -202, 0)
     page.deleteSelector = deleteSelector
-    page.deleteButton = createButton(profileCard, L("PROFIL LÖSCHEN"), 180, 34, false)
-    page.deleteButton:SetPoint("LEFT", deleteSelector, "RIGHT", 10, 0)
+    page.deleteButton = createButton(dangerCard, L("PROFIL LÖSCHEN"), 170, 34, false)
+    backdrop(page.deleteButton, C.input, C.danger)
+    page.deleteButton:SetPoint("RIGHT", -20, 0)
+    page.deleteButton:SetScript("OnEnter", function(button)
+        button:SetBackdropColor(0.12, 0.035, 0.045, 1)
+        button:SetBackdropBorderColor(unpackColor(C.danger))
+        button.label:SetTextColor(unpackColor(C.text))
+    end)
+    page.deleteButton:SetScript("OnLeave", function(button)
+        button:SetBackdropColor(unpackColor(C.input))
+        button:SetBackdropBorderColor(unpackColor(C.danger))
+        button.label:SetTextColor(unpackColor(C.muted))
+    end)
     page.deleteButton:SetScript("OnClick", function(button)
         if not deleteSelection then return end
         if page.pendingDeleteProfile ~= deleteSelection then
@@ -1275,30 +1492,9 @@ function HeliHeal:BuildProfilesPage(parent)
         deleteSelection = nil
         page.pendingDeleteProfile = nil
         button.label:SetText(L("PROFIL LÖSCHEN"))
-        button:SetBackdropBorderColor(unpackColor(C.border))
+        button:SetBackdropBorderColor(unpackColor(C.danger))
         page:RefreshProfiles()
     end)
-
-    local maintenance = CreateFrame("Frame", nil, page, "BackdropTemplate")
-    maintenance:SetPoint("TOPLEFT", 20, -376)
-    maintenance:SetPoint("TOPRIGHT", -20, -376)
-    maintenance:SetHeight(154)
-    backdrop(maintenance, C.panel, C.borderSoft)
-    local maintenanceCaption = text(maintenance, L("WARTUNG & RESET"), 10, C.accent, "OUTLINE")
-    maintenanceCaption:SetPoint("TOPLEFT", 20, -16)
-    local actions = {
-        { L("TIMER RESET"), L("Nur lokale Timer"), function() self:ResetSession() end },
-        { L("HOTKEYS RESET"), L("Alle Klassen-Hotkeys"), function() self:ResetSlots() end },
-        { L("PROFIL RESET"), L("Aktives Profil"), function() self.db:ResetProfile() end },
-    }
-    for index, action in ipairs(actions) do
-        local callback = action[3]
-        local actionButton = createButton(maintenance, action[1], 190, 34, index == 1)
-        actionButton:SetPoint("TOPLEFT", 20 + ((index - 1) * 235), -52)
-        actionButton:SetScript("OnClick", callback)
-        local description = text(maintenance, action[2], 9, C.muted)
-        description:SetPoint("TOP", actionButton, "BOTTOM", 0, -9)
-    end
 
     function page:RefreshProfiles()
         local profiles = HeliHeal.db:GetProfiles({})
@@ -1322,12 +1518,6 @@ function HeliHeal:BuildProfilesPage(parent)
         page.deleteButton.label:SetText(L("PROFIL LÖSCHEN"))
     end
     page:RefreshProfiles()
-
-    local reload = createButton(page, "RELOAD UI", 140, 38, true)
-    reload:SetPoint("BOTTOMLEFT", 20, 18)
-    reload:SetScript("OnClick", function()
-        if C_UI and C_UI.Reload then C_UI.Reload() else ReloadUI() end
-    end)
     return page
 end
 
@@ -1414,7 +1604,7 @@ function HeliHeal:ShowWhatsNewModal()
 
         local line = card:CreateTexture(nil, "ARTWORK")
         line:SetTexture(WHITE)
-        line:SetColorTexture(unpackColor(C.accent))
+        themeTexture(line, C.accent)
         line:SetPoint("TOPLEFT", 28, -113)
         line:SetPoint("TOPRIGHT", -28, -113)
         line:SetHeight(2)
@@ -1450,6 +1640,7 @@ function HeliHeal:ShowWhatsNewModal()
 end
 
 function HeliHeal:CreateModernOptions()
+    self:ResolveOptionsWindowTheme()
     local window = CreateFrame("Frame", "HeliHealOptionsWindow", UIParent, "BackdropTemplate")
     window:SetSize(1040, 700)
     window:SetPoint("CENTER")
@@ -1465,7 +1656,9 @@ function HeliHeal:CreateModernOptions()
     local function fitToScreen()
         local availableWidth = math.max(1, (UIParent:GetWidth() or 1040) - 24)
         local availableHeight = math.max(1, (UIParent:GetHeight() or 700) - 24)
-        window:SetScale(math.min(1, availableWidth / 1040, availableHeight / 700))
+        local requestedScale = math.max(0.65, math.min(1.35,
+            tonumber(HeliHeal.db.global.optionsWindowScale) or ns.defaults.global.optionsWindowScale))
+        window:SetScale(math.min(requestedScale, availableWidth / 1040, availableHeight / 700))
     end
     window:RegisterEvent("DISPLAY_SIZE_CHANGED")
     window:RegisterEvent("UI_SCALE_CHANGED")
@@ -1475,13 +1668,16 @@ function HeliHeal:CreateModernOptions()
     window:SetScript("OnDragStart", function(self) self:StartMoving() end)
     window:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
     window:SetScript("OnHide", function()
+        if window.resizeGrip then window.resizeGrip:SetScript("OnUpdate", nil) end
         HeliHeal:EndKeyCapture()
         HeliHeal:HideWhatsNewModal(true)
+        window.performanceLastCPU = nil
+        window.performanceLastTime = nil
     end)
 
     local accentTop = window:CreateTexture(nil, "ARTWORK")
     accentTop:SetTexture(WHITE)
-    accentTop:SetColorTexture(unpackColor(C.accent))
+    themeTexture(accentTop, C.accent)
     accentTop:SetPoint("TOPLEFT", 1, -1)
     accentTop:SetPoint("TOPRIGHT", -1, -1)
     accentTop:SetHeight(2)
@@ -1505,7 +1701,7 @@ function HeliHeal:CreateModernOptions()
 
     local separator = sidebar:CreateTexture(nil, "ARTWORK")
     separator:SetTexture(WHITE)
-    separator:SetColorTexture(unpackColor(C.borderSoft))
+    themeTexture(separator, C.borderSoft)
     separator:SetPoint("TOPLEFT", 18, -96)
     separator:SetPoint("TOPRIGHT", -18, -96)
     separator:SetHeight(1)
@@ -1543,7 +1739,7 @@ function HeliHeal:CreateModernOptions()
         backdrop(nav, C.sidebar, C.sidebar)
         nav.indicator = nav:CreateTexture(nil, "ARTWORK")
         nav.indicator:SetTexture(WHITE)
-        nav.indicator:SetColorTexture(unpackColor(C.accent))
+        themeTexture(nav.indicator, C.accent)
         nav.indicator:SetPoint("TOPLEFT", 0, -5)
         nav.indicator:SetPoint("BOTTOMLEFT", 0, 5)
         nav.indicator:SetWidth(3)
@@ -1569,13 +1765,89 @@ function HeliHeal:CreateModernOptions()
 
     local statusDot = sidebar:CreateTexture(nil, "ARTWORK")
     statusDot:SetTexture(WHITE)
-    statusDot:SetColorTexture(unpackColor(C.accent))
+    themeTexture(statusDot, C.accent)
     statusDot:SetSize(7, 7)
-    statusDot:SetPoint("BOTTOMLEFT", 22, 48)
+    statusDot:SetPoint("BOTTOMLEFT", 22, 74)
     local status = text(sidebar, L("SECURE INPUT TRACKER"), 9, C.muted, "OUTLINE")
     status:SetPoint("LEFT", statusDot, "RIGHT", 8, 0)
     local privacy = text(sidebar, L("NO COMBAT DATA"), 9, C.dim)
     privacy:SetPoint("TOPLEFT", status, "BOTTOMLEFT", 0, -7)
+    local performance = text(sidebar, "", 8, C.dim, "OUTLINE")
+    performance:SetPoint("TOPLEFT", privacy, "BOTTOMLEFT", 0, -7)
+    performance:SetWidth(200)
+    performance:SetJustifyH("LEFT")
+    window.performanceLabel = performance
+
+    local function readableNumber(value)
+        if type(value) ~= "number" then return nil end
+        if type(issecretvalue) == "function" then
+            local ok, secret = pcall(issecretvalue, value)
+            if not ok or secret then return nil end
+        end
+        if type(canaccessvalue) == "function" then
+            local ok, accessible = pcall(canaccessvalue, value)
+            if not ok or not accessible then return nil end
+        end
+        return value
+    end
+
+    local function formatMemory(kilobytes)
+        kilobytes = readableNumber(kilobytes)
+        if not kilobytes then return L("nicht verfügbar") end
+        if kilobytes >= 1024 then return ("%.2f MB"):format(kilobytes / 1024) end
+        return ("%.0f KB"):format(kilobytes)
+    end
+
+    function window:RefreshPerformanceStats()
+        local memoryKB
+        if type(UpdateAddOnMemoryUsage) == "function" and type(GetAddOnMemoryUsage) == "function" then
+            pcall(UpdateAddOnMemoryUsage)
+            local ok, value = pcall(GetAddOnMemoryUsage, "HeliHeal")
+            if ok then memoryKB = readableNumber(value) end
+        end
+        local memoryText = formatMemory(memoryKB)
+
+        local profiling = false
+        if type(GetCVarBool) == "function" then
+            local profilingOK, profilingValue = pcall(GetCVarBool, "scriptProfile")
+            profiling = profilingOK and profilingValue == true
+        end
+        if not profiling or type(UpdateAddOnCPUUsage) ~= "function" or type(GetAddOnCPUUsage) ~= "function" then
+            self.performanceLabel:SetText(L("CPU: Profiling aus • Speicher: %s", memoryText))
+            self.performanceLastCPU = nil
+            self.performanceLastTime = nil
+            return
+        end
+
+        pcall(UpdateAddOnCPUUsage)
+        local ok, value = pcall(GetAddOnCPUUsage, "HeliHeal")
+        local cpuMS = ok and readableNumber(value)
+        local clock = type(GetTimePreciseSec) == "function" and GetTimePreciseSec or GetTime
+        local clockOK, clockValue = type(clock) == "function" and pcall(clock)
+        local now = clockOK and readableNumber(clockValue)
+        local cpuPercent
+        if cpuMS and now and self.performanceLastCPU and self.performanceLastTime
+            and now > self.performanceLastTime and cpuMS >= self.performanceLastCPU then
+            cpuPercent = ((cpuMS - self.performanceLastCPU) / ((now - self.performanceLastTime) * 1000)) * 100
+            cpuPercent = math.max(0, math.min(999, cpuPercent))
+        end
+        self.performanceLastCPU = cpuMS
+        self.performanceLastTime = now
+        if cpuPercent then
+            self.performanceLabel:SetText(L("CPU: %.2f%% • Speicher: %s", cpuPercent, memoryText))
+        else
+            self.performanceLabel:SetText(L("CPU: misst… • Speicher: %s", memoryText))
+        end
+    end
+
+    window.performanceElapsed = 0
+    window:SetScript("OnUpdate", function(self, elapsed)
+        self.performanceElapsed = self.performanceElapsed + elapsed
+        if self.performanceElapsed >= 3 then
+            self.performanceElapsed = 0
+            self:RefreshPerformanceStats()
+        end
+    end)
 
     local bottom = CreateFrame("Frame", nil, window, "BackdropTemplate")
     bottom:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 0, 1)
@@ -1585,8 +1857,43 @@ function HeliHeal:CreateModernOptions()
     local help = text(bottom, L("/hh öffnet dieses Fenster  •  ESC schließt es"), 10, C.muted)
     help:SetPoint("LEFT", 22, 0)
     local close = createButton(bottom, L("SCHLIESSEN"), 150, 36, true)
-    close:SetPoint("RIGHT", -18, 0)
+    close:SetPoint("RIGHT", -32, 0)
     close:SetScript("OnClick", function() window:Hide() end)
+
+    local resizeGrip = CreateFrame("Button", nil, window)
+    resizeGrip:SetSize(22, 22)
+    resizeGrip:SetPoint("BOTTOMRIGHT", -2, 2)
+    resizeGrip:SetFrameLevel(window:GetFrameLevel() + 30)
+    resizeGrip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    resizeGrip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+    resizeGrip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+    resizeGrip:SetScript("OnMouseDown", function(_, button)
+        if button ~= "LeftButton" then return end
+        local cursorX, cursorY = GetCursorPosition()
+        resizeGrip.resizeStartX = cursorX
+        resizeGrip.resizeStartY = cursorY
+        resizeGrip.resizeStartScale = window:GetScale()
+        resizeGrip:SetScript("OnUpdate", function(grip)
+            local currentX, currentY = GetCursorPosition()
+            local uiScale = UIParent:GetEffectiveScale() or 1
+            if uiScale <= 0 then uiScale = 1 end
+            local horizontal = ((currentX - grip.resizeStartX) / uiScale) / 520
+            local vertical = ((grip.resizeStartY - currentY) / uiScale) / 350
+            local requestedScale = math.max(0.65, math.min(1.35,
+                grip.resizeStartScale + ((horizontal + vertical) * 0.5)))
+            local maxScale = math.min(1.35,
+                math.max(1, (UIParent:GetWidth() or 1040) - 24) / 1040,
+                math.max(1, (UIParent:GetHeight() or 700) - 24) / 700)
+            window:SetScale(math.min(requestedScale, maxScale))
+        end)
+    end)
+    resizeGrip:SetScript("OnMouseUp", function(_, button)
+        if button ~= "LeftButton" then return end
+        resizeGrip:SetScript("OnUpdate", nil)
+        HeliHeal.db.global.optionsWindowScale = window:GetScale()
+        fitToScreen()
+    end)
+    window.resizeGrip = resizeGrip
 
     local x = createButton(window, "×", 36, 36, false)
     x:SetPoint("TOPRIGHT", -14, -14)
@@ -1660,28 +1967,51 @@ function HeliHeal:RefreshOptionsUI()
         local active = modeKey == self:GetHealingMode()
         button:SetSelected(active)
     end
-    local talentLinkRow = prioritiesPage.talentLinkRow
-    if talentLinkRow then
-        local configID, configName = self:GetActiveTalentBuildInfo()
-        local binding = configID and self:GetTalentBuildBinding(configID)
-        if configID then
-            talentLinkRow.title:SetText(L("Aktiver Build: %s (Config %s)", configName, configID))
-        else
-            talentLinkRow.title:SetText(L("Talent-Build-Verknüpfung"))
+    local assignmentRow = prioritiesPage.assignmentRow
+    if assignmentRow then
+        local builds = self:GetTalentBuildsForCurrentSpec()
+        local activeConfigID = self:GetActiveTalentBuildInfo()
+        local buildOptions, valid = {}, {}
+        for _, build in ipairs(builds) do
+            valid[build.configID] = true
+            buildOptions[#buildOptions + 1] = {
+                value = build.configID,
+                label = build.active and ("[" .. L("AKTIV") .. "] " .. build.name) or build.name,
+            }
         end
+        if not valid[prioritiesPage.assignmentConfigID] then
+            prioritiesPage.assignmentConfigID = valid[activeConfigID] and activeConfigID
+                or (builds[1] and builds[1].configID)
+            prioritiesPage.loadedAssignmentConfigID = nil
+        end
+        assignmentRow.buildSelector:SetValues(buildOptions)
+
+        if prioritiesPage.loadedAssignmentConfigID ~= prioritiesPage.assignmentConfigID then
+            local selectedBinding = self:GetTalentBuildBinding(prioritiesPage.assignmentConfigID)
+            prioritiesPage.assignmentPreset = selectedBinding and selectedBinding.rotationPreset
+                or self.db.profile.rotationPreset
+            prioritiesPage.assignmentMode = selectedBinding and selectedBinding.healingMode
+                or self:GetHealingMode()
+            prioritiesPage.loadedAssignmentConfigID = prioritiesPage.assignmentConfigID
+        end
+        assignmentRow.presetSelector:Refresh()
+        assignmentRow.modeSelector:Refresh()
+
+        local binding = self:GetTalentBuildBinding(prioritiesPage.assignmentConfigID)
         if binding then
             local presetButton = prioritiesPage.presetButtons[binding.rotationPreset]
             local modeButton = prioritiesPage.modeButtons[binding.healingMode]
             local presetLabel = presetButton and presetButton.presetLabel or binding.rotationPreset
             local modeLabel = modeButton and modeButton.label:GetText() or binding.healingMode
-            talentLinkRow.description:SetText(L("Verknüpft mit %s • %s", presetLabel, modeLabel))
+            assignmentRow.description:SetText(L("Verknüpft mit %s • %s", presetLabel, modeLabel))
         else
-            talentLinkRow.description:SetText(L("Noch nicht verknüpft. Preset und Modus wählen, dann verknüpfen."))
+            assignmentRow.description:SetText(L("Noch nicht verknüpft. Preset und Modus wählen, dann verknüpfen."))
         end
-        talentLinkRow.linkButton:SetEnabled(configID ~= nil)
-        talentLinkRow.linkButton:SetAlpha(configID and 1 or 0.45)
-        talentLinkRow.removeButton:SetEnabled(binding ~= nil)
-        talentLinkRow.removeButton:SetAlpha(binding and 1 or 0.45)
+        local hasBuild = prioritiesPage.assignmentConfigID ~= nil
+        assignmentRow.assignButton:SetEnabled(hasBuild)
+        assignmentRow.assignButton:SetAlpha(hasBuild and 1 or 0.45)
+        assignmentRow.removeButton:SetEnabled(binding ~= nil)
+        assignmentRow.removeButton:SetAlpha(binding and 1 or 0.45)
     end
     if prioritiesPage.manaAutoToggle then prioritiesPage.manaAutoToggle:Refresh() end
     if prioritiesPage.manaThresholdSlider then prioritiesPage.manaThresholdSlider:Refresh() end
@@ -1768,6 +2098,8 @@ function HeliHeal:ShowOptions(suppressWhatsNew)
     end
     self.optionsWindow:Show()
     self.optionsWindow:Raise()
+    self.optionsWindow.performanceElapsed = 0
+    if self.optionsWindow.RefreshPerformanceStats then self.optionsWindow:RefreshPerformanceStats() end
     self:RefreshOptionsUI()
     if not suppressWhatsNew and self:ShouldShowWhatsNew() then
         self:ShowWhatsNewModal()

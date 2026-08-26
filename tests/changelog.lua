@@ -40,6 +40,14 @@ assert(not releaseNotes:find("Author:", 1, true)
     and not releaseNotes:find("@gmail.com", 1, true),
     "public release notes must never expose Git author metadata or personal email addresses")
 
+local inGameHistory = assert(io.open("Changelog.lua", "rb")):read("*a")
+assert(not inGameHistory:find("[äöüÄÖÜß]")
+    and not inGameHistory:find(" können ", 1, true)
+    and not inGameHistory:find(" wird ", 1, true)
+    and not inGameHistory:find(" werden ", 1, true)
+    and not inGameHistory:find(" nicht ", 1, true),
+    "in-game update history must remain English-only for every client language")
+
 local packageMeta = assert(io.open(".pkgmeta", "rb")):read("*a")
 assert(packageMeta:find("filename: CHANGELOG.md", 1, true)
     and packageMeta:find("markup-type: markdown", 1, true),

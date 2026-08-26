@@ -10,6 +10,7 @@ namespace.AbilityLibrary = {
 assert(loadfile("Defaults.lua"))("HeliHeal", namespace)
 
 local profile = namespace.defaults.profile
+local global = namespace.defaults.global
 assert(namespace.media.fonts.friz.path == "Fonts\\FRIZQT__.TTF"
     and #namespace.media.fontOrder == 4,
     "HUD font catalog must expose stable built-in WoW fonts")
@@ -36,5 +37,24 @@ assert(profile.panelBackgroundColor[1] == 0.018 and profile.abilityNameColor[1] 
     "panel and text elements must expose independent default colors")
 assert(profile.roleColors.AOE[3] == 1 and profile.roleColors.BURST[1] == 1,
     "each contextual role must have an independent default color")
+assert(global.optionsWindowScale == 1 and global.optionsWindowUseClassColor == false,
+    "options window scale and class-color mode must have stable account-wide defaults")
+assert(global.optionsWindowBackgroundColor[1] == 0.025
+    and global.optionsWindowAccentColor[2] == 0.88,
+    "options window background and accent colors must be persisted independently")
+
+local optionsFile = assert(io.open("Options.lua", "rb"))
+local optionsSource = optionsFile:read("*a")
+optionsFile:close()
+assert(optionsSource:find("optionsWindowScale", 1, true)
+    and optionsSource:find('resizeGrip:SetScript%("OnMouseDown"'),
+    "options window must expose a persisted bottom-right scale grip")
+assert(optionsSource:find("optionsWindowUseClassColor", 1, true)
+    and optionsSource:find("RAID_CLASS_COLORS", 1, true),
+    "options window must support a persisted player-class accent")
+assert(optionsSource:find('L%("GEFAHRENBEREICH"%)')
+    and optionsSource:find("activeBar", 1, true)
+    and optionsSource:find('L%("UI NEU LADEN"%)'),
+    "profile management must separate active, maintenance and destructive actions visually")
 
 print("Appearance config OK: independent dimensions, positions, zoom, text and colors")

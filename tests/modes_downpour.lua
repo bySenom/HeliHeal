@@ -74,6 +74,19 @@ addon:SetHealingMode("aoe", true)
 local rainIndex = addon:GetSlotIndexByAbilityKey("healing_rain")
 local downpourIndex = addon:GetSlotIndexByAbilityKey("downpour")
 assert(rainIndex and downpourIndex, "context pack must contain Healing Rain and derived Downpour")
+assert(not addon:GetSlot(rainIndex).enabled,
+    "Totemic must hide Healing Rain when Surging Totem replaces it")
+
+-- Farseer retains the regular Healing Rain -> Downpour interaction.
+addon.db.profile.rotationPreset = "shaman_farseer_mythicplus"
+addon.db.profile.slots = namespace.AbilityLibrary:BuildPresetSlots(
+    addon.db.profile.rotationPreset, addon.db.profile.bindings)
+addon.resolvedSlotCache = {}
+addon.activePriorityRanksCache = nil
+addon.talentSnapshot.surgingTotem = false
+rainIndex = addon:GetSlotIndexByAbilityKey("healing_rain")
+downpourIndex = addon:GetSlotIndexByAbilityKey("downpour")
+assert(addon:GetSlot(rainIndex).enabled, "Farseer must retain Healing Rain")
 assert(addon.db.profile.slots[downpourIndex].inputKey == "SHIFT-5", "Downpour must inherit Healing Rain's binding")
 
 addon:AcknowledgeSlot(rainIndex)

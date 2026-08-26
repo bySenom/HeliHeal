@@ -13,9 +13,17 @@ C_SpellBook = {
 }
 
 local selectedSpellIDs = { 333919, 462488, 1252882, 1270453, 443418, 73685, 1254251, 1260644 }
-C_ClassTalents = { GetActiveConfigID = function() return 77 end }
+C_ClassTalents = {
+    GetActiveConfigID = function() return 77 end,
+    GetConfigIDsBySpecID = function(specID)
+        assert(specID == 264)
+        return { 77, 78 }
+    end,
+}
 C_Traits = {
-    GetConfigInfo = function() return { name = "Raid Farseer", treeIDs = { 10 } } end,
+    GetConfigInfo = function(configID)
+        return { name = configID == 78 and "Mythic Totemic" or "Raid Farseer", treeIDs = { 10 } }
+    end,
     GetTreeNodes = function() return { 101, 102, 103, 104, 105, 106, 107, 108 } end,
     GetNodeInfo = function(_, nodeID)
         if nodeID == 105 then
@@ -46,6 +54,7 @@ addon.db = {
 }
 addon.db.profile.slots = namespace.AbilityLibrary:BuildPresetSlots(addon.db.profile.rotationPreset, {})
 addon.classToken = "SHAMAN"
+addon.specializationID = 264
 addon.sessionUses = {}
 addon.sessionCharges = {}
 addon.sessionSpendHistory = {}
@@ -113,13 +122,28 @@ addon.db.char.talentBuildBindings["77"] = {
     classToken = "SHAMAN",
     specializationID = 264,
 }
-addon.specializationID = 264
 addon.talentSnapshot = nil
 assert(addon:RefreshTalentSnapshot(true), "linked talent build must remain readable")
 assert(addon.talentSnapshot.configName == "Raid Farseer", "active Blizzard loadout name must be cached")
 assert(addon.db.profile.rotationPreset == "shaman_totemic_raid",
     "a talent-build link must take precedence over automatic hero detection")
 assert(addon:GetHealingMode() == "single", "a talent-build link must restore its rotation mode")
+
+local savedBuilds = addon:GetTalentBuildsForCurrentSpec()
+assert(#savedBuilds == 2 and savedBuilds[1].name == "Mythic Totemic"
+    and savedBuilds[2].name == "Raid Farseer",
+    "all saved Blizzard loadouts for the current spec must be available for assignment")
+assert(addon:SetTalentBuildBinding(78, "shaman_totemic_mythicplus", "aoe"),
+    "an inactive saved talent build must be assignable without activating it")
+local inactiveBinding = addon:GetTalentBuildBinding(78)
+assert(inactiveBinding and inactiveBinding.rotationPreset == "shaman_totemic_mythicplus"
+    and inactiveBinding.healingMode == "aoe",
+    "inactive build assignment must retain its selected preset and mode")
+assert(addon:UnlinkTalentBuild(78), "an inactive talent-build assignment must be removable")
+assert(addon:SetTalentBuildBinding(77, "shaman_farseer_raid", "mana"),
+    "the active talent build must be reassignable from the manager")
+assert(addon.db.profile.rotationPreset == "shaman_farseer_raid" and addon:GetHealingMode() == "mana",
+    "reassigning the active talent build must apply its target immediately")
 assert(addon:UnlinkActiveTalentBuild(), "active talent-build link must be removable")
 assert(addon.db.char.talentBuildBindings["77"] == nil, "removed talent-build link must not persist")
 

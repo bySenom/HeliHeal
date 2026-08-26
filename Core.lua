@@ -417,6 +417,39 @@ function HeliHeal:GetActiveTalentBuildInfo()
     return configID, snapshot.configName or L("Talent-Build %s", configID)
 end
 
+function HeliHeal:GetTalentBuildsForCurrentSpec()
+    local builds = {}
+    local seen = {}
+    if C_ClassTalents and type(C_ClassTalents.GetConfigIDsBySpecID) == "function"
+        and C_Traits and type(C_Traits.GetConfigInfo) == "function" then
+        local ok, configIDs = pcall(C_ClassTalents.GetConfigIDsBySpecID, self.specializationID)
+        if ok and type(configIDs) == "table" then
+            for _, configID in ipairs(configIDs) do
+                configID = tonumber(configID)
+                if configID and not seen[configID] then
+                    local infoOK, info = pcall(C_Traits.GetConfigInfo, configID)
+                    if infoOK and info then
+                        seen[configID] = true
+                        builds[#builds + 1] = {
+                            configID = configID,
+                            name = info.name or L("Talent-Build %s", configID),
+                        }
+                    end
+                end
+            end
+        end
+    end
+    local activeID, activeName = self:GetActiveTalentBuildInfo()
+    if activeID and not seen[activeID] then
+        builds[#builds + 1] = { configID = activeID, name = activeName }
+    end
+    table.sort(builds, function(a, b)
+        return tostring(a.name):lower() < tostring(b.name):lower()
+    end)
+    for _, build in ipairs(builds) do build.active = build.configID == activeID end
+    return builds
+end
+
 function HeliHeal:GetTalentBuildBinding(configID)
     local key = talentBuildBindingKey(configID)
     local bindings = self.db and self.db.char and self.db.char.talentBuildBindings
@@ -433,35 +466,65 @@ function HeliHeal:GetTalentBuildBinding(configID)
     return binding
 end
 
-function HeliHeal:LinkActiveTalentBuild()
-    local configID, configName = self:GetActiveTalentBuildInfo()
-    if not configID then
-        self:Print(L("Aktiver Talent-Build ist noch nicht lesbar."))
+function HeliHeal:SetTalentBuildBinding(configID, presetKey, healingMode)
+    configID = tonumber(configID)
+    local preset = ns.AbilityLibrary:GetPreset(presetKey)
+    if not configID or not preset or preset.class ~= self.classToken
+        or (preset.specializationID and preset.specializationID ~= self.specializationID)
+        or not HEALING_MODE_LABELS[healingMode] then
+        self:Print(L("Talent-Build-Zuordnung konnte nicht gespeichert werden."))
         return false
+    end
+    local configName = L("Talent-Build %s", configID)
+    if C_Traits and type(C_Traits.GetConfigInfo) == "function" then
+        local ok, info = pcall(C_Traits.GetConfigInfo, configID)
+        if ok and info and info.name then configName = info.name end
     end
     self.db.char.talentBuildBindings = self.db.char.talentBuildBindings or {}
     self.db.char.talentBuildBindings[talentBuildBindingKey(configID)] = {
-        rotationPreset = self.db.profile.rotationPreset,
-        healingMode = self:GetHealingMode(),
+        rotationPreset = presetKey,
+        healingMode = healingMode,
         classToken = self.classToken,
         specializationID = self.specializationID,
         configName = configName,
     }
+    local activeConfigID = self:GetActiveTalentBuildInfo()
+    if activeConfigID == configID then
+        local _, changed = self:ApplyTalentBuildBinding(configID)
+        if changed then
+            self:ResetRuntimeState()
+            if self.frame then self:RefreshDisplay() end
+        end
+    end
     if self.RefreshOptionsUI then self:RefreshOptionsUI() end
     self:Print(L("Talent-Build %s wurde mit %s und %s verknüpft.",
-        configName, self.db.profile.rotationPreset, self:GetHealingModeLabel()))
+        configName, preset.name or presetKey, L(HEALING_MODE_LABELS[healingMode])))
+    return true
+end
+
+function HeliHeal:LinkActiveTalentBuild()
+    local configID = self:GetActiveTalentBuildInfo()
+    if not configID then
+        self:Print(L("Aktiver Talent-Build ist noch nicht lesbar."))
+        return false
+    end
+    return self:SetTalentBuildBinding(configID, self.db.profile.rotationPreset, self:GetHealingMode())
+end
+
+function HeliHeal:UnlinkTalentBuild(configID)
+    configID = tonumber(configID)
+    local key = talentBuildBindingKey(configID)
+    local bindings = self.db and self.db.char and self.db.char.talentBuildBindings
+    if not key or not bindings or not bindings[key] then return false end
+    local configName = bindings[key].configName or L("Talent-Build %s", configID)
+    bindings[key] = nil
+    if self.RefreshOptionsUI then self:RefreshOptionsUI() end
+    self:Print(L("Verknüpfung für Talent-Build %s entfernt.", configName))
     return true
 end
 
 function HeliHeal:UnlinkActiveTalentBuild()
-    local configID, configName = self:GetActiveTalentBuildInfo()
-    local key = talentBuildBindingKey(configID)
-    local bindings = self.db and self.db.char and self.db.char.talentBuildBindings
-    if not key or not bindings or not bindings[key] then return false end
-    bindings[key] = nil
-    if self.RefreshOptionsUI then self:RefreshOptionsUI() end
-    self:Print(L("Verknüpfung für Talent-Build %s entfernt.", configName or configID))
-    return true
+    return self:UnlinkTalentBuild(self:GetActiveTalentBuildInfo())
 end
 
 function HeliHeal:ApplyTalentBuildBinding(configID)

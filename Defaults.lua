@@ -8,6 +8,10 @@ ns.defaults = {
     global = {
         lastSeenChangelogVersion = "",
         language = "auto",
+        optionsWindowScale = 1,
+        optionsWindowBackgroundColor = { 0.025, 0.035, 0.045 },
+        optionsWindowAccentColor = { 0.02, 0.88, 0.7 },
+        optionsWindowUseClassColor = false,
     },
     profile = {
         schemaVersion = 4,

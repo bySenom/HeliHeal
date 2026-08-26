@@ -70,6 +70,7 @@ local abilities = {
         spellID = 73920,
         name = "Healing Rain",
         cooldown = 18,
+        excludesTalent = "surgingTotem",
         consumesSwiftness = true,
         castSpellIDs = { 73920, 207778 },
     },
