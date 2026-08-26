@@ -49,7 +49,12 @@ addon.sessionSpendHistory = {}
 addon.pendingAcknowledgements = {}
 addon.heldInputKeys = {}
 addon.inputLockedUntil = {}
-addon.talentSnapshot = { available = true, mysticKnowledge = false, unleashLife = true }
+addon.talentSnapshot = {
+    available = true,
+    mysticKnowledge = false,
+    unleashLife = true,
+    totemicMomentum = true,
+}
 addon.IsTalentActive = function(self, key) return self.talentSnapshot[key] == true end
 addon.RefreshDisplay = function() end
 addon.Print = function() end
@@ -57,7 +62,12 @@ addon.Print = function() end
 local hstIndex = addon:GetSlotIndexByAbilityKey("healing_stream_combo")
 local swiftnessIndex = addon:GetSlotIndexByAbilityKey("natures_swiftness")
 local hst = addon:GetSlot(hstIndex)
-assert(hst.cooldown == 17, "Healing Stream Totem must recharge every 17 seconds")
+assert(hst.cooldown == 17, "Totemic Momentum must reduce Healing Stream Totem to 17 seconds")
+addon.talentSnapshot.totemicMomentum = false
+assert(addon:GetSlot(hstIndex).cooldown == 20,
+    "Farseer without Totemic Momentum must keep the 20-second base recharge")
+addon.talentSnapshot.totemicMomentum = true
+hst = addon:GetSlot(hstIndex)
 local state = addon:GetChargeState(hstIndex, hst, now)
 assert(state.baseCharges == 2 and state.bonusCharges == 0, "sequence must start at 2/2")
 
@@ -131,5 +141,29 @@ assert(addon:RecordPlayerSpellSucceeded(188196),
     "a successful Lightning Bolt must consume an armed shaman Nature's Swiftness")
 assert(not addon.pendingSwiftness and addon.sessionUses[swiftnessIndex] == now,
     "shaman Nature's Swiftness cooldown must begin on its confirmed Nature-spell consumer")
+
+-- Assisted Combat can emit the instant consumer before its off-GCD
+-- Nature's Swiftness success. The two successes still belong to one button
+-- action and must start the cooldown without waiting for another Nature cast.
+addon.pendingSwiftness = nil
+addon.sessionUses[swiftnessIndex] = nil
+addon.recentAssistedSwiftnessConsumer = nil
+C_ActionBar = {
+    IsAssistedCombatAction = function(slotID) return slotID == 1 end,
+    GetActionBarPage = function() return 1 end,
+}
+C_AssistedCombat = { GetNextCastSpell = function() return 1064 end }
+now = 10
+assert(addon:ObserveAssistedCombatBinding("ACTIONBUTTON1"),
+    "the test action must be recognized as One Button Assistant")
+assert(addon:RecordPlayerSpellSucceeded(1064),
+    "the OBA consumer must be confirmed even when Swiftness reports later")
+assert(not addon.pendingSwiftness and addon.sessionUses[swiftnessIndex] == nil,
+    "the consumer alone must not invent an armed Swiftness state")
+now = 10.05
+assert(addon:RecordPlayerSpellSucceeded(378081),
+    "the delayed off-GCD Swiftness success must still be confirmed")
+assert(not addon.pendingSwiftness and addon.sessionUses[swiftnessIndex] == 10,
+    "the delayed Swiftness event must start its cooldown at the correlated OBA consumer")
 
 print("Stormstream sequence OK: 2/2 -> 3/2 -> Stormstream -> exactly two normal HST uses")

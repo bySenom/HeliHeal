@@ -1,8 +1,20 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "0.9.17-beta.1",
+    currentVersion = "1.0.0",
     entries = {
+        {
+            version = "1.0.0",
+            title = "First Stable Release",
+            changes = {
+                "Blizzard-Talent-Builds können charakterbezogen mit einem Preset und Rotationsmodus verknüpft werden.",
+                "Beim Wechsel des Talent-Loadouts aktiviert HeliHeal automatisch die gespeicherte Rotation.",
+                "Ausgewähltes Preset und Rotationsmodus bleiben in den Optionen dauerhaft hervorgehoben.",
+                "Schnelligkeit der Natur berücksichtigt auch die umgekehrte Ereignisreihenfolge des One Button Assistant.",
+                "Schild der Rechtschaffenen reduziert die lokale Heilige Kraft auch bei extern bestätigten Paladin-Casts.",
+                "Totem des Heilenden Flusses verwendet 20 Sekunden Basis-Wiederaufladezeit und 17 Sekunden mit Totemic Momentum.",
+            },
+        },
         {
             version = "0.9.17-beta.1",
             title = "Dynamic Shaman Talents and Mana Reliability",

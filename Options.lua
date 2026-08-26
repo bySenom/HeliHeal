@@ -45,19 +45,32 @@ end
 local function createButton(parent, labelText, width, height, primary)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
     button:SetSize(width or 130, height or 34)
-    backdrop(button, primary and C.accentDark or C.input, primary and C.accent or C.border)
-    button.label = text(button, labelText, 11, primary and C.text or C.muted, "OUTLINE")
+    button.primary = primary == true
+    button.selected = false
+    backdrop(button, button.primary and C.accentDark or C.input, button.primary and C.accent or C.border)
+    button.label = text(button, labelText, 11, button.primary and C.text or C.muted, "OUTLINE")
     button.label:SetPoint("CENTER")
+
+    function button:RefreshVisualState(hovered)
+        local active = self.primary or self.selected
+        self:SetBackdropColor(unpackColor(active and C.accentDark
+            or (hovered and C.panelHover or C.input)))
+        self:SetBackdropBorderColor(unpackColor((active or hovered) and C.accent or C.border))
+        self.label:SetTextColor(unpackColor((active or hovered) and C.text or C.muted))
+    end
+
+    function button:SetSelected(selected)
+        self.selected = selected == true
+        self:RefreshVisualState(self:IsMouseOver())
+    end
+
     button:SetScript("OnEnter", function(self)
-        self:SetBackdropColor(unpackColor(primary and C.accentDark or C.panelHover))
-        self:SetBackdropBorderColor(unpackColor(C.accent))
-        self.label:SetTextColor(unpackColor(C.text))
+        self:RefreshVisualState(true)
     end)
     button:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(unpackColor(primary and C.accentDark or C.input))
-        self:SetBackdropBorderColor(unpackColor(primary and C.accent or C.border))
-        self.label:SetTextColor(unpackColor(primary and C.text or C.muted))
+        self:RefreshVisualState(false)
     end)
+    button:RefreshVisualState(false)
     return button
 end
 
@@ -645,6 +658,7 @@ function HeliHeal:BuildPrioritiesPage(parent)
         local button = createButton(page, presetLabel, 168, 34, false)
         button:SetPoint("TOPLEFT", 28 + ((index - 1) * 180), -108)
         button:SetScript("OnClick", function() self:SetRotationPreset(presetKey) end)
+        button.presetLabel = presetLabel
         page.presetButtons[presetKey] = button
     end
 
@@ -664,10 +678,22 @@ function HeliHeal:BuildPrioritiesPage(parent)
         page.modeButtons[modeKey] = button
     end
 
-    local manaSettingsOffset = 0
+    local settingsOffset = 72
+    local talentLinkRow = createSettingRow(page, -190,
+        L("Talent-Build-Verknüpfung"),
+        L("Verknüpft den aktiven Blizzard-Talent-Build mit dem gewählten Preset und Modus."))
+    talentLinkRow.title:SetWidth(390)
+    talentLinkRow.description:SetWidth(390)
+    talentLinkRow.linkButton = createButton(talentLinkRow, L("VERKNÜPFEN"), 126, 30, false)
+    talentLinkRow.linkButton:SetPoint("RIGHT", -150, 0)
+    talentLinkRow.linkButton:SetScript("OnClick", function() self:LinkActiveTalentBuild() end)
+    talentLinkRow.removeButton = createButton(talentLinkRow, L("LÖSCHEN"), 126, 30, false)
+    talentLinkRow.removeButton:SetPoint("RIGHT", -14, 0)
+    talentLinkRow.removeButton:SetScript("OnClick", function() self:UnlinkActiveTalentBuild() end)
+    page.talentLinkRow = talentLinkRow
+
     if self.classToken == "SHAMAN" and self.specializationID == 264 then
-        manaSettingsOffset = 72
-        local manaRow = createSettingRow(page, -190,
+        local manaRow = createSettingRow(page, -262,
             L("Automatischer Mana-Sparmodus"),
             L("Nutzt die gespeicherte lokale Mana-Schätzung; eine manuelle Kalibrierung ist nur optional."))
         manaRow.betaBadge = CreateFrame("Frame", nil, manaRow, "BackdropTemplate")
@@ -690,17 +716,18 @@ function HeliHeal:BuildPrioritiesPage(parent)
         autoToggle:SetPoint("RIGHT", -20, 0)
         page.manaAutoToggle = autoToggle
         page.manaThresholdSlider = threshold
+        settingsOffset = settingsOffset + 72
     end
 
     local priorityHeader = text(page, "PRIO", 9, C.muted, "OUTLINE")
-    priorityHeader:SetPoint("TOPLEFT", 34, -198 - manaSettingsOffset)
+    priorityHeader:SetPoint("TOPLEFT", 34, -198 - settingsOffset)
     local abilityHeader = text(page, L("FESTE GUIDE-FÄHIGKEIT"), 9, C.muted, "OUTLINE")
-    abilityHeader:SetPoint("TOPLEFT", 126, -198 - manaSettingsOffset)
+    abilityHeader:SetPoint("TOPLEFT", 126, -198 - settingsOffset)
     local bindingHeader = text(page, L("BEOBACHTETER ACTIONBAR-HOTKEY"), 9, C.muted, "OUTLINE")
-    bindingHeader:SetPoint("TOPLEFT", 494, -198 - manaSettingsOffset)
+    bindingHeader:SetPoint("TOPLEFT", 494, -198 - settingsOffset)
 
     local priorityScroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-    priorityScroll:SetPoint("TOPLEFT", 18, -210 - manaSettingsOffset)
+    priorityScroll:SetPoint("TOPLEFT", 18, -210 - settingsOffset)
     priorityScroll:SetPoint("BOTTOMRIGHT", -30, 46)
     local priorityContent = CreateFrame("Frame", nil, priorityScroll)
     priorityContent:SetWidth(1)
@@ -1626,14 +1653,35 @@ function HeliHeal:RefreshOptionsUI()
     local prioritiesPage = window.pages.priorities
     for presetKey, button in pairs(prioritiesPage.presetButtons or {}) do
         local active = presetKey == self.db.profile.rotationPreset
-        button:SetBackdropBorderColor(unpackColor(active and C.accent or C.border))
-        button.label:SetTextColor(unpackColor(active and C.accent or C.muted))
+        button:SetSelected(active)
     end
 
     for modeKey, button in pairs(prioritiesPage.modeButtons or {}) do
         local active = modeKey == self:GetHealingMode()
-        button:SetBackdropBorderColor(unpackColor(active and C.accent or C.border))
-        button.label:SetTextColor(unpackColor(active and C.accent or C.muted))
+        button:SetSelected(active)
+    end
+    local talentLinkRow = prioritiesPage.talentLinkRow
+    if talentLinkRow then
+        local configID, configName = self:GetActiveTalentBuildInfo()
+        local binding = configID and self:GetTalentBuildBinding(configID)
+        if configID then
+            talentLinkRow.title:SetText(L("Aktiver Build: %s (Config %s)", configName, configID))
+        else
+            talentLinkRow.title:SetText(L("Talent-Build-Verknüpfung"))
+        end
+        if binding then
+            local presetButton = prioritiesPage.presetButtons[binding.rotationPreset]
+            local modeButton = prioritiesPage.modeButtons[binding.healingMode]
+            local presetLabel = presetButton and presetButton.presetLabel or binding.rotationPreset
+            local modeLabel = modeButton and modeButton.label:GetText() or binding.healingMode
+            talentLinkRow.description:SetText(L("Verknüpft mit %s • %s", presetLabel, modeLabel))
+        else
+            talentLinkRow.description:SetText(L("Noch nicht verknüpft. Preset und Modus wählen, dann verknüpfen."))
+        end
+        talentLinkRow.linkButton:SetEnabled(configID ~= nil)
+        talentLinkRow.linkButton:SetAlpha(configID and 1 or 0.45)
+        talentLinkRow.removeButton:SetEnabled(binding ~= nil)
+        talentLinkRow.removeButton:SetAlpha(binding and 1 or 0.45)
     end
     if prioritiesPage.manaAutoToggle then prioritiesPage.manaAutoToggle:Refresh() end
     if prioritiesPage.manaThresholdSlider then prioritiesPage.manaThresholdSlider:Refresh() end

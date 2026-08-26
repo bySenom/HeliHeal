@@ -11,6 +11,7 @@ local TALENTS = {
     mysticKnowledge = { 1270453 },
     surgingTotem = { 444995 },
     unleashLife = { 73685 },
+    totemicMomentum = { 1260644 },
     druidGermination = { 155675 },
     druidLingeringHealing = { 231040 },
     druidVerdantInfusion = { 392410 },
@@ -111,7 +112,8 @@ local TALENTS = {
 
 local SNAPSHOT_FLAGS = {
     "echoOfTheElements", "elementalReverb", "ripCurrent", "downpour", "doubleDip",
-    "mysticKnowledge", "surgingTotem", "unleashLife", "restorationTier2", "restorationTier4",
+    "mysticKnowledge", "surgingTotem", "unleashLife", "totemicMomentum",
+    "restorationTier2", "restorationTier4",
     "druidGermination", "druidLingeringHealing", "druidVerdantInfusion", "druidProsperity",
     "druidPassingSeasons", "druidEarlySpring", "druidPowerArchdruid", "druidLifetreading", "druidKeeper", "druidWildstalker",
     "druidConvoke", "druidCenariusGuidance", "druidIncarnationTree", "druidTranquility",
@@ -162,7 +164,7 @@ end
 
 local function snapshotsEqual(a, b)
     if not a or not b then return false end
-    if a.available ~= b.available or a.configID ~= b.configID then return false end
+    if a.available ~= b.available or a.configID ~= b.configID or a.configName ~= b.configName then return false end
     for _, flag in ipairs(SNAPSHOT_FLAGS) do
         if a[flag] ~= b[flag] then return false end
     end
@@ -178,7 +180,7 @@ function HeliHeal:ReadActiveTalentSpells()
     local configID = C_ClassTalents.GetActiveConfigID()
     if not configID then return nil, nil end
     local configInfo = C_Traits.GetConfigInfo(configID)
-    if not configInfo or type(configInfo.treeIDs) ~= "table" then return nil, configID end
+    if not configInfo or type(configInfo.treeIDs) ~= "table" then return nil, configID, nil, nil end
 
     local spells = {}
     local ranks = {}
@@ -209,8 +211,8 @@ function HeliHeal:ReadActiveTalentSpells()
     -- A max-level active combat config cannot legitimately have zero
     -- committed entries. Treat that as an API-not-ready state and retain the
     -- static preset assumptions instead of hiding valid abilities.
-    if committedEntryCount == 0 then return nil, configID end
-    return spells, configID, ranks
+    if committedEntryCount == 0 then return nil, configID, nil, configInfo.name end
+    return spells, configID, ranks, configInfo.name
 end
 
 function HeliHeal:RefreshTalentSnapshot(silent)
@@ -219,9 +221,9 @@ function HeliHeal:RefreshTalentSnapshot(silent)
         return false
     end
 
-    local ok, spells, configID, ranks = pcall(self.ReadActiveTalentSpells, self)
+    local ok, spells, configID, ranks, configName = pcall(self.ReadActiveTalentSpells, self)
     if not ok then
-        spells, configID, ranks = nil, nil, nil
+        spells, configID, ranks, configName = nil, nil, nil, nil
     end
     if not spells and self.talentSnapshot and self.talentSnapshot.available then
         -- The trait API can briefly return no committed entries while loading
@@ -233,6 +235,7 @@ function HeliHeal:RefreshTalentSnapshot(silent)
     local snapshot = {
         available = spells ~= nil,
         configID = configID,
+        configName = configName,
         spells = spells or {},
         ranks = ranks or {},
     }
@@ -257,23 +260,25 @@ function HeliHeal:RefreshTalentSnapshot(silent)
     self.talentSnapshotPending = false
     if changed then
         local currentPreset = self.db and self.db.profile and self.db.profile.rotationPreset
+        local linked = self:ApplyTalentBuildBinding(snapshot.configID)
+        currentPreset = self.db and self.db.profile and self.db.profile.rotationPreset
         local _, content
         if currentPreset then
             _, content = currentPreset:match("^[a-z]+_([a-z]+)_([a-z]+)$")
             if content ~= "mythicplus" and content ~= "raid" then content = nil end
         end
         local detectedHero
-        if self.classToken == "DRUID" then
+        if not linked and self.classToken == "DRUID" then
             detectedHero = snapshot.druidKeeper and "keeper" or (snapshot.druidWildstalker and "wildstalker")
-        elseif self.classToken == "PALADIN" then
+        elseif not linked and self.classToken == "PALADIN" then
             detectedHero = snapshot.paladinLightsmith and "lightsmith" or (snapshot.paladinHerald and "herald")
-        elseif self.classToken == "PRIEST" and self.specializationID == 256 then
+        elseif not linked and self.classToken == "PRIEST" and self.specializationID == 256 then
             detectedHero = snapshot.priestOracle and "oracle" or (snapshot.discVoidweaver and "voidweaver")
-        elseif self.classToken == "PRIEST" then
+        elseif not linked and self.classToken == "PRIEST" then
             detectedHero = snapshot.priestOracle and "oracle" or (snapshot.priestArchon and "archon")
-        elseif self.classToken == "MONK" then
+        elseif not linked and self.classToken == "MONK" then
             detectedHero = snapshot.monkHarmony and "harmony" or (snapshot.monkConduit and "conduit")
-        else
+        elseif not linked then
             detectedHero = (snapshot.elementalReverb or snapshot.mysticKnowledge) and "farseer"
                 or (snapshot.surgingTotem and "totemic")
         end

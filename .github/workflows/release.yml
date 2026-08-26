@@ -55,7 +55,7 @@ jobs:
           test -s CHANGELOG.md
           cp CHANGELOG.md dist/release-notes.md
 
-      - name: Publish prerelease
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -64,5 +64,4 @@ jobs:
             "dist/HeliHeal-${GITHUB_REF_NAME}.zip" \
             "dist/HeliHeal-${GITHUB_REF_NAME}.zip.sha256" \
             --title "HeliHeal ${GITHUB_REF_NAME#v}" \
-            --notes-file dist/release-notes.md \
-            --prerelease
+            --notes-file dist/release-notes.md

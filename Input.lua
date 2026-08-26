@@ -215,33 +215,45 @@ function HeliHeal:CommitObservedSpell(spellID)
     return false
 end
 
+function HeliHeal:HasObservedAssistedInputForSpell(spellID)
+    local assisted = self.pendingAssistedCombat
+    return (assisted and assisted.generation == (self.inputGeneration or 0)
+        and (not assisted.expectedSpellID or assisted.expectedSpellID == tonumber(spellID))) == true
+end
+
 function HeliHeal:HasObservedPlayerInputForSpell(spellID)
     for slotIndex, pending in pairs(self.pendingAcknowledgements or {}) do
         local configuredSlot = self.db.profile.slots[slotIndex]
         if pending and self:SlotAcceptsSpell(configuredSlot, spellID) then return true end
     end
-    local assisted = self.pendingAssistedCombat
-    if assisted and assisted.generation == (self.inputGeneration or 0)
-        and (not assisted.expectedSpellID or assisted.expectedSpellID == tonumber(spellID)) then
-        return true
-    end
-    return false
+    return self:HasObservedAssistedInputForSpell(spellID)
 end
 
 function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
     spellID = tonumber(spellID)
     if not spellID then return false end
+    local succeededAt = GetTime()
+    local assistedPlayerInitiated = self:HasObservedAssistedInputForSpell(spellID)
     local manaPlayerInitiated = self:HasObservedPlayerInputForSpell(spellID)
+    if assistedPlayerInitiated and not self.pendingSwiftness
+        and self.IsSwiftnessConsumerSpell and self:IsSwiftnessConsumerSpell(spellID) then
+        self.recentAssistedSwiftnessConsumer = {
+            spellID = spellID,
+            succeededAt = succeededAt,
+            generation = self.inputGeneration or 0,
+        }
+    end
     local dispelConfirmed = self.RecordDispelSpellSucceeded
-        and self:RecordDispelSpellSucceeded(spellID, GetTime()) or false
+        and self:RecordDispelSpellSucceeded(spellID, succeededAt) or false
     local swiftnessConsumed = self.ConsumeSwiftnessForSpell
-        and self:ConsumeSwiftnessForSpell(spellID, GetTime()) or false
+        and self:ConsumeSwiftnessForSpell(spellID, succeededAt) or false
     self.recentSuccessfulSpells = self.recentSuccessfulSpells or {}
-    self.recentSuccessfulSpells[spellID] = GetTime()
+    self.recentSuccessfulSpells[spellID] = succeededAt
     local committed = self:CommitObservedSpell(spellID) or self:CommitAssistedCombatSpell(spellID)
         or self:CommitConfiguredPlayerSpell(spellID)
+    local externalHolyPowerConfirmed = self:RecordExternalHolyPowerSpell(spellID, succeededAt)
     if self.Mana then
-        self.Mana:OnSpellSucceeded(spellID, castGUID, GetTime(), manaPlayerInitiated)
+        self.Mana:OnSpellSucceeded(spellID, castGUID, succeededAt, manaPlayerInitiated)
     end
     if committed then
         self.recentSuccessfulSpells[spellID] = nil
@@ -249,7 +261,31 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
         return true
     end
     self:ScheduleHolyPowerSync()
-    return dispelConfirmed or swiftnessConsumed
+    return dispelConfirmed or swiftnessConsumed or externalHolyPowerConfirmed
+end
+
+function HeliHeal:RecordExternalHolyPowerSpell(spellID, succeededAt)
+    if self.classToken ~= "PALADIN" or not ns.AbilityLibrary then return false end
+    local ability = ns.AbilityLibrary:FindAbilityBySpellID(spellID, self.classToken)
+    if not ability or ((ability.holyPowerGain or 0) <= 0 and (ability.holyPowerCost or 0) <= 0) then
+        return false
+    end
+    -- Abilities inside the healing priority are already handled by
+    -- AcknowledgeSlot. This fallback is only for damage buttons such as
+    -- Crusader Strike and Shield of the Righteous.
+    if self.GetSlotIndexByAbilityKey and self:GetSlotIndexByAbilityKey(ability.abilityKey) then
+        return false
+    end
+    succeededAt = succeededAt or GetTime()
+    self.recentExternalHolyPowerSuccess = self.recentExternalHolyPowerSuccess or {}
+    local previous = self.recentExternalHolyPowerSuccess[ability.abilityKey]
+    if not previous or succeededAt - previous > RECENT_SUCCESS_WINDOW or succeededAt < previous then
+        self.recentExternalHolyPowerSuccess[ability.abilityKey] = succeededAt
+        self:RecordHolyPowerEvent(0, ability)
+    end
+    -- A duplicate OBA correlation still counts as recognized even though its
+    -- Holy Power delta has already been applied by the player success event.
+    return true
 end
 
 function HeliHeal:CommitConfiguredPlayerSpell(spellID)
@@ -292,12 +328,7 @@ function HeliHeal:CommitAssistedCombatSpell(spellID)
             return true
         end
     end
-    local observedAbility = ns.AbilityLibrary and ns.AbilityLibrary:FindAbilityBySpellID(spellID, self.classToken)
-    if observedAbility and ((observedAbility.holyPowerGain or 0) > 0
-        or (observedAbility.holyPowerCost or 0) > 0) then
-        self:RecordHolyPowerEvent(0, observedAbility)
-        return true
-    end
+    if self:RecordExternalHolyPowerSpell(spellID, GetTime()) then return true end
     return false
 end
 

@@ -9,8 +9,10 @@ local abilities = {
         spellID = 5394,
         name = "Healing Stream / Stormstream Totem",
         manaCost = 4500,
-        -- Midnight 12.1 recharge time per normal Healing Stream Totem charge.
-        cooldown = 17,
+        -- Midnight 12.1 base recharge; Totemic Momentum reduces this by 3 sec.
+        cooldown = 20,
+        cooldownTalent = "totemicMomentum",
+        cooldownReduction = 3,
         inputLockout = 1.0,
         maxCharges = 2,
         maxBonusCharges = 2,

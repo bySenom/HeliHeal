@@ -6,7 +6,7 @@
 
 HeliHeal is a lightweight, input-driven healing priority tracker for **World of Warcraft: Midnight 12.1**. It presents up to five recommended abilities in a movable, Hekili-inspired icon strip.
 
-> HeliHeal is currently a **Beta release** intended for in-game testing and feedback.
+HeliHeal 1.0 is the first stable release. Individual experimental features are marked in-game when applicable.
 
 ## Features
 
@@ -26,6 +26,7 @@ HeliHeal is a lightweight, input-driven healing priority tracker for **World of 
 - Talent-aware Holy Priest Holy Word charges, recharge times and Serendipity reductions
 - Discipline Priest group/single-target Atonement estimates, Penance charges and haste-scaled cooldowns
 - Talent-aware Mistweaver Renewing Mist coverage, Thunder Focus Tea empowers and cooldown recovery
+- Character-specific links between Blizzard talent loadouts, rotation presets and healing modes
 - Movable, scalable and customizable display
 - Persistent AceDB profiles
 - One-time What's New popup and local update history
@@ -77,6 +78,4 @@ HeliHeal does not inspect health, mana, targets, auras, range, healing results, 
 ## Feedback
 
 Please report reproducible bugs and suggestions through [GitHub Issues](https://github.com/bySenom/HeliHeal/issues).
-Use the [Beta Test Checklist](BETA_TESTING.md) for structured in-game verification.
-
 HeliHeal is available under the [MIT License](LICENSE). Embedded Ace3 libraries retain their upstream license.

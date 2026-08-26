@@ -12,11 +12,11 @@ C_SpellBook = {
     IsSpellKnown = function(spellID) return spellID == 1264866 or spellID == 1264867 end,
 }
 
-local selectedSpellIDs = { 333919, 462488, 1252882, 1270453, 443418, 73685, 1254251 }
+local selectedSpellIDs = { 333919, 462488, 1252882, 1270453, 443418, 73685, 1254251, 1260644 }
 C_ClassTalents = { GetActiveConfigID = function() return 77 end }
 C_Traits = {
-    GetConfigInfo = function() return { treeIDs = { 10 } } end,
-    GetTreeNodes = function() return { 101, 102, 103, 104, 105, 106, 107 } end,
+    GetConfigInfo = function() return { name = "Raid Farseer", treeIDs = { 10 } } end,
+    GetTreeNodes = function() return { 101, 102, 103, 104, 105, 106, 107, 108 } end,
     GetNodeInfo = function(_, nodeID)
         if nodeID == 105 then
             return { subTreeID = 900, subTreeActive = false, entryIDsWithCommittedRanks = { { entryID = 1105, rank = 1 } } }
@@ -37,6 +37,7 @@ assert(loadfile("TalentSnapshot.lua"))("HeliHeal", namespace)
 assert(loadfile("Display.lua"))("HeliHeal", namespace)
 
 addon.db = {
+    char = { talentBuildBindings = {} },
     profile = {
         rotationPreset = "shaman_totemic_mythicplus",
         healingMode = "aoe",
@@ -61,6 +62,7 @@ assert(addon:IsTalentActive("doubleDip"), "Double Dip must be detected")
 assert(addon:IsTalentActive("mysticKnowledge"), "Mystic Knowledge must be detected")
 assert(addon:IsTalentActive("unleashLife"), "Unleash Life must be detected")
 assert(addon:IsTalentActive("ripCurrent"), "Rip Current must be detected")
+assert(addon:IsTalentActive("totemicMomentum"), "Totemic Momentum must be detected")
 assert(not addon:IsTalentActive("elementalReverb"), "unselected talents must remain inactive")
 assert(addon:IsTalentActive("restorationTier2") and addon:IsTalentActive("restorationTier4"),
     "equipped Restoration set bonuses must be cached with the build")
@@ -105,4 +107,20 @@ assert(addon:RefundAbility("wave"), "failed consumer must be refundable")
 assert(addon.pendingUnleash and addon.pendingUnleash.remaining == 1,
     "refunding a failed consumer must restore its Unleash Life use")
 
-print("Talent snapshot OK: talents, tier set, Unleash Life and contextual consumers drive local state")
+addon.db.char.talentBuildBindings["77"] = {
+    rotationPreset = "shaman_totemic_raid",
+    healingMode = "single",
+    classToken = "SHAMAN",
+    specializationID = 264,
+}
+addon.specializationID = 264
+addon.talentSnapshot = nil
+assert(addon:RefreshTalentSnapshot(true), "linked talent build must remain readable")
+assert(addon.talentSnapshot.configName == "Raid Farseer", "active Blizzard loadout name must be cached")
+assert(addon.db.profile.rotationPreset == "shaman_totemic_raid",
+    "a talent-build link must take precedence over automatic hero detection")
+assert(addon:GetHealingMode() == "single", "a talent-build link must restore its rotation mode")
+assert(addon:UnlinkActiveTalentBuild(), "active talent-build link must be removable")
+assert(addon.db.char.talentBuildBindings["77"] == nil, "removed talent-build link must not persist")
+
+print("Talent snapshot OK: talents, tier set, loadout links and contextual consumers drive local state")

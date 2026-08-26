@@ -3,6 +3,7 @@ local _, ns = ...
 ns.defaults = {
     char = {
         manaState = {},
+        talentBuildBindings = {},
     },
     global = {
         lastSeenChangelogVersion = "",
@@ -89,7 +90,7 @@ ns.defaults = {
         manaDebug = false,
         autoManaMode = false,
         autoManaThreshold = 25,
-        rotationDataVersion = 12117,
+        rotationDataVersion = 12118,
         bindings = {},
         point = "CENTER",
         relativePoint = "CENTER",

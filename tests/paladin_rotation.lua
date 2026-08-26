@@ -11,6 +11,7 @@ GetTime = function() return now end
 assert(loadfile("AbilityLibrary.lua"))("HeliHeal", namespace)
 assert(loadfile("Classes/Paladin.lua"))("HeliHeal", namespace)
 assert(loadfile("Core.lua"))("HeliHeal", namespace)
+assert(loadfile("Input.lua"))("HeliHeal", namespace)
 assert(loadfile("Display.lua"))("HeliHeal", namespace)
 
 addon.classToken = "PALADIN"
@@ -205,5 +206,16 @@ assert(shield and shield.abilityKey == "paladin_shield_of_the_righteous",
 addon:RecordHolyPowerEvent(0, shield)
 assert(addon.sessionHolyPower == 4 and addon.pendingFreeHolyPowerSpenders == 0,
     "an OBA damage spender must consume a guaranteed free-spender state without losing Holy Power")
+
+addon:SetHolyPowerEstimate(3, true)
+now = now + 1
+assert(addon:RecordPlayerSpellSucceeded(53600, "Direct-Shield"),
+    "a directly confirmed Shield of the Righteous must be observed outside the healing priority")
+assert(addon.sessionHolyPower == 0,
+    "Shield of the Righteous must spend three Holy Power before Word of Glory is evaluated")
+assert(addon:RecordExternalHolyPowerSpell(53600, now),
+    "a later OBA correlation must recognize the already confirmed Shield cast")
+assert(addon.sessionHolyPower == 0,
+    "the same Shield success must not spend Holy Power twice through OBA correlation")
 
 print("paladin_rotation.lua: OK")

@@ -56,7 +56,7 @@ local SWIFTNESS_CONSUMER_SPELL_IDS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 4
-local ROTATION_DATA_VERSION = 12117
+local ROTATION_DATA_VERSION = 12118
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -92,10 +92,12 @@ function HeliHeal:ResetInputState()
     self.pendingAcknowledgements = {}
     self.recentSuccessfulSpells = {}
     self.recentDirectConfirmations = {}
+    self.recentExternalHolyPowerSuccess = {}
     self.heldInputKeys = {}
     self.mouseHeldInputs = {}
     self.inputLockedUntil = {}
     self.lastObservedInputs = {}
+    self.recentAssistedSwiftnessConsumer = nil
 end
 
 function HeliHeal:ResetRuntimeState()
@@ -401,6 +403,78 @@ function HeliHeal:SetRotationPreset(presetKey)
     self.db.profile.slots = ns.AbilityLibrary:BuildPresetSlots(presetKey, self.db.profile.bindings)
     self:ResetSession()
     self:RefreshOptionsUI()
+end
+
+local function talentBuildBindingKey(configID)
+    configID = tonumber(configID)
+    return configID and tostring(math.floor(configID)) or nil
+end
+
+function HeliHeal:GetActiveTalentBuildInfo()
+    local snapshot = self.talentSnapshot
+    local configID = snapshot and tonumber(snapshot.configID)
+    if not configID then return nil end
+    return configID, snapshot.configName or L("Talent-Build %s", configID)
+end
+
+function HeliHeal:GetTalentBuildBinding(configID)
+    local key = talentBuildBindingKey(configID)
+    local bindings = self.db and self.db.char and self.db.char.talentBuildBindings
+    local binding = key and bindings and bindings[key]
+    if type(binding) ~= "table" then return nil end
+    local preset = ns.AbilityLibrary:GetPreset(binding.rotationPreset)
+    if not preset or preset.class ~= self.classToken
+        or (preset.specializationID and preset.specializationID ~= self.specializationID)
+        or (binding.classToken and binding.classToken ~= self.classToken)
+        or (binding.specializationID and binding.specializationID ~= self.specializationID)
+        or not HEALING_MODE_LABELS[binding.healingMode] then
+        return nil
+    end
+    return binding
+end
+
+function HeliHeal:LinkActiveTalentBuild()
+    local configID, configName = self:GetActiveTalentBuildInfo()
+    if not configID then
+        self:Print(L("Aktiver Talent-Build ist noch nicht lesbar."))
+        return false
+    end
+    self.db.char.talentBuildBindings = self.db.char.talentBuildBindings or {}
+    self.db.char.talentBuildBindings[talentBuildBindingKey(configID)] = {
+        rotationPreset = self.db.profile.rotationPreset,
+        healingMode = self:GetHealingMode(),
+        classToken = self.classToken,
+        specializationID = self.specializationID,
+        configName = configName,
+    }
+    if self.RefreshOptionsUI then self:RefreshOptionsUI() end
+    self:Print(L("Talent-Build %s wurde mit %s und %s verknüpft.",
+        configName, self.db.profile.rotationPreset, self:GetHealingModeLabel()))
+    return true
+end
+
+function HeliHeal:UnlinkActiveTalentBuild()
+    local configID, configName = self:GetActiveTalentBuildInfo()
+    local key = talentBuildBindingKey(configID)
+    local bindings = self.db and self.db.char and self.db.char.talentBuildBindings
+    if not key or not bindings or not bindings[key] then return false end
+    bindings[key] = nil
+    if self.RefreshOptionsUI then self:RefreshOptionsUI() end
+    self:Print(L("Verknüpfung für Talent-Build %s entfernt.", configName or configID))
+    return true
+end
+
+function HeliHeal:ApplyTalentBuildBinding(configID)
+    local binding = self:GetTalentBuildBinding(configID)
+    if not binding then return false, false end
+    local profile = self.db.profile
+    local changed = profile.rotationPreset ~= binding.rotationPreset
+        or self:GetHealingMode() ~= binding.healingMode
+    profile.rotationPreset = binding.rotationPreset
+    profile.healingMode = binding.healingMode
+    profile.rotationDataVersion = ROTATION_DATA_VERSION
+    profile.slots = ns.AbilityLibrary:BuildPresetSlots(binding.rotationPreset, profile.bindings)
+    return true, changed
 end
 
 function HeliHeal:SetAbilityBinding(slotIndex, inputKey)
@@ -1484,13 +1558,27 @@ function HeliHeal:ArmSwiftness(slotIndex, ability, now)
         consumerAbilityKey = ability.preferredSwiftnessConsumer or "chain_heal",
         bonusGrantedTo = ability.grantsBonusChargeTo,
     }
+    -- The One Button Assistant may report the instant consumer immediately
+    -- before the off-GCD Swiftness success from the same physical action. In
+    -- that narrow, explicitly correlated case the buff was already consumed
+    -- in game, so begin the local cooldown at the consumer's success time.
+    local recent = self.recentAssistedSwiftnessConsumer
+    self.recentAssistedSwiftnessConsumer = nil
+    if recent and recent.generation == (self.inputGeneration or 0)
+        and now >= recent.succeededAt and now - recent.succeededAt <= 0.75 then
+        self:ConsumeSwiftness(recent.succeededAt)
+    end
     return true
+end
+
+function HeliHeal:IsSwiftnessConsumerSpell(spellID)
+    local consumers = SWIFTNESS_CONSUMER_SPELL_IDS[self.classToken]
+    return consumers and consumers[tonumber(spellID)] == true or false
 end
 
 function HeliHeal:ConsumeSwiftnessForSpell(spellID, now)
     if not self.pendingSwiftness then return false end
-    local consumers = SWIFTNESS_CONSUMER_SPELL_IDS[self.classToken]
-    if not consumers or not consumers[tonumber(spellID)] then return false end
+    if not self:IsSwiftnessConsumerSpell(spellID) then return false end
     return self:ConsumeSwiftness(now)
 end
 
