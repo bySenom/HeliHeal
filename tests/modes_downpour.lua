@@ -56,10 +56,29 @@ local function firstKey()
 end
 
 assert(firstKey() == "healing_stream_combo", "standard must retain the existing preset as default")
+local standardKeys = namespace.AbilityLibrary:GetPresetPriorityKeys("shaman_totemic_mythicplus", "standard")
+assert(table.concat(standardKeys, ",") == table.concat({
+    "healing_stream_combo", "natures_swiftness", "unleash_life", "surging_totem",
+    "riptide", "chain_heal", "healing_wave",
+}, ","), "Totemic standard must prioritize Swiftness and setup before Riptide")
+
+local hstIndex = addon:GetSlotIndexByAbilityKey("healing_stream_combo")
+assert(addon:SpendCharge(hstIndex, addon:GetSlot(hstIndex), now), "test must spend one regular totem charge")
+assert(firstKey() == "natures_swiftness",
+    "standard must hold the final regular totem charge when no emergency context is readable")
+addon:GrantBonusCharge("healing_stream_combo", now)
+assert(firstKey() == "healing_stream_combo",
+    "a known Stormstream bonus must override the standard charge hold")
+assert(addon:SpendCharge(hstIndex, addon:GetSlot(hstIndex), now), "test must spend the bonus charge")
+
 addon:SetHealingMode("single", true)
 assert(firstKey() == "riptide", "single-target mode must be an optional reordered view")
+local singleKeys = namespace.AbilityLibrary:GetPresetPriorityKeys("shaman_totemic_mythicplus", "single")
+for _, abilityKey in ipairs(singleKeys) do
+    assert(abilityKey ~= "surging_totem", "single-target mode must not recommend Surging Totem")
+end
 addon:SetHealingMode("mana", true)
-assert(firstKey() == "healing_stream_combo", "mana mode must remain selectable")
+assert(firstKey() == "riptide", "mana mode must hold the final regular totem charge")
 local manaKeys = namespace.AbilityLibrary:GetPresetPriorityKeys("shaman_totemic_mythicplus", "mana")
 assert(table.concat(manaKeys, ",") == table.concat({
     "healing_stream_combo", "riptide", "unleash_life", "natures_swiftness", "healing_wave",
@@ -71,6 +90,7 @@ for _, abilityKey in ipairs(manaKeys) do
 end
 
 addon:SetHealingMode("aoe", true)
+assert(firstKey() == "healing_stream_combo", "AoE mode must allow the final totem charge for explicit group damage")
 local rainIndex = addon:GetSlotIndexByAbilityKey("healing_rain")
 local downpourIndex = addon:GetSlotIndexByAbilityKey("downpour")
 assert(rainIndex and downpourIndex, "context pack must contain Healing Rain and derived Downpour")
@@ -103,7 +123,13 @@ assert(not addon:IsDownpourReady(now), "same Healing Rain input must consume der
 assert(addon.sessionUses[rainIndex] == now, "Downpour must not restart Healing Rain's local cooldown")
 
 addon:SetHealingMode("standard", true)
-assert(firstKey() == "healing_stream_combo", "returning to standard must restore the untouched guide order")
+assert(firstKey() == "ancestral_swiftness", "returning to standard must restore its charge-aware guide order")
+
+local farseerKeys = namespace.AbilityLibrary:GetPresetPriorityKeys("shaman_farseer_mythicplus", "standard")
+assert(table.concat(farseerKeys, ",") == table.concat({
+    "healing_stream_combo", "unleash_life", "ancestral_swiftness", "healing_rain",
+    "riptide", "chain_heal", "healing_wave",
+}, ","), "Farseer standard must pair Unleash Life with Ancestral Swiftness before Riptide")
 
 -- Talent abilities must belong to the neutral Raid priority even when they
 -- were not selected when the preset was first opened. GetSlot then controls

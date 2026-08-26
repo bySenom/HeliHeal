@@ -1,8 +1,19 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "1.0.0",
+    currentVersion = "1.0.1",
     entries = {
+        {
+            version = "1.0.1",
+            title = "Charge-Aware Shaman Priorities",
+            changes = {
+                "Hold the final regular Healing Stream Totem charge in Standard and Mana Saving modes.",
+                "Recommend a known Stormstream bonus immediately without consuming a regular totem charge.",
+                "Prioritize Nature's Swiftness and Totemic setup before Riptide in the Standard rotation.",
+                "Pair Unleash Life with Ancestral Swiftness before Riptide in Farseer builds.",
+                "Remove Surging Totem from the Single Target priority while retaining it in Standard and AoE.",
+            },
+        },
         {
             version = "1.0.0",
             title = "First Stable Release",

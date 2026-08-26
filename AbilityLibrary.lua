@@ -51,6 +51,8 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.hastedCooldown = record.hastedCooldown == true
     record.roleLabel = type(record.roleLabel) == "string" and record.roleLabel:upper() or nil
     record.choiceGroup = type(record.choiceGroup) == "string" and record.choiceGroup or nil
+    record.minimumRecommendedChargesByMode = type(record.minimumRecommendedChargesByMode) == "table"
+        and record.minimumRecommendedChargesByMode or nil
     self.abilities[key] = record
     return record
 end
@@ -154,6 +156,7 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             hastedCooldown = ability.hastedCooldown,
             roleLabel = ability.roleLabel,
             choiceGroup = ability.choiceGroup,
+            minimumRecommendedChargesByMode = ability.minimumRecommendedChargesByMode,
             derivedBindingFrom = ability.derivedBindingFrom,
             inputKey = bindings and bindings[bindingKey] or "",
         }
@@ -216,6 +219,8 @@ function AbilityLibrary:Resolve(slot)
         hastedCooldown = slot.hastedCooldown == true,
         roleLabel = type(slot.roleLabel) == "string" and slot.roleLabel:upper() or nil,
         choiceGroup = type(slot.choiceGroup) == "string" and slot.choiceGroup or nil,
+        minimumRecommendedChargesByMode = type(slot.minimumRecommendedChargesByMode) == "table"
+            and slot.minimumRecommendedChargesByMode or nil,
         derivedBindingFrom = slot.derivedBindingFrom,
         enabled = slot.enabled ~= false and spellID > 0,
     }

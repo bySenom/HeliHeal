@@ -416,7 +416,11 @@ function HeliHeal:GetDisplayOrder(now)
             elseif ability.maxCharges > 1 then
                 local state = self:GetChargeState(slotIndex, ability, now)
                 charges = state.baseCharges + state.bonusCharges
-                readyAt = charges > 0 and 0 or (state.nextRechargeAt or 0)
+                local modeMinimums = ability.minimumRecommendedChargesByMode
+                local minimumCharges = modeMinimums and tonumber(modeMinimums[self:GetHealingMode()]) or 1
+                minimumCharges = math.max(1, math.min(ability.maxCharges, minimumCharges or 1))
+                local chargeThresholdMet = state.bonusCharges > 0 or state.baseCharges >= minimumCharges
+                readyAt = chargeThresholdMet and 0 or (state.nextRechargeAt or 0)
                 usedAt = readyAt > 0 and (readyAt - ability.cooldown) or nil
                 if ability.abilityKey == "monk_renewing_mist" then
                     local coverage = self:GetMonkRenewingMistState(now)

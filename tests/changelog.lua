@@ -8,7 +8,7 @@ end
 C_AddOns = {
     GetAddOnMetadata = function(addonName, field)
         assert(addonName == "HeliHeal" and field == "Version")
-        return "1.0.0"
+        return "1.0.1"
     end,
 }
 
@@ -33,7 +33,7 @@ assert(not addon:ShouldShowWhatsNew(),
     "seen state must remain account-wide and independent from AceDB profiles")
 
 local releaseNotes = assert(io.open("CHANGELOG.md", "rb")):read("*a")
-assert(releaseNotes:find("# HeliHeal 1.0.0", 1, true)
+assert(releaseNotes:find("# HeliHeal 1.0.1", 1, true)
     and releaseNotes:find("## Changes", 1, true),
     "public release notes must use a readable Markdown structure")
 assert(not releaseNotes:find("Author:", 1, true)

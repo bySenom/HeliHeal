@@ -1,21 +1,14 @@
-# HeliHeal 1.0.0
+# HeliHeal 1.0.1
 
 For **World of Warcraft: Midnight 12.1**.
 
 ## Changes
 
-- Assign any saved Blizzard talent loadout to a rotation preset and healing mode per character.
-- Automatically restore assigned rotations when switching talent loadouts while retaining hero-talent detection for unassigned builds.
-- Keep the selected build and rotation mode visibly highlighted in the options window.
-- Correlate One Button Assistant Nature's Swiftness consumers even when Blizzard reports the consumer before the cooldown spell.
-- Synchronize Holy Power when Shield of the Righteous or Crusader Strike succeeds outside HeliHeal's configured healing slots.
-- Use a 20-second Healing Stream Totem recharge for Farseer and a talent-aware 17-second recharge with Totemic Momentum.
-- Hide Healing Rain when Surging Totem replaces it in Totemic builds.
-- Keep the complete in-game update history in English on every client language.
-- Show HeliHeal memory usage and optional CPU profiling statistics in the options sidebar.
-- Scale the complete options window from 65% to 135% with a persistent bottom-right resize grip.
-- Customize the options-window background and accent or automatically use the current character's class color.
-- Rework profile management into compact active-profile, creation, maintenance and protected deletion sections.
+- Hold the final regular Healing Stream Totem charge in Standard and Mana Saving modes.
+- Recommend a known Stormstream bonus immediately without consuming a regular totem charge.
+- Prioritize Nature's Swiftness and Totemic setup before Riptide in the Standard rotation.
+- Pair Unleash Life with Ancestral Swiftness before Riptide in Farseer builds.
+- Remove Surging Totem from the Single Target priority while retaining it in Standard and AoE.
 
 ## Validation
 

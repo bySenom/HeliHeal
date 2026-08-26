@@ -16,6 +16,10 @@ local abilities = {
         inputLockout = 1.0,
         maxCharges = 2,
         maxBonusCharges = 2,
+        -- Without health data, Standard and Mana Saving cannot identify an
+        -- emergency. Hold the last regular charge until the second charge is
+        -- ready; known Stormstream bonus charges always remain recommendable.
+        minimumRecommendedChargesByMode = { standard = 2, mana = 2 },
         -- 1267068 is the player cast; 1267089 is the visible proc aura seen
         -- in the UI and retained as a compatibility alias.
         castSpellIDs = { 5394, 1267068, 1267089 },
@@ -122,7 +126,6 @@ local function modes(swiftness, includeSurging)
     aoe[#aoe + 1] = "healing_wave"
 
     local single = { "riptide", "healing_stream_combo", swiftness, "unleash_life" }
-    if includeSurging then single[#single + 1] = "surging_totem" end
     single[#single + 1] = "healing_wave"
     single[#single + 1] = "chain_heal"
 
@@ -135,40 +138,40 @@ end
 
 registerPreset("shaman_totemic_mythicplus", "Totemic • Mythic+", "Totemic", "Mythic+", {
     "healing_stream_combo",
-    "riptide",
     "natures_swiftness",
-    "surging_totem",
     "unleash_life",
+    "surging_totem",
+    "riptide",
     "chain_heal",
     "healing_wave",
 }, modes("natures_swiftness", true))
 
 registerPreset("shaman_totemic_raid", "Totemic • Raid", "Totemic", "Raid", {
     "healing_stream_combo",
-    "riptide",
     "natures_swiftness",
-    "surging_totem",
     "unleash_life",
+    "surging_totem",
+    "riptide",
     "chain_heal",
     "healing_wave",
 }, modes("natures_swiftness", true))
 
 registerPreset("shaman_farseer_mythicplus", "Farseer • Mythic+", "Farseer", "Mythic+", {
     "healing_stream_combo",
-    "riptide",
-    "ancestral_swiftness",
     "unleash_life",
+    "ancestral_swiftness",
     "healing_rain",
+    "riptide",
     "chain_heal",
     "healing_wave",
 }, modes("ancestral_swiftness", false))
 
 registerPreset("shaman_farseer_raid", "Farseer • Raid", "Farseer", "Raid", {
     "healing_stream_combo",
-    "riptide",
-    "ancestral_swiftness",
     "unleash_life",
+    "ancestral_swiftness",
     "healing_rain",
+    "riptide",
     "chain_heal",
     "healing_wave",
 }, modes("ancestral_swiftness", false))
