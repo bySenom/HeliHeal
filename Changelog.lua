@@ -12,6 +12,8 @@ ns.changelog = {
                 "Prioritize Nature's Swiftness and Totemic setup before Riptide in the Standard rotation.",
                 "Pair Unleash Life with Ancestral Swiftness before Riptide in Farseer builds.",
                 "Remove Surging Totem from the Single Target priority while retaining it in Standard and AoE.",
+                "Add a specialization-aware healing FAQ with Holy Paladin targeting and proc guidance.",
+                "Rework the FAQ into collapsible sections with spell icons, related-spell tooltips and expand-all controls.",
             },
         },
         {

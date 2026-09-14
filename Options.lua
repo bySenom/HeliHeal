@@ -1633,8 +1633,23 @@ function HeliHeal:BuildFAQPage(parent)
     setPageHeader(page, L("FAQ & Spielhilfe"),
         L("Kurze Antworten zur Anzeige und zur Spielweise deiner Spezialisierung."))
 
+    local controls = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    controls:SetPoint("TOPLEFT", 28, -105)
+    controls:SetPoint("TOPRIGHT", -28, -105)
+    controls:SetHeight(42)
+    backdrop(controls, C.panel, C.borderSoft)
+
+    local entries = ns.FAQ and ns.FAQ:GetEntries(self.classToken, self.specializationID) or {}
+    local summary = text(controls, (L("%d THEMEN • SPELL-GUIDE")):format(#entries), 9, C.muted, "OUTLINE")
+    summary:SetPoint("LEFT", 14, 0)
+
+    local expandAll = createButton(controls, L("ALLE ÖFFNEN"), 118, 26, false)
+    expandAll:SetPoint("RIGHT", -142, 0)
+    local collapseAll = createButton(controls, L("ALLE SCHLIESSEN"), 132, 26, false)
+    collapseAll:SetPoint("RIGHT", -6, 0)
+
     local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 28, -108)
+    scroll:SetPoint("TOPLEFT", 28, -157)
     scroll:SetPoint("BOTTOMRIGHT", -48, 22)
     local content = CreateFrame("Frame", nil, scroll)
     content:SetWidth(700)
@@ -1643,33 +1658,175 @@ function HeliHeal:BuildFAQPage(parent)
         content:SetWidth(math.max(1, width))
     end)
 
-    local offset = 0
-    local entries = ns.FAQ and ns.FAQ:GetEntries(self.classToken, self.specializationID) or {}
+    local cards = {}
+    local sections = {}
+    local sectionOrder = {}
+
+    local function spellInfo(spellID)
+        if not spellID or not C_Spell or type(C_Spell.GetSpellInfo) ~= "function" then return nil, nil end
+        local ok, info = pcall(C_Spell.GetSpellInfo, spellID)
+        if not ok or type(info) ~= "table" then return nil, nil end
+        return info.name, info.iconID
+    end
+
+    local function entryIcon(entry)
+        local _, icon = spellInfo(entry.spellIDs and entry.spellIDs[1])
+        return icon or entry.icon or "Interface\\Icons\\INV_Misc_QuestionMark"
+    end
+
     for index, entry in ipairs(entries) do
         local answer = L(entry.answer)
-        local estimatedLines = math.max(2, math.ceil(#answer / 92))
-        local cardHeight = 58 + (estimatedLines * 15)
+        local estimatedLines = math.max(2, math.ceil(#answer / 88))
+        local expandedHeight = 84 + (estimatedLines * 15) + ((entry.spellIDs and #entry.spellIDs > 0) and 54 or 0)
         local card = CreateFrame("Frame", nil, content, "BackdropTemplate")
-        card:SetPoint("TOPLEFT", 0, -offset)
-        card:SetPoint("TOPRIGHT", 0, -offset)
-        card:SetHeight(cardHeight)
-        backdrop(card, index == 1 and C.panelHover or C.panel,
-            index == 1 and C.accentDark or C.borderSoft)
+        card:SetHeight(64)
+        backdrop(card, C.panel, C.borderSoft)
+        card.entry = entry
+        card.expanded = false
+        card.collapsedHeight = 64
+        card.expandedHeight = expandedHeight
+
+        local iconFrame = CreateFrame("Frame", nil, card, "BackdropTemplate")
+        iconFrame:SetSize(40, 40)
+        iconFrame:SetPoint("TOPLEFT", 12, -12)
+        backdrop(iconFrame, C.input, C.border)
+        card.icon = iconFrame:CreateTexture(nil, "ARTWORK")
+        card.icon:SetPoint("TOPLEFT", 2, -2)
+        card.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+        card.icon:SetTexture(entryIcon(entry))
+        card.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
         local question = text(card, L(entry.question), 12, C.accent, "OUTLINE")
-        question:SetPoint("TOPLEFT", 18, -14)
-        question:SetPoint("RIGHT", -18, 0)
+        question:SetPoint("TOPLEFT", iconFrame, "TOPRIGHT", 12, -2)
+        question:SetPoint("RIGHT", -54, 0)
+        question:SetHeight(18)
+        question:SetWordWrap(false)
+
+        local tag = text(card, L(entry.tag or "GUIDE"), 8, C.muted, "OUTLINE")
+        tag:SetPoint("TOPLEFT", question, "BOTTOMLEFT", 0, -6)
+
+        local toggle = CreateFrame("Button", nil, card, "BackdropTemplate")
+        toggle:SetSize(30, 30)
+        toggle:SetPoint("TOPRIGHT", -12, -17)
+        backdrop(toggle, C.input, C.border)
+        toggle.label = text(toggle, "+", 18, C.accent, "OUTLINE")
+        toggle.label:SetPoint("CENTER", 0, 1)
+
         local body = text(card, answer, 10, C.text)
-        body:SetPoint("TOPLEFT", question, "BOTTOMLEFT", 0, -10)
+        body:SetPoint("TOPLEFT", 64, -75)
         body:SetPoint("RIGHT", -18, 0)
         body:SetJustifyH("LEFT")
         body:SetJustifyV("TOP")
         body:SetWordWrap(true)
+        body:Hide()
+        card.body = body
 
-        offset = offset + cardHeight + 10
+        if entry.spellIDs and #entry.spellIDs > 0 then
+            local related = text(card, L("ZUGEHÖRIGE ZAUBER"), 8, C.muted, "OUTLINE")
+            related:SetPoint("BOTTOMLEFT", 64, 38)
+            related:Hide()
+            card.related = related
+
+            card.spells = {}
+            local previous
+            for _, spellID in ipairs(entry.spellIDs) do
+                local currentSpellID = spellID
+                local spellName, spellIcon = spellInfo(currentSpellID)
+                local spell = CreateFrame("Frame", nil, card, "BackdropTemplate")
+                spell:SetSize(132, 28)
+                if previous then spell:SetPoint("LEFT", previous, "RIGHT", 6, 0)
+                else spell:SetPoint("BOTTOMLEFT", 64, 8) end
+                backdrop(spell, C.input, C.borderSoft)
+                local texture = spell:CreateTexture(nil, "ARTWORK")
+                texture:SetSize(22, 22)
+                texture:SetPoint("LEFT", 3, 0)
+                texture:SetTexture(spellIcon or "Interface\\Icons\\INV_Misc_QuestionMark")
+                texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+                local name = text(spell, spellName or ("#" .. currentSpellID), 8, C.text)
+                name:SetPoint("LEFT", texture, "RIGHT", 5, 0)
+                name:SetPoint("RIGHT", -4, 0)
+                name:SetWordWrap(false)
+                spell:EnableMouse(true)
+                spell:SetScript("OnEnter", function(self)
+                    self:SetBackdropBorderColor(unpackColor(C.accent))
+                    if GameTooltip and type(GameTooltip.SetSpellByID) == "function" then
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                        GameTooltip:SetSpellByID(currentSpellID)
+                        GameTooltip:Show()
+                    end
+                end)
+                spell:SetScript("OnLeave", function(self)
+                    self:SetBackdropBorderColor(unpackColor(C.borderSoft))
+                    if GameTooltip then GameTooltip:Hide() end
+                end)
+                spell:Hide()
+                card.spells[#card.spells + 1] = spell
+                previous = spell
+            end
+        end
+
+        local hit = CreateFrame("Button", nil, card)
+        hit:SetPoint("TOPLEFT")
+        hit:SetPoint("TOPRIGHT")
+        hit:SetHeight(64)
+
+        cards[#cards + 1] = card
+        local group = entry.group or "ALLGEMEIN"
+        if not sections[group] then
+            sections[group] = { group = group, cards = {} }
+            sectionOrder[#sectionOrder + 1] = sections[group]
+        end
+        sections[group].cards[#sections[group].cards + 1] = card
+
+        function card:SetExpanded(expanded)
+            self.expanded = expanded == true
+            self:SetHeight(self.expanded and self.expandedHeight or self.collapsedHeight)
+            self.body:SetShown(self.expanded)
+            if self.related then self.related:SetShown(self.expanded) end
+            for _, spell in ipairs(self.spells or {}) do spell:SetShown(self.expanded) end
+            toggle.label:SetText(self.expanded and "−" or "+")
+            self:SetBackdropColor(unpackColor(self.expanded and C.panelHover or C.panel))
+            self:SetBackdropBorderColor(unpackColor(self.expanded and C.accentDark or C.borderSoft))
+        end
+        local function toggleCard() card:SetExpanded(not card.expanded); page:RefreshFAQLayout() end
+        hit:SetScript("OnClick", toggleCard)
+        toggle:SetScript("OnClick", toggleCard)
+        hit:SetScript("OnEnter", function() if not card.expanded then card:SetBackdropColor(unpackColor(C.panelHover)) end end)
+        hit:SetScript("OnLeave", function() if not card.expanded then card:SetBackdropColor(unpackColor(C.panel)) end end)
     end
-    content:SetHeight(math.max(1, offset))
+
+    function page:RefreshFAQLayout()
+        local offset = 0
+        for _, sectionData in ipairs(sectionOrder) do
+            local heading = sectionData.heading
+            if not heading then
+                heading = text(content, L(sectionData.group), 9, C.muted, "OUTLINE")
+                sectionData.heading = heading
+            end
+            heading:ClearAllPoints()
+            heading:SetPoint("TOPLEFT", 2, -offset)
+            offset = offset + 24
+            for _, card in ipairs(sectionData.cards) do
+                card:ClearAllPoints()
+                card:SetPoint("TOPLEFT", 0, -offset)
+                card:SetPoint("TOPRIGHT", 0, -offset)
+                offset = offset + card:GetHeight() + 8
+            end
+            offset = offset + 8
+        end
+        content:SetHeight(math.max(1, offset))
+    end
+
+    local function setAllExpanded(expanded)
+        for _, card in ipairs(cards) do card:SetExpanded(expanded) end
+        page:RefreshFAQLayout()
+    end
+    expandAll:SetScript("OnClick", function() setAllExpanded(true) end)
+    collapseAll:SetScript("OnClick", function() setAllExpanded(false) end)
+
+    page:RefreshFAQLayout()
     page.scroll = scroll
+    page.cards = cards
     return page
 end
 

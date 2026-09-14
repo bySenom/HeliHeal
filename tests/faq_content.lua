@@ -10,6 +10,18 @@ local paladin = namespace.FAQ:GetEntries("PALADIN", 65)
 assert(#paladin == 9,
     "Holy Paladin must receive general and specialization-specific FAQ entries")
 
+for index, entry in ipairs(paladin) do
+    assert(entry.group and entry.tag and (entry.icon or (entry.spellIDs and #entry.spellIDs > 0)),
+        ("FAQ entry %d must provide accordion grouping, a tag and an icon source"):format(index))
+end
+
+local paladinSpellTopics = 0
+for _, entry in ipairs(paladin) do
+    if entry.spellIDs and #entry.spellIDs > 0 then paladinSpellTopics = paladinSpellTopics + 1 end
+end
+assert(paladinSpellTopics == 6,
+    "every Holy Paladin guide topic must expose related spell icons")
+
 local combined = {}
 for _, entry in ipairs(paladin) do
     combined[#combined + 1] = entry.question .. " " .. entry.answer
