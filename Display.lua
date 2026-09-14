@@ -441,11 +441,14 @@ function HeliHeal:GetDisplayOrder(now)
     end
     self.displayReadyScratch = self.displayReadyScratch or {}
     self.displayWaitingScratch = self.displayWaitingScratch or {}
+    self.displayBlockedScratch = self.displayBlockedScratch or {}
     self.displayItemScratch = self.displayItemScratch or {}
     local ready = self.displayReadyScratch
     local waiting = self.displayWaitingScratch
+    local blocked = self.displayBlockedScratch
     clearArray(ready)
     clearArray(waiting)
+    clearArray(blocked)
     local priorityRanks = self:GetActivePriorityRanks()
     local downpourReady = self:IsDownpourReady(now)
     local preferHolyPowerSpender = self.classToken == "PALADIN"
@@ -502,9 +505,13 @@ function HeliHeal:GetDisplayOrder(now)
             local holyPower = self.sessionHolyPower or 0
             local wingsActive = self:IsPaladinWingsActive(now)
             local crusaderActive = self:IsPaladinCrusaderActive(now)
+            local resourceBlocked = false
             if (ability.holyPowerCost or 0) > holyPower
                 and (self.pendingFreeHolyPowerSpenders or 0) <= 0 then
-                contextAvailable = false
+                -- Keep an unavailable spender only as a desaturated future
+                -- step. It is sorted behind every currently actionable and
+                -- cooling-down ability, but can fill an otherwise short HUD.
+                resourceBlocked = true
             elseif ability.maxHolyPower and holyPower > ability.maxHolyPower then
                 contextAvailable = false
             elseif ability.abilityKey == "paladin_judgment" and self:GetPaladinInfusionCharges(now) > 0
@@ -524,6 +531,7 @@ function HeliHeal:GetDisplayOrder(now)
             elseif ability.abilityKey == "paladin_crusader_strike" then
                 contextAvailable = contextAvailable and crusaderActive
             end
+            ability.resourceBlocked = resourceBlocked
             -- Keep ordinary generators in the secondary queue at the Holy
             -- Power cap. The ready-order sorter forces a healing spender into
             -- the primary position first; after that cast, these become valid
@@ -543,6 +551,9 @@ function HeliHeal:GetDisplayOrder(now)
             local charges
             local trackedText
             local cooldownDuration = ability.cooldown
+            if ability.resourceBlocked then
+                trackedText = ("%d HP"):format(ability.holyPowerCost or 3)
+            end
             if ability.abilityKey == "downpour" and self.pendingDownpour then
                 charges = self.pendingDownpour.uses
                 readyAt = 0
@@ -612,6 +623,7 @@ function HeliHeal:GetDisplayOrder(now)
             item.preferSpender = preferHolyPowerSpender and (ability.holyPowerCost or 0) > 0 or false
             item.paladinInfusionPriority = self:GetPaladinInfusionConsumerPriority(ability.abilityKey, now)
             item.paladinHandPriority = self:GetPaladinHandOfDivinityPriority(ability.abilityKey, now)
+            item.paladinResourceBlocked = ability.resourceBlocked == true
             item.paladinCrusaderPriority = self:IsPaladinCrusaderActive(now)
                 and (ability.abilityKey == "paladin_judgment" and 1
                     or ability.abilityKey == "paladin_crusader_strike" and 2 or nil)
@@ -629,7 +641,9 @@ function HeliHeal:GetDisplayOrder(now)
                 and (charges or 1) >= ability.maxCharges or false
             item.priestHoldForApotheosis = priestApotheosisReady and priestHolyWord
                 and (charges or 0) > 0 and (charges or 0) < ability.maxCharges or false
-            if item.remaining <= 0 then
+            if item.paladinResourceBlocked then
+                blocked[#blocked + 1] = item
+            elseif item.remaining <= 0 then
                 ready[#ready + 1] = item
             else
                 waiting[#waiting + 1] = item
@@ -638,8 +652,12 @@ function HeliHeal:GetDisplayOrder(now)
     end
     table.sort(ready, readyBefore)
     table.sort(waiting, waitingBefore)
+    table.sort(blocked, function(a, b) return a.priorityRank < b.priorityRank end)
 
     for _, item in ipairs(waiting) do
+        ready[#ready + 1] = item
+    end
+    for _, item in ipairs(blocked) do
         ready[#ready + 1] = item
     end
     return ready
@@ -797,7 +815,7 @@ function HeliHeal:RefreshSupportWindow(now)
             end
             button.icon:SetTexture(item.ability.icon)
             button.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
-            button.icon:SetDesaturated(item.remaining > 0)
+            button.icon:SetDesaturated(item.remaining > 0 or item.paladinResourceBlocked)
             if item.usedAt and item.cooldownDuration > 0 then
                 button.cooldown:SetCooldown(item.usedAt, item.cooldownDuration)
             else

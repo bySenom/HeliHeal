@@ -231,10 +231,8 @@ InCombatLockdown = function() return false end
 local order = addon:GetDisplayOrder(now)
 assert(order[1].ability.abilityKey == "paladin_divine_toll",
     "Herald Mythic+ must open with its available low-Holy-Power cooldown")
-for _, item in ipairs(order) do
-    assert((item.ability.holyPowerCost or 0) == 0,
-        "Holy Power spenders must stay hidden below three Holy Power")
-end
+assert(not order[1].paladinResourceBlocked,
+    "a Holy Power spender must never replace an actionable primary recommendation")
 
 addon:AcknowledgeSlot(tollIndex)
 assert(addon.sessionHolyPower == 3, "Divine Toll must add three locally estimated Holy Power")
@@ -272,11 +270,13 @@ assert(addon.sessionHolyPower == 3, "Flash of Light must generate one local Holy
 addon:AcknowledgeSlot(flameIndex)
 assert(addon.sessionHolyPower == 0, "a spender at three Holy Power must return the estimate to zero")
 order = addon:GetDisplayOrder(now)
+assert((order[1].ability.holyPowerCost or 0) == 0 and not order[1].paladinResourceBlocked,
+    "an unavailable spender must not become primary after Holy Power falls below three")
 for _, item in ipairs(order) do
-    assert(item.ability.abilityKey ~= "paladin_eternal_flame"
-        and item.ability.abilityKey ~= "paladin_light_of_dawn"
-        and item.ability.abilityKey ~= "paladin_shield_of_the_righteous",
-        "spenders must hide again after falling below three Holy Power")
+    if (item.ability.holyPowerCost or 0) > 0 then
+        assert(item.paladinResourceBlocked,
+            "spenders below three Holy Power must be marked as future steps")
+    end
 end
 
 addon:SetRotationPreset("paladin_lightsmith_raid")
@@ -287,9 +287,15 @@ addon.talentSnapshot.paladinForewarning = true
 addon.talentSnapshot.paladinValiance = true
 addon.talentSnapshot.paladinLayingDownArms = true
 addon.talentSnapshot.paladinSolidarity = true
+addon.talentSnapshot.paladinBeaconVirtue = false
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
 local wordIndex = addon:GetSlotIndexByAbilityKey("paladin_word_of_glory")
 local raidDawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
+order = addon:GetDisplayOrder(now)
+assert(#order >= 5 and order[5].paladinResourceBlocked
+        and (order[5].ability.holyPowerCost or 0) == 3,
+    "Lightsmith without Beacon or Infusion must backfill a fifth future Holy Power spender")
+addon.talentSnapshot.paladinBeaconVirtue = true
 assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 36,
     "Lightsmith must combine Quickened Invocation and Forewarning on Holy Armament")
 addon:AcknowledgeSlot(armamentIndex)
