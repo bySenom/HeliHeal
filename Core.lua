@@ -66,6 +66,7 @@ local PALADIN_CRUSADER_DURATION = 15
 local PALADIN_HAND_OF_DIVINITY_DURATION = 20
 local PALADIN_INFUSION_DURATION = 15
 local PALADIN_ARMAMENT_DURATION = 20
+local PALADIN_VIRTUE_DURATION = 9
 
 local function copyTable(source)
     local result = {}
@@ -84,7 +85,7 @@ local PERSISTENT_RUNTIME_FIELDS = {
     "sessionAtonements", "holyPowerBaseline", "holyPowerFreeSpenderBaseline",
     "sessionHolyPower", "holyPowerEvents", "nextHolyPowerEventID",
     "pendingFreeHolyPowerSpenders", "pendingPaladinInfusion", "paladinWingsUntil",
-    "paladinCrusaderUntil", "pendingPaladinHandOfDivinity",
+    "paladinCrusaderUntil", "paladinVirtueUntil", "pendingPaladinHandOfDivinity",
     "paladinArmamentExpirations", "paladinNextArmamentType",
     "pendingSwiftness", "pendingDownpour",
     "pendingUnleash", "pendingArchdruid", "pendingDruidSoul",
@@ -125,6 +126,7 @@ function HeliHeal:ResetRuntimeState()
     self.pendingPaladinInfusion = nil
     self.paladinWingsUntil = nil
     self.paladinCrusaderUntil = nil
+    self.paladinVirtueUntil = nil
     self.pendingPaladinHandOfDivinity = nil
     self.paladinArmamentExpirations = {}
     self.paladinNextArmamentType = "bulwark"
@@ -731,6 +733,7 @@ function HeliHeal:BuildDiagnosticReport()
         "paladinInfusions=" .. tostring(self:GetPaladinInfusionCharges()),
         "paladinWingsUntil=" .. tostring(self.paladinWingsUntil or 0),
         "paladinCrusaderUntil=" .. tostring(self.paladinCrusaderUntil or 0),
+        "paladinVirtueUntil=" .. tostring(self.paladinVirtueUntil or 0),
         "paladinHandUses=" .. tostring(self.pendingPaladinHandOfDivinity
             and self.pendingPaladinHandOfDivinity.uses or 0),
         "paladinArmaments=" .. tostring(countEntries(self.paladinArmamentExpirations)),
@@ -1068,6 +1071,35 @@ function HeliHeal:IsPaladinCrusaderActive(now)
     return self.paladinCrusaderUntil ~= nil
 end
 
+function HeliHeal:IsPaladinVirtueActive(now)
+    if self.classToken ~= "PALADIN" then return false end
+    now = now or GetTime()
+    if self.paladinVirtueUntil and now >= self.paladinVirtueUntil then
+        self.paladinVirtueUntil = nil
+    end
+    return self.paladinVirtueUntil ~= nil
+end
+
+function HeliHeal:IsPaladinRaidVirtueContext()
+    if self.classToken ~= "PALADIN" or self:GetHealingMode() ~= "aoe"
+        or not self:IsTalentActive("paladinBeaconVirtue") then
+        return false
+    end
+    local preset = ns.AbilityLibrary:GetPreset(self.db.profile.rotationPreset)
+    return preset and preset.content == "Raid" or false
+end
+
+function HeliHeal:GetPaladinVirtueSetupPriority(abilityKey, now)
+    if not self:IsPaladinRaidVirtueContext() or self:IsPaladinVirtueActive(now) then return nil end
+    return abilityKey == "paladin_beacon_of_virtue" and 1 or nil
+end
+
+function HeliHeal:GetPaladinVirtueWindowPriority(abilityKey, now)
+    if not self:IsPaladinRaidVirtueContext() or not self:IsPaladinVirtueActive(now) then return nil end
+    if abilityKey == "paladin_divine_toll" then return 1 end
+    if abilityKey == "paladin_aura_mastery" and self:IsTalentActive("paladinRingingHeavens") then return 2 end
+end
+
 function HeliHeal:GetPaladinMajorCooldownDuration(abilityKey)
     local base = abilityKey == "paladin_avenging_crusader"
         and PALADIN_CRUSADER_DURATION or PALADIN_WINGS_DURATION
@@ -1195,6 +1227,9 @@ function HeliHeal:ApplyPaladinCastEffects(abilityKey, now, observedSpellID)
                 expiresAt = now + PALADIN_HAND_OF_DIVINITY_DURATION,
             }
         end
+        changed = true
+    elseif abilityKey == "paladin_beacon_of_virtue" then
+        self.paladinVirtueUntil = now + PALADIN_VIRTUE_DURATION
         changed = true
     elseif abilityKey == "paladin_holy_armament" then
         changed = self:TrackPaladinArmament(observedSpellID, now) or changed

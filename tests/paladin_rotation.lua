@@ -217,6 +217,33 @@ assert(not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
     and not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
         "paladin_herald_mythicplus", "mana"), "paladin_beacon_of_virtue"),
     "Virtue must not be forced by Single Target or Mana Saving modes")
+
+addon:SetRotationPreset("paladin_herald_raid")
+addon:SetHealingMode("aoe", true)
+addon.talentSnapshot.paladinRingingHeavens = true
+local raidVirtueIndex = addon:GetSlotIndexByAbilityKey("paladin_beacon_of_virtue")
+local raidTollIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_toll")
+addon:SetHolyPowerEstimate(0, true)
+now = 0
+local raidVirtueOrder = addon:GetDisplayOrder(now)
+assert(raidVirtueOrder[1].ability.abilityKey == "paladin_beacon_of_virtue",
+    "Raid AoE must establish Beacon of Virtue before ready paired burst cooldowns")
+addon:AcknowledgeSlot(raidVirtueIndex)
+assert(addon:IsPaladinVirtueActive(now) and addon.paladinVirtueUntil == 9,
+    "a confirmed Beacon of Virtue cast must start its nine-second local window")
+raidVirtueOrder = addon:GetDisplayOrder(now)
+assert(raidVirtueOrder[1].ability.abilityKey == "paladin_divine_toll"
+        and raidVirtueOrder[2].ability.abilityKey == "paladin_aura_mastery",
+    "the active Raid Virtue window must pair Divine Toll and Ringing Aura Mastery")
+addon:AcknowledgeSlot(raidTollIndex)
+now = 9
+assert(not addon:IsPaladinVirtueActive(now),
+    "the locally reconstructed Beacon of Virtue window must expire after nine seconds")
+addon:SetRotationPreset("paladin_herald_mythicplus")
+addon:SetHealingMode("standard", true)
+addon.talentSnapshot.paladinRingingHeavens = false
+now = 0
+
 for _, presetKey in ipairs({ "paladin_herald_mythicplus", "paladin_lightsmith_mythicplus" }) do
     for _, mode in ipairs({ "standard", "aoe", "single", "mana" }) do
         assert(not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(presetKey, mode),

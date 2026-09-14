@@ -48,6 +48,11 @@ local function readyBefore(a, b)
         return not a.priestHoldForApotheosis
     end
     if a.preferSpender ~= b.preferSpender then return a.preferSpender end
+    if a.paladinVirtueSetupPriority ~= b.paladinVirtueSetupPriority then
+        if not a.paladinVirtueSetupPriority then return false end
+        if not b.paladinVirtueSetupPriority then return true end
+        return a.paladinVirtueSetupPriority < b.paladinVirtueSetupPriority
+    end
     -- A Season 2 Holy Light deterministically grants Infusion of Light. Spend
     -- that known proc before the next Hand of Divinity Holy Light so the
     -- second guaranteed proc is not overwritten at the normal one-charge cap.
@@ -55,6 +60,11 @@ local function readyBefore(a, b)
         if not a.paladinInfusionPriority then return false end
         if not b.paladinInfusionPriority then return true end
         return a.paladinInfusionPriority < b.paladinInfusionPriority
+    end
+    if a.paladinVirtueWindowPriority ~= b.paladinVirtueWindowPriority then
+        if not a.paladinVirtueWindowPriority then return false end
+        if not b.paladinVirtueWindowPriority then return true end
+        return a.paladinVirtueWindowPriority < b.paladinVirtueWindowPriority
     end
     if a.paladinHandPriority ~= b.paladinHandPriority then
         if not a.paladinHandPriority then return false end
@@ -624,7 +634,9 @@ function HeliHeal:GetDisplayOrder(now)
             item.cooldownDuration = cooldownDuration
             item.priorityRank = priorityRank
             item.preferSpender = preferHolyPowerSpender and (ability.holyPowerCost or 0) > 0 or false
+            item.paladinVirtueSetupPriority = self:GetPaladinVirtueSetupPriority(ability.abilityKey, now)
             item.paladinInfusionPriority = self:GetPaladinInfusionConsumerPriority(ability.abilityKey, now)
+            item.paladinVirtueWindowPriority = self:GetPaladinVirtueWindowPriority(ability.abilityKey, now)
             item.paladinHandPriority = self:GetPaladinHandOfDivinityPriority(ability.abilityKey, now)
             item.paladinResourceBlocked = ability.resourceBlocked == true
             item.paladinCrusaderPriority = self:IsPaladinCrusaderActive(now)
