@@ -135,6 +135,7 @@ local abilities = {
     paladin_divine_steed = {
         spellID = 190784, name = "Divine Steed", cooldown = 45, maxCharges = 1,
         requiresTalent = "paladinDivineSteed", bonusChargeTalent = "paladinCavalier",
+        cooldownPercentTalents = { paladinDivineSpurs = 20 },
         confirmOnPlayerSuccess = true, inputLockout = 0.5,
     },
 }

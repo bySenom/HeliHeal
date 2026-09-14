@@ -117,7 +117,7 @@ local HOLY_PALADIN = {
         tag = "BEWEGUNG",
         spellIDs = { 190784, 20473, 85673 },
         question = "Was mache ich während Bewegung?",
-        answer = "HeliHeal kann nicht zuverlässig erkennen, ob du gerade laufen musst. Nutze während Bewegung verfügbare Instant-Zauber wie Holy Shock und Holy-Power-Spender und verschiebe einen normalen Holy-Light-Cast. Ein durch Hand of Divinity vorbereiteter Holy Light ist instant und bleibt deshalb auch in Bewegung nutzbar. Divine Steed gehört zur Positionierung, nicht automatisch zur Heilpriorität.",
+        answer = "HeliHeal kann nicht zuverlässig erkennen, ob du gerade laufen musst. Nutze während Bewegung verfügbare Instant-Zauber wie Holy Shock und Holy-Power-Spender und verschiebe einen normalen Holy-Light-Cast. Ein durch Hand of Divinity vorbereiteter Holy Light ist instant und bleibt deshalb auch in Bewegung nutzbar. Divine Steed gehört zur Positionierung, nicht automatisch zur Heilpriorität. Divine Spurs verkürzt seinen lokalen Cooldown auf 36 Sekunden, aber auch seine Dauer von 3 auf 1,8 Sekunden.",
     },
 }
 

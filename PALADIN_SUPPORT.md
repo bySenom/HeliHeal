@@ -27,6 +27,7 @@ HeliHeal models Holy Paladin as a player-driven priority helper, not an automati
 - Blizzard success events for both Armament variants directly consume their shared local charges, even when the transformed action-button input could not be correlated first.
 - Locally known Infusions expire after 15 seconds. Inflorescence of the Sunwell permits two locally tracked charges instead of silently overwriting the first.
 - A separate **DEF / UTILITY** readiness strip tracks confirmed casts of Divine Protection, Divine Shield, Blessing of Sacrifice, Lay on Hands, Blessing of Protection and Divine Steed. It applies detected cooldown and charge talents without inserting these tools into the healing priority.
+- Divine Spurs reduces Divine Steed's locally tracked recharge from 45 to 36 seconds; Cavalier still controls its second charge. The shorter 1.8-second movement duration is documented in the FAQ because the support strip represents readiness rather than buff uptime.
 - Mythic+ omits Light of Dawn from the priority packs. Raid keeps it as a situational alternative behind the stronger single-target spender.
 - Judgment and its Avenging Wrath replacement, Hammer of Wrath, share one editable hotkey while retaining separate local cooldown and Holy Power effects.
 - If contextual filtering leaves fewer than five Paladin actions, an unavailable three-Holy-Power spender is retained as a desaturated future step at the end of the strip. It never replaces an actionable primary recommendation.

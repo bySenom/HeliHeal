@@ -36,6 +36,7 @@ local selectedSpellIDs = {
     414720, -- Tirion's Devotion (Holy)
     190784, -- Divine Steed
     230332, -- Cavalier
+    469409, -- Divine Spurs
     114154, -- Unbreakable Spirit
     432804, -- Forewarning
     432919, -- Valiance
@@ -111,6 +112,7 @@ assert(addon.talentSnapshot.paladinBlessingSacrifice
     and addon.talentSnapshot.paladinTirionsDevotion
     and addon.talentSnapshot.paladinDivineSteed
     and addon.talentSnapshot.paladinCavalier
+    and addon.talentSnapshot.paladinDivineSpurs
     and addon.talentSnapshot.paladinUnbreakableSpirit,
     "Paladin defensive, external and movement talents must be detected from committed entries")
 assert(addon.talentSnapshot.paladinTier4,
@@ -127,6 +129,9 @@ assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).coo
     "Lightsmith must apply Quickened Invocation and Forewarning to Holy Armament")
 assert(addon:GetSlot(crusaderIndex).enabled and addon:GetSlot(crusaderIndex).cooldown == 45,
     "Avenging Crusader must apply both ranks of Call of the Righteous")
+local steedIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_steed")
+assert(addon:GetSlot(steedIndex).cooldown == 36 and addon:GetSlot(steedIndex).maxCharges == 2,
+    "Divine Spurs and Cavalier must alter Divine Steed's recharge and charges independently")
 
 selectedSpellIDs = {
     431377, -- Herald of the Sun

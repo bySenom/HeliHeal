@@ -57,6 +57,7 @@ addon.talentSnapshot = {
     paladinTirionsDevotion = true,
     paladinDivineSteed = true,
     paladinCavalier = true,
+    paladinDivineSpurs = true,
     paladinUnbreakableSpirit = true,
     paladinForewarning = false,
     paladinValiance = false,
@@ -162,8 +163,8 @@ assert(addon:GetSlot(sacrificeIndex).cooldown == 105
     "selected blessing talents must reduce the local Sacrifice and Protection timers")
 assert(math.abs(addon:GetSlot(layOnHandsIndex).cooldown - 180) < 0.001,
     "Tirion's Devotion and Unbreakable Spirit must both contribute to Lay on Hands' local timer")
-assert(addon:GetSlot(steedIndex).maxCharges == 2,
-    "Cavalier must grant the second locally tracked Divine Steed charge")
+assert(addon:GetSlot(steedIndex).maxCharges == 2 and addon:GetSlot(steedIndex).cooldown == 36,
+    "Cavalier and Divine Spurs must grant the second charge and reduce Divine Steed to 36 seconds")
 local supportOrder = addon:GetSupportDisplayOrder(now)
 assert(#supportOrder == 6 and displayContains(supportOrder, "paladin_divine_protection")
     and displayContains(supportOrder, "paladin_divine_steed"),
