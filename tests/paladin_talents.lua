@@ -35,6 +35,8 @@ local selectedSpellIDs = {
     114154, -- Unbreakable Spirit
     432804, -- Forewarning
     432919, -- Valiance
+    432866, -- Laying Down Arms
+    432802, -- Solidarity
 }
 
 C_ClassTalents = { GetActiveConfigID = function() return 9001 end }
@@ -104,6 +106,8 @@ assert(addon.talentSnapshot.paladinTier4,
     "the Midnight 12.1 Holy Paladin four-set must be detected out of combat")
 assert(addon.talentSnapshot.paladinForewarning and addon.talentSnapshot.paladinValiance,
     "Lightsmith cooldown talents must be detected from committed entries")
+assert(addon.talentSnapshot.paladinLayingDownArms and addon.talentSnapshot.paladinSolidarity,
+    "Lightsmith Armament expiration talents must be detected from committed entries")
 assert(addon.db.profile.rotationPreset == "paladin_lightsmith_raid",
     "hero detection must preserve the selected Raid content type")
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")

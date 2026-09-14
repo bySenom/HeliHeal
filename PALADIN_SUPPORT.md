@@ -17,6 +17,7 @@ HeliHeal models Holy Paladin as a player-driven priority helper, not an automati
 - Infusion prefers Flash of Light in healing modes and Judgment or its Hammer replacement in Mana Saving mode.
 - When a locally known Infusion is consumed, Imbued Infusions reduces the locally tracked Holy Shock recharge by one second.
 - Forewarning reduces Holy Armaments' two-charge recharge by 20%. When a locally known Infusion is consumed, Valiance also advances the running Holy Armaments recharge by three seconds.
+- With both Solidarity and Laying Down Arms selected, every confirmed Holy Armament cast starts a local 20-second self-Armament timer. Its expiration grants the guaranteed Infusion of Light and advances a running Lay on Hands cooldown by 15 seconds. Holy Bulwark and Sacred Weapon are tracked separately, including same-caster duration extensions.
 - Locally known Infusions expire after 15 seconds. Inflorescence of the Sunwell permits two locally tracked charges instead of silently overwriting the first.
 - A separate **DEF / UTILITY** readiness strip tracks confirmed casts of Divine Protection, Divine Shield, Blessing of Sacrifice, Lay on Hands, Blessing of Protection and Divine Steed. It applies detected cooldown and charge talents without inserting these tools into the healing priority.
 - Mythic+ omits Light of Dawn from the priority packs. Raid keeps it as a situational alternative behind the stronger single-target spender.
@@ -36,7 +37,7 @@ HeliHeal cannot decide which player is injured, whether a cast would overheal, w
 
 The DEF / UTILITY strip means **available**, not **cast now**. It cannot evaluate incoming damage, Forbearance, whether an external target is eligible, or whether movement is required. Blizzard-confirmed player casts start its local timers; encounter resets and effects not reconstructable from confirmed casts can still require `/hh sync` outside combat.
 
-Random procs such as Infusion of Light from Holy Shock or Judgment, Divine Purpose, Awakening, Empyrean Legacy, Glorious Dawn, and Divine Inspiration are not predicted. Veneration's critical-heal Judgment reset and Laying Down Arms effects from Armament expiration or target-dependent refreshes are also not guessed because the successful player cast alone does not prove that those effects occurred. When Blizzard allows a non-secret player resource update, Holy Power is reconciled after the cast; otherwise the confirmed-cast ledger remains the fallback.
+Random procs such as Infusion of Light from Holy Shock or Judgment, Divine Purpose, Awakening, Empyrean Legacy, Glorious Dawn, and Divine Inspiration are not predicted. Veneration's critical-heal Judgment reset and Armament changes caused by other players or effects remain unknown because the successful player cast alone does not prove that they occurred. The Laying Down Arms timer is intentionally enabled only when Solidarity guarantees the self-copy. When Blizzard allows a non-secret player resource update, Holy Power is reconciled after the cast; otherwise the confirmed-cast ledger remains the fallback.
 
 Cooldown values are local estimates. Temporary in-combat haste, cooldown resets not caused by a confirmed modeled cast, death, encounter-specific resets, and unobserved casts can make them diverge. `/hh sync`, `/hh reset`, and `/hh hp 0-5` are the recovery controls.
 

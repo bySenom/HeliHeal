@@ -390,6 +390,7 @@ end
 function HeliHeal:GetSupportDisplayOrder(now)
     if self.classToken ~= "PALADIN" or self.specializationID ~= 65 then return {} end
     now = now or GetTime()
+    self:ProcessPaladinArmamentExpirations(now)
     self.supportReadyScratch = self.supportReadyScratch or {}
     self.supportWaitingScratch = self.supportWaitingScratch or {}
     self.supportItemScratch = self.supportItemScratch or {}
@@ -433,6 +434,7 @@ function HeliHeal:GetSupportDisplayOrder(now)
 end
 
 function HeliHeal:GetDisplayOrder(now)
+    self:ProcessPaladinArmamentExpirations(now)
     if self.monkConduitHeartAt and now >= self.monkConduitHeartAt then
         self.monkConduitHeartAt = nil
         self:ApplyMonkJadeSerpentRecovery(now)

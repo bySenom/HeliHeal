@@ -56,7 +56,7 @@ local SWIFTNESS_CONSUMER_SPELL_IDS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 5
-local ROTATION_DATA_VERSION = 12120
+local ROTATION_DATA_VERSION = 12121
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -65,6 +65,7 @@ local PALADIN_WINGS_DURATION = 20
 local PALADIN_CRUSADER_DURATION = 15
 local PALADIN_HAND_OF_DIVINITY_DURATION = 20
 local PALADIN_INFUSION_DURATION = 15
+local PALADIN_ARMAMENT_DURATION = 20
 
 local function copyTable(source)
     local result = {}
@@ -84,6 +85,7 @@ local PERSISTENT_RUNTIME_FIELDS = {
     "sessionHolyPower", "holyPowerEvents", "nextHolyPowerEventID",
     "pendingFreeHolyPowerSpenders", "pendingPaladinInfusion", "paladinWingsUntil",
     "paladinCrusaderUntil", "pendingPaladinHandOfDivinity",
+    "paladinArmamentExpirations", "paladinNextArmamentType",
     "pendingSwiftness", "pendingDownpour",
     "pendingUnleash", "pendingArchdruid", "pendingDruidSoul",
     "unleashConsumptionHistory", "riptideRechargeRateUntil", "priestApotheosisUntil",
@@ -124,6 +126,8 @@ function HeliHeal:ResetRuntimeState()
     self.paladinWingsUntil = nil
     self.paladinCrusaderUntil = nil
     self.pendingPaladinHandOfDivinity = nil
+    self.paladinArmamentExpirations = {}
+    self.paladinNextArmamentType = "bulwark"
     self.pendingSwiftness = nil
     self.pendingDownpour = nil
     self.pendingUnleash = nil
@@ -721,6 +725,7 @@ function HeliHeal:BuildDiagnosticReport()
         "paladinCrusaderUntil=" .. tostring(self.paladinCrusaderUntil or 0),
         "paladinHandUses=" .. tostring(self.pendingPaladinHandOfDivinity
             and self.pendingPaladinHandOfDivinity.uses or 0),
+        "paladinArmaments=" .. tostring(countEntries(self.paladinArmamentExpirations)),
         "pendingInputs=" .. countEntries(self.pendingAcknowledgements),
     }, "; ")
 end
@@ -1079,7 +1084,50 @@ function HeliHeal:ApplyPaladinCooldownEffects(abilityKey, now)
     return changed
 end
 
-function HeliHeal:ApplyPaladinCastEffects(abilityKey, now)
+function HeliHeal:TrackPaladinArmament(observedSpellID, now)
+    if self.classToken ~= "PALADIN"
+        or not self:IsTalentActive("paladinLayingDownArms")
+        or not self:IsTalentActive("paladinSolidarity") then
+        return false
+    end
+    now = now or GetTime()
+    local armamentType
+    if tonumber(observedSpellID) == 432459 then
+        armamentType = "bulwark"
+    elseif tonumber(observedSpellID) == 432472 then
+        armamentType = "sacred"
+    else
+        armamentType = self.paladinNextArmamentType or "bulwark"
+    end
+    self.paladinNextArmamentType = armamentType == "bulwark" and "sacred" or "bulwark"
+    self.paladinArmamentExpirations = self.paladinArmamentExpirations or {}
+    local previousExpiration = tonumber(self.paladinArmamentExpirations[armamentType]) or now
+    -- Midnight 12.1 extends a same-caster Armament when it is reapplied.
+    self.paladinArmamentExpirations[armamentType] = math.max(now, previousExpiration)
+        + PALADIN_ARMAMENT_DURATION
+    return true
+end
+
+function HeliHeal:ProcessPaladinArmamentExpirations(now)
+    if self.classToken ~= "PALADIN" then return false end
+    now = now or GetTime()
+    local expirations = self.paladinArmamentExpirations
+    if not expirations then return false end
+    local changed = false
+    for armamentType, expiresAt in pairs(expirations) do
+        if now >= expiresAt then
+            expirations[armamentType] = nil
+            if self:IsTalentActive("paladinLayingDownArms") then
+                self:ReduceLocalAbilityCooldown("paladin_lay_on_hands", 15, now)
+                self:ArmPaladinInfusion(now)
+            end
+            changed = true
+        end
+    end
+    return changed
+end
+
+function HeliHeal:ApplyPaladinCastEffects(abilityKey, now, observedSpellID)
     local changed = self:ApplyPaladinInfusionEffects(abilityKey, now)
     changed = self:ApplyPaladinCooldownEffects(abilityKey, now) or changed
     if self.classToken ~= "PALADIN" then return changed end
@@ -1111,6 +1159,8 @@ function HeliHeal:ApplyPaladinCastEffects(abilityKey, now)
             }
         end
         changed = true
+    elseif abilityKey == "paladin_holy_armament" then
+        changed = self:TrackPaladinArmament(observedSpellID, now) or changed
     end
     return changed
 end
@@ -2035,7 +2085,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     end
 
     self:RecordHolyPowerEvent(slotIndex, slot)
-    self:ApplyPaladinCastEffects(slot.abilityKey, now)
+    self:ApplyPaladinCastEffects(slot.abilityKey, now, observedSpellID)
     self:ApplyPriestHolyWordEffects(slot.abilityKey, now)
     self:ApplyMistweaverCastEffects(slot.abilityKey, now)
 

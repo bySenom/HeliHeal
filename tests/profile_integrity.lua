@@ -25,7 +25,7 @@ local profile = {
 }
 addon.db = { profile = profile }
 assert(addon:MigrateProfile(profile), "legacy profile must migrate exactly once")
-assert(profile.schemaVersion == 5 and profile.rotationDataVersion == 12120,
+assert(profile.schemaVersion == 5 and profile.rotationDataVersion == 12121,
     "migration must stamp the schema and rotation data versions")
 assert(profile.dispelCursorOffsetX == 42,
     "migration must move the original dispel cursor default away from the pointer")

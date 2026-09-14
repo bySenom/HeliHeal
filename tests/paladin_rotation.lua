@@ -55,6 +55,8 @@ addon.talentSnapshot = {
     paladinUnbreakableSpirit = true,
     paladinForewarning = false,
     paladinValiance = false,
+    paladinLayingDownArms = false,
+    paladinSolidarity = false,
 }
 addon.IsTalentActive = function(self, key)
     return self.talentSnapshot.available and self.talentSnapshot[key] == true
@@ -265,6 +267,8 @@ addon.talentSnapshot.paladinLightsmith = true
 addon.talentSnapshot.paladinDivineToll = false
 addon.talentSnapshot.paladinForewarning = true
 addon.talentSnapshot.paladinValiance = true
+addon.talentSnapshot.paladinLayingDownArms = true
+addon.talentSnapshot.paladinSolidarity = true
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
 local wordIndex = addon:GetSlotIndexByAbilityKey("paladin_word_of_glory")
 local raidDawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
@@ -277,6 +281,34 @@ local lightsmithFlashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_li
 addon:AcknowledgeSlot(lightsmithFlashIndex)
 assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance - 3,
     "Valiance must advance the active Holy Armament recharge by three seconds")
+local lightsmithLayOnHandsIndex = addon:GetSlotIndexByAbilityKey("paladin_lay_on_hands")
+addon:AcknowledgeSlot(lightsmithLayOnHandsIndex)
+local layOnHandsUsedAt = addon.sessionUses[lightsmithLayOnHandsIndex]
+assert(addon.paladinArmamentExpirations.bulwark == now + 20,
+    "Solidarity must arm the locally guaranteed Holy Bulwark expiration")
+now = now + 19
+addon:GetDisplayOrder(now)
+assert(not addon.pendingPaladinInfusion
+        and addon.sessionUses[lightsmithLayOnHandsIndex] == layOnHandsUsedAt,
+    "Laying Down Arms must not trigger before the Armament expires")
+now = now + 1
+addon:GetDisplayOrder(now)
+assert(addon:GetPaladinInfusionCharges(now) == 1,
+    "Laying Down Arms must grant a local Infusion when Holy Bulwark expires")
+assert(addon.sessionUses[lightsmithLayOnHandsIndex] == layOnHandsUsedAt - 15,
+    "Laying Down Arms must advance the running Lay on Hands cooldown by 15 seconds")
+addon:AcknowledgeSlot(armamentIndex, 432472)
+assert(addon.paladinArmamentExpirations.sacred == now + 20,
+    "the observed Sacred Weapon spell ID must track its separate expiration")
+assert(addon:TrackPaladinArmament(432472, now + 5)
+        and addon.paladinArmamentExpirations.sacred == now + 40,
+    "same-caster Armament reapplication must extend the existing duration")
+addon.talentSnapshot.paladinSolidarity = false
+addon.paladinArmamentExpirations = {}
+assert(not addon:TrackPaladinArmament(432459, now)
+        and not next(addon.paladinArmamentExpirations),
+    "Armament expiration must not be inferred without the guaranteed Solidarity self-copy")
+addon.talentSnapshot.paladinSolidarity = true
 addon:ResetRuntimeState()
 assert(addon:GetSlot(wordIndex).enabled and not addon:GetSlotIndexByAbilityKey("paladin_eternal_flame"),
     "Lightsmith must use Word of Glory instead of Eternal Flame")
@@ -306,6 +338,8 @@ addon.talentSnapshot.paladinLightsmith = false
 addon.talentSnapshot.paladinDivineToll = true
 addon.talentSnapshot.paladinForewarning = false
 addon.talentSnapshot.paladinValiance = false
+addon.talentSnapshot.paladinLayingDownArms = false
+addon.talentSnapshot.paladinSolidarity = false
 addon.talentSnapshot.paladinAvengingWrath = true
 addon.talentSnapshot.paladinHandOfDivinity = true
 addon.talentSnapshot.paladinWalkIntoLight = true
