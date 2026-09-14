@@ -55,8 +55,8 @@ local SWIFTNESS_CONSUMER_SPELL_IDS = {
     },
 }
 
-local CURRENT_SCHEMA_VERSION = 5
-local ROTATION_DATA_VERSION = 12121
+local CURRENT_SCHEMA_VERSION = 6
+local ROTATION_DATA_VERSION = 12122
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -290,6 +290,14 @@ function HeliHeal:MigrateProfile(profile)
             if value ~= nil then profile[supportKey] = value end
         end
         profile.supportWindowOrientation = "HORIZONTAL"
+    end
+    if originalVersion < 6 then
+        -- Move only the previous shipped defaults closer together. Any
+        -- distinct user-selected spacing remains untouched.
+        local mainSpacing = tonumber(rawget(profile, "spacing"))
+        local supportSpacing = tonumber(rawget(profile, "supportWindowSpacing"))
+        if mainSpacing == nil or mainSpacing == 7 then profile.spacing = 3 end
+        if supportSpacing == nil or supportSpacing == 7 then profile.supportWindowSpacing = 3 end
     end
     profile.schemaVersion = CURRENT_SCHEMA_VERSION
     profile.rotationDataVersion = ROTATION_DATA_VERSION
@@ -1053,8 +1061,7 @@ end
 
 function HeliHeal:GetPaladinHandOfDivinityPriority(abilityKey, now)
     if abilityKey ~= "paladin_holy_light" or not self:GetPaladinHandOfDivinityState(now) then return nil end
-    local mode = self:GetHealingMode()
-    return (mode == "single" or mode == "aoe") and 1 or nil
+    return 1
 end
 
 function HeliHeal:ReducePaladinJudgmentCooldown(seconds, now)
@@ -2037,6 +2044,17 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     end
 
     local now = GetTime()
+    -- Avenging Wrath replaces Judgment with Hammer of Wrath on the same
+    -- action-bar binding. The shared Judgment observer accepts either cast,
+    -- then commits the transformed spell to Hammer's own cooldown and Holy
+    -- Power model.
+    if slot.abilityKey == "paladin_judgment" and tonumber(observedSpellID) == 24275 then
+        local hammerIndex = self:GetSlotIndexByAbilityKey("paladin_hammer_of_wrath")
+        local hammer = hammerIndex and self:GetSlot(hammerIndex)
+        if hammer and hammer.enabled then
+            slotIndex, slot = hammerIndex, hammer
+        end
+    end
     if slot.abilityKey == "druid_swiftmend" and self:IsTalentActive("druidSoulOfTheForest") then
         self.pendingDruidSoul = { expiresAt = now + 15 }
         if self:IsTalentActive("druidPowerArchdruid") then

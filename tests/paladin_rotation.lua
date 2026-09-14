@@ -86,6 +86,20 @@ local layOnHandsIndex = addon:GetSlotIndexByAbilityKey("paladin_lay_on_hands")
 local blessingProtectionIndex = addon:GetSlotIndexByAbilityKey("paladin_blessing_of_protection")
 local steedIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_steed")
 
+local sharedJudgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")
+addon:SetAbilityBinding(sharedJudgmentIndex, "1")
+assert(addon.db.profile.slots[hammerIndex].derivedBindingFrom == "paladin_judgment"
+        and addon.db.profile.slots[sharedJudgmentIndex].inputKey == "1"
+        and addon.db.profile.slots[hammerIndex].inputKey == "1",
+    "Judgment and its Hammer of Wrath replacement must share one editable binding")
+assert(#addon:GetBindingConflicts() == 0,
+    "the intentional Judgment and Hammer shared binding must not be reported as a conflict")
+addon:ObserveInputKey("1")
+assert(addon.pendingAcknowledgements[sharedJudgmentIndex]
+        and not addon.pendingAcknowledgements[hammerIndex],
+    "the shared key must observe only the editable Judgment source slot")
+addon:ResetInputState()
+
 assert(addon:GetSlot(tollIndex).cooldown == 30,
     "Quickened Invocation must reduce Divine Toll to 30 seconds")
 assert(addon:GetSlot(shockIndex).maxCharges == 2,
@@ -111,6 +125,10 @@ local function displayContains(items, expected)
     end
     return false
 end
+
+local initialOrder = addon:GetDisplayOrder(now)
+assert(not displayContains(initialOrder, "paladin_flash_of_light"),
+    "Flash of Light must stay hidden without a locally known Infusion")
 
 assert(protectionIndex and shieldDefensiveIndex and sacrificeIndex and layOnHandsIndex
     and blessingProtectionIndex and steedIndex,
@@ -367,11 +385,15 @@ assert(addon:IsPaladinWingsActive(now)
     "Hammer of Wrath alone must replace Judgment during confirmed Wings")
 assert(addon.pendingPaladinHandOfDivinity and addon.pendingPaladinHandOfDivinity.uses == 2,
     "Hand of Divinity must arm two Holy Lights after Avenging Wrath")
+assert(order[1].ability.abilityKey == "paladin_holy_light",
+    "Hand of Divinity must immediately prioritize Holy Light in Standard mode")
 addon:SetHolyPowerEstimate(0, true)
 assert(addon:RecordPlayerSpellSucceeded(24275, "Wings-Hammer"),
     "Hammer of Wrath must be directly confirmable during Wings")
 assert(addon.sessionHolyPower == 2,
     "Hammer of Wrath must inherit Judgment's additional Holy Power during Wings")
+assert(addon.sessionUses[hammerIndex] == now and addon.sessionUses[sharedJudgmentIndex] == nil,
+    "the shared Judgment input must commit Hammer of Wrath to its own cooldown state")
 now = now + 1
 addon.pendingPaladinInfusion = true
 addon:SetHolyPowerEstimate(0, true)
@@ -486,6 +508,9 @@ assert(order[1].ability.abilityKey == "paladin_flash_of_light"
     "healing modes must spend Infusion on Flash of Light before the damage consumer")
 addon:AcknowledgeSlot(raidJudgmentIndex)
 assert(not addon.pendingPaladinInfusion, "Judgment must consume the local guaranteed Infusion")
+order = addon:GetDisplayOrder(now)
+assert(not displayContains(order, "paladin_flash_of_light"),
+    "Flash of Light must disappear as soon as the locally known Infusion is consumed")
 assert(addon.sessionCharges[raidShockIndex].nextRechargeAt == shockRechargeBeforeInfusion - 1,
     "Imbued Infusions must reduce the locally tracked Holy Shock recharge by one second")
 

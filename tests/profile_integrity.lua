@@ -25,7 +25,7 @@ local profile = {
 }
 addon.db = { profile = profile }
 assert(addon:MigrateProfile(profile), "legacy profile must migrate exactly once")
-assert(profile.schemaVersion == 5 and profile.rotationDataVersion == 12121,
+assert(profile.schemaVersion == 6 and profile.rotationDataVersion == 12122,
     "migration must stamp the schema and rotation data versions")
 assert(profile.dispelCursorOffsetX == 42,
     "migration must move the original dispel cursor default away from the pointer")
@@ -33,11 +33,24 @@ assert(profile.primaryIconWidth == 77 and profile.primaryIconHeight == 77
     and profile.secondaryIconWidth == 41 and profile.secondaryIconHeight == 41,
     "migration must preserve legacy icon sizes as independent dimensions")
 assert(profile.supportWindowOrientation == "HORIZONTAL"
-    and profile.supportWindowIconWidth == 41 and profile.supportWindowIconHeight == 41,
+    and profile.supportWindowIconWidth == 41 and profile.supportWindowIconHeight == 41
+    and profile.spacing == 3 and profile.supportWindowSpacing == 3,
     "migration must preserve the prior DEF appearance before it becomes independently editable")
 assert(profile.bindings.healing_stream_combo == "BUTTON5" and profile.healingMode == "aoe",
     "migration must preserve and normalize legacy bindings and modes")
 assert(not addon:MigrateProfile(profile), "current profiles must not migrate repeatedly")
+
+local customSpacingProfile = {
+    schemaVersion = 5,
+    rotationDataVersion = 12121,
+    spacing = 11,
+    supportWindowSpacing = 13,
+    bindings = {},
+}
+assert(addon:MigrateProfile(customSpacingProfile)
+        and customSpacingProfile.spacing == 11
+        and customSpacingProfile.supportWindowSpacing == 13,
+    "the compact-spacing migration must preserve distinct user-selected values")
 
 profile.rotationPreset = "shaman_totemic_mythicplus"
 profile.bindings = { healing_stream_combo = "BUTTON5", riptide = "BUTTON5", healing_rain = "SHIFT-5" }

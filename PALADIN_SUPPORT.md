@@ -12,15 +12,17 @@ HeliHeal models Holy Paladin as a player-driven priority helper, not an automati
 - Hammer of Wrath replaces Judgment only during a confirmed Avenging Wrath window and inherits Judgment's Holy Power bonuses.
 - Avenging Crusader has its own timed window. Judgment remains available and Crusader Strike is added only during that window.
 - Call of the Righteous and Sanctified Wrath alter the locally simulated Avenging Wrath or Avenging Crusader duration.
-- Hand of Divinity tracks two Holy Light uses after Avenging Wrath, or one after Avenging Crusader, for up to 20 seconds.
+- Hand of Divinity tracks and immediately prioritizes two Holy Light uses after Avenging Wrath, or one after Avenging Crusader, in every rotation mode for up to 20 seconds.
 - The deterministic 12.1 four-piece Holy Light trigger arms one local Infusion of Light. Random Holy Shock and Judgment Infusion procs are not guessed.
 - Infusion prefers Flash of Light in healing modes and Judgment or its Hammer replacement in Mana Saving mode.
+- Flash of Light is shown only while an Infusion is locally known; otherwise the static tracker cannot justify recommending the expensive emergency cast.
 - When a locally known Infusion is consumed, Imbued Infusions reduces the locally tracked Holy Shock recharge by one second.
 - Forewarning reduces Holy Armaments' two-charge recharge by 20%. When a locally known Infusion is consumed, Valiance also advances the running Holy Armaments recharge by three seconds.
 - With both Solidarity and Laying Down Arms selected, every confirmed Holy Armament cast starts a local 20-second self-Armament timer. Its expiration grants the guaranteed Infusion of Light and advances a running Lay on Hands cooldown by 15 seconds. Holy Bulwark and Sacred Weapon are tracked separately, including same-caster duration extensions.
 - Locally known Infusions expire after 15 seconds. Inflorescence of the Sunwell permits two locally tracked charges instead of silently overwriting the first.
 - A separate **DEF / UTILITY** readiness strip tracks confirmed casts of Divine Protection, Divine Shield, Blessing of Sacrifice, Lay on Hands, Blessing of Protection and Divine Steed. It applies detected cooldown and charge talents without inserting these tools into the healing priority.
 - Mythic+ omits Light of Dawn from the priority packs. Raid keeps it as a situational alternative behind the stronger single-target spender.
+- Judgment and its Avenging Wrath replacement, Hammer of Wrath, share one editable hotkey while retaining separate local cooldown and Holy Power effects.
 
 ## Player-selected contexts
 

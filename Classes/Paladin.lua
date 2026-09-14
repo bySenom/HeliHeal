@@ -53,12 +53,14 @@ local abilities = {
     },
     paladin_judgment = {
         spellID = 275773, name = "Judgment", cooldown = 11,
-        holyPowerGain = 1, hastedCooldown = true, inputLockout = 1.5,
+        castSpellIDs = { 24275 }, holyPowerGain = 1, hastedCooldown = true,
+        confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     paladin_hammer_of_wrath = {
         spellID = 24275, name = "Hammer of Wrath", cooldown = 7.5,
         holyPowerGain = 1, hastedCooldown = true,
         confirmOnPlayerSuccess = true, inputLockout = 1.5,
+        derivedBindingFrom = "paladin_judgment",
     },
     -- Observed for One Button Assistant resource reconciliation. These do not
     -- appear in HeliHeal's healing priority or binding options.

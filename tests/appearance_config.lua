@@ -36,7 +36,8 @@ assert(profile.showSupportWindow == true and profile.supportWindowScale == 1
     and profile.supportWindowY == -250 and profile.supportWindowOrientation == "HORIZONTAL",
     "the separate Paladin support window must have stable visible defaults")
 assert(profile.supportWindowIconWidth == 46 and profile.supportWindowIconHeight == 46
-    and profile.supportWindowSpacing == 7 and profile.supportWindowIconZoom == 1,
+    and profile.spacing == 3 and profile.supportWindowSpacing == 3
+    and profile.supportWindowIconZoom == 1,
     "the support window must expose its own layout defaults")
 assert(profile.supportWindowShowIconBorder == true and profile.supportWindowShowHotkey == true
     and profile.supportWindowShowCooldown == true
