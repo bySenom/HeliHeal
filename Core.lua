@@ -822,6 +822,29 @@ function HeliHeal:GetActivePriorityRanks()
     return ranks
 end
 
+function HeliHeal:ApplyPaladinArmamentPresentation(ability)
+    if not ability or ability.abilityKey ~= "paladin_holy_armament" then return end
+    local sacred = self.paladinNextArmamentType == "sacred"
+    local spellID = sacred and 432472 or 432459
+    local fallbackName = sacred and "Sacred Weapon" or "Holy Bulwark"
+    self.paladinArmamentPresentation = self.paladinArmamentPresentation or {}
+    local presentation = self.paladinArmamentPresentation[spellID]
+    if not presentation then
+        presentation = { name = fallbackName }
+        if C_Spell and type(C_Spell.GetSpellInfo) == "function" then
+            local ok, info = pcall(C_Spell.GetSpellInfo, spellID)
+            if ok and type(info) == "table" then
+                presentation.name = info.name or presentation.name
+                presentation.icon = info.iconID
+            end
+        end
+        self.paladinArmamentPresentation[spellID] = presentation
+    end
+    ability.spellID = spellID
+    ability.name = presentation.name
+    if presentation.icon then ability.icon = presentation.icon end
+end
+
 function HeliHeal:GetSlot(slotIndex)
     slotIndex = tonumber(slotIndex) or 0
     local slot = self.db.profile.slots[slotIndex]
@@ -839,6 +862,9 @@ function HeliHeal:GetSlot(slotIndex)
             baseCooldown = resolved.cooldown,
             baseMaxCharges = resolved.maxCharges,
             baseTrackedDuration = resolved.trackedDuration,
+            baseSpellID = resolved.spellID,
+            baseName = resolved.name,
+            baseIcon = resolved.icon,
         }
         self.resolvedSlotCache[slotIndex] = cached
     end
@@ -847,6 +873,10 @@ function HeliHeal:GetSlot(slotIndex)
     ability.cooldown = cached.baseCooldown
     ability.maxCharges = cached.baseMaxCharges
     ability.trackedDuration = cached.baseTrackedDuration
+    ability.spellID = cached.baseSpellID
+    ability.name = cached.baseName
+    ability.icon = cached.baseIcon
+    self:ApplyPaladinArmamentPresentation(ability)
     if ability.abilityKey == "riptide" and self.GetRiptideMaxCharges then
         ability.maxCharges = self:GetRiptideMaxCharges(ability.maxCharges)
     elseif ability.abilityKey == "downpour" and self.talentSnapshot and self.talentSnapshot.available then
@@ -1092,11 +1122,7 @@ function HeliHeal:ApplyPaladinCooldownEffects(abilityKey, now)
 end
 
 function HeliHeal:TrackPaladinArmament(observedSpellID, now)
-    if self.classToken ~= "PALADIN"
-        or not self:IsTalentActive("paladinLayingDownArms")
-        or not self:IsTalentActive("paladinSolidarity") then
-        return false
-    end
+    if self.classToken ~= "PALADIN" then return false end
     now = now or GetTime()
     local armamentType
     if tonumber(observedSpellID) == 432459 then
@@ -1107,6 +1133,10 @@ function HeliHeal:TrackPaladinArmament(observedSpellID, now)
         armamentType = self.paladinNextArmamentType or "bulwark"
     end
     self.paladinNextArmamentType = armamentType == "bulwark" and "sacred" or "bulwark"
+    if not self:IsTalentActive("paladinLayingDownArms")
+        or not self:IsTalentActive("paladinSolidarity") then
+        return true
+    end
     self.paladinArmamentExpirations = self.paladinArmamentExpirations or {}
     local previousExpiration = tonumber(self.paladinArmamentExpirations[armamentType]) or now
     -- Midnight 12.1 extends a same-caster Armament when it is reapplied.

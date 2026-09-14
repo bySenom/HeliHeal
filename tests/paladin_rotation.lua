@@ -294,6 +294,10 @@ assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).coo
     "Lightsmith must combine Quickened Invocation and Forewarning on Holy Armament")
 addon:AcknowledgeSlot(armamentIndex)
 local armamentRechargeBeforeValiance = addon.sessionCharges[armamentIndex].nextRechargeAt
+assert(addon.paladinNextArmamentType == "sacred"
+        and addon:GetSlot(armamentIndex).spellID == 432472
+        and addon:GetSlot(armamentIndex).name == "Sacred Weapon",
+    "Holy Bulwark must transform the shared Armament slot into Sacred Weapon")
 addon.pendingPaladinInfusion = true
 local lightsmithFlashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
 addon:AcknowledgeSlot(lightsmithFlashIndex)
@@ -318,14 +322,19 @@ assert(addon.sessionUses[lightsmithLayOnHandsIndex] == layOnHandsUsedAt - 15,
 addon:AcknowledgeSlot(armamentIndex, 432472)
 assert(addon.paladinArmamentExpirations.sacred == now + 20,
     "the observed Sacred Weapon spell ID must track its separate expiration")
+assert(addon.paladinNextArmamentType == "bulwark"
+        and addon:GetSlot(armamentIndex).spellID == 432459
+        and addon:GetSlot(armamentIndex).name == "Holy Bulwark",
+    "Sacred Weapon must transform the shared Armament slot back into Holy Bulwark")
 assert(addon:TrackPaladinArmament(432472, now + 5)
         and addon.paladinArmamentExpirations.sacred == now + 40,
     "same-caster Armament reapplication must extend the existing duration")
 addon.talentSnapshot.paladinSolidarity = false
 addon.paladinArmamentExpirations = {}
-assert(not addon:TrackPaladinArmament(432459, now)
+assert(addon:TrackPaladinArmament(432459, now)
+        and addon.paladinNextArmamentType == "sacred"
         and not next(addon.paladinArmamentExpirations),
-    "Armament expiration must not be inferred without the guaranteed Solidarity self-copy")
+    "the Armament must still transform without inferring expiration when Solidarity is absent")
 addon.talentSnapshot.paladinSolidarity = true
 addon:ResetRuntimeState()
 assert(addon:GetSlot(wordIndex).enabled and not addon:GetSlotIndexByAbilityKey("paladin_eternal_flame"),

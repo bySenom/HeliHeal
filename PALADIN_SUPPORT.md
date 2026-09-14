@@ -19,6 +19,7 @@ HeliHeal models Holy Paladin as a player-driven priority helper, not an automati
 - When a locally known Infusion is consumed, Imbued Infusions reduces the locally tracked Holy Shock recharge by one second.
 - Forewarning reduces Holy Armaments' two-charge recharge by 20%. When a locally known Infusion is consumed, Valiance also advances the running Holy Armaments recharge by three seconds.
 - With both Solidarity and Laying Down Arms selected, every confirmed Holy Armament cast starts a local 20-second self-Armament timer. Its expiration grants the guaranteed Infusion of Light and advances a running Lay on Hands cooldown by 15 seconds. Holy Bulwark and Sacred Weapon are tracked separately, including same-caster duration extensions.
+- Holy Bulwark and Sacred Weapon alternate inside one recommendation slot and retain one shared hotkey. The displayed localized spell name and icon switch after each confirmed cast.
 - Locally known Infusions expire after 15 seconds. Inflorescence of the Sunwell permits two locally tracked charges instead of silently overwriting the first.
 - A separate **DEF / UTILITY** readiness strip tracks confirmed casts of Divine Protection, Divine Shield, Blessing of Sacrifice, Lay on Hands, Blessing of Protection and Divine Steed. It applies detected cooldown and charge talents without inserting these tools into the healing priority.
 - Mythic+ omits Light of Dawn from the priority packs. Raid keeps it as a situational alternative behind the stronger single-target spender.

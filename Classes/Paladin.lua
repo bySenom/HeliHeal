@@ -24,7 +24,7 @@ local abilities = {
         cooldownReduction = 15, grantsFreeSpenderTalent = "paladinAurora", inputLockout = 1.5,
     },
     paladin_holy_armament = {
-        spellID = 432459, name = "Holy Armament", cooldown = 60, maxCharges = 2,
+        spellID = 432459, name = "Holy Bulwark", cooldown = 60, maxCharges = 2,
         castSpellIDs = { 432459, 432472 }, holyPowerGain = 3, maxHolyPower = 2,
         requiresTalent = "paladinLightsmith", cooldownTalent = "paladinQuickenedInvocation",
         cooldownReduction = 15, cooldownPercentTalents = { paladinForewarning = 20 },
