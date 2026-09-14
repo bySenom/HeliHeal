@@ -18,6 +18,7 @@ ns.changelog = {
                 "Keep Aura Mastery available without Ringing of the Heavens and apply Divine Toll effects only when Ringing is selected.",
                 "Track the confirmed nine-second Beacon of Virtue window and pair ready Divine Toll or Ringing-enhanced Aura Mastery with it in Raid AoE mode.",
                 "Detect Divine Favor, Divine Overload and the redesigned Rising Sunlight; show reliable Holy Light modifiers while leaving restricted Beacon-health scaling to the player.",
+                "Predict Divine Resonance's three automatic Holy Shock timings and spend at four Holy Power when the next fixed tick would otherwise overcap.",
             },
         },
         {

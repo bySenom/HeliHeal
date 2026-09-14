@@ -163,4 +163,17 @@ local auraIndex = addon:GetSlotIndexByAbilityKey("paladin_aura_mastery")
 assert(addon:GetSlot(auraIndex).enabled and addon:GetSlot(auraIndex).cooldown == 150,
     "Ringing and Unwavering Spirit must enable a 150-second Aura Mastery")
 
+selectedSpellIDs = {
+    431377, -- Herald of the Sun
+    375576, -- Divine Toll
+    384027, -- Divine Resonance
+}
+assert(addon:RefreshTalentSnapshot(true), "Divine Resonance loadout must remain readable")
+assert(addon.talentSnapshot.paladinDivineResonance
+        and not addon.talentSnapshot.paladinQuickenedInvocation,
+    "Divine Resonance must be detected independently from its Quickened Invocation choice")
+local resonanceTollIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_toll")
+assert(addon:GetSlot(resonanceTollIndex).cooldown == 45,
+    "Divine Resonance must retain Divine Toll's base local cooldown")
+
 print("paladin_talents.lua: OK")

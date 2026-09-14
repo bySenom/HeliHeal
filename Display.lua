@@ -465,7 +465,8 @@ function HeliHeal:GetDisplayOrder(now)
     local priorityRanks = self:GetActivePriorityRanks()
     local downpourReady = self:IsDownpourReady(now)
     local preferHolyPowerSpender = self.classToken == "PALADIN"
-        and ((self.pendingFreeHolyPowerSpenders or 0) > 0 or (self.sessionHolyPower or 0) >= 5)
+        and ((self.pendingFreeHolyPowerSpenders or 0) > 0 or (self.sessionHolyPower or 0) >= 5
+            or self:IsPaladinDivineResonanceOvercapImminent(now))
     local preferredConsumer = self.pendingSwiftness and self.pendingSwiftness.consumerAbilityKey
     local priestApotheosisReady = false
     if self.classToken == "PRIEST" then

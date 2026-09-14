@@ -67,6 +67,8 @@ local PALADIN_HAND_OF_DIVINITY_DURATION = 20
 local PALADIN_INFUSION_DURATION = 15
 local PALADIN_ARMAMENT_DURATION = 20
 local PALADIN_VIRTUE_DURATION = 9
+local PALADIN_DIVINE_RESONANCE_TICK = 5
+local PALADIN_DIVINE_RESONANCE_TICKS = 3
 
 local function copyTable(source)
     local result = {}
@@ -86,6 +88,7 @@ local PERSISTENT_RUNTIME_FIELDS = {
     "sessionHolyPower", "holyPowerEvents", "nextHolyPowerEventID",
     "pendingFreeHolyPowerSpenders", "pendingPaladinInfusion", "paladinWingsUntil",
     "paladinCrusaderUntil", "paladinVirtueUntil", "pendingPaladinHandOfDivinity",
+    "paladinDivineResonance",
     "paladinArmamentExpirations", "paladinNextArmamentType",
     "pendingSwiftness", "pendingDownpour",
     "pendingUnleash", "pendingArchdruid", "pendingDruidSoul",
@@ -128,6 +131,7 @@ function HeliHeal:ResetRuntimeState()
     self.paladinCrusaderUntil = nil
     self.paladinVirtueUntil = nil
     self.pendingPaladinHandOfDivinity = nil
+    self.paladinDivineResonance = nil
     self.paladinArmamentExpirations = {}
     self.paladinNextArmamentType = "bulwark"
     self.pendingSwiftness = nil
@@ -736,6 +740,8 @@ function HeliHeal:BuildDiagnosticReport()
         "paladinVirtueUntil=" .. tostring(self.paladinVirtueUntil or 0),
         "paladinHandUses=" .. tostring(self.pendingPaladinHandOfDivinity
             and self.pendingPaladinHandOfDivinity.uses or 0),
+        "paladinResonanceTicks=" .. tostring(self.paladinDivineResonance
+            and self.paladinDivineResonance.ticksRemaining or 0),
         "paladinArmaments=" .. tostring(countEntries(self.paladinArmamentExpirations)),
         "pendingInputs=" .. countEntries(self.pendingAcknowledgements),
     }, "; ")
@@ -1112,6 +1118,39 @@ function HeliHeal:GetPaladinHolyLightTalentSummary()
     return #parts > 0 and table.concat(parts, " • ") or nil
 end
 
+function HeliHeal:ArmPaladinDivineResonance(now)
+    if self.classToken ~= "PALADIN" or not self:IsTalentActive("paladinDivineResonance") then
+        return false
+    end
+    now = now or GetTime()
+    self.paladinDivineResonance = {
+        nextTickAt = now + PALADIN_DIVINE_RESONANCE_TICK,
+        ticksRemaining = PALADIN_DIVINE_RESONANCE_TICKS,
+    }
+    return true
+end
+
+function HeliHeal:GetPaladinDivineResonanceState(now)
+    local state = self.paladinDivineResonance
+    if type(state) ~= "table" then return nil end
+    now = now or GetTime()
+    while state.ticksRemaining > 0 and now >= state.nextTickAt do
+        state.ticksRemaining = state.ticksRemaining - 1
+        state.nextTickAt = state.nextTickAt + PALADIN_DIVINE_RESONANCE_TICK
+    end
+    if state.ticksRemaining <= 0 then
+        self.paladinDivineResonance = nil
+        return nil
+    end
+    return state
+end
+
+function HeliHeal:IsPaladinDivineResonanceOvercapImminent(now)
+    if (self.sessionHolyPower or 0) < 4 then return false end
+    local state = self:GetPaladinDivineResonanceState(now)
+    return state and state.nextTickAt - (now or GetTime()) <= 1.5 or false
+end
+
 function HeliHeal:GetPaladinMajorCooldownDuration(abilityKey)
     local base = abilityKey == "paladin_avenging_crusader"
         and PALADIN_CRUSADER_DURATION or PALADIN_WINGS_DURATION
@@ -1220,6 +1259,8 @@ function HeliHeal:ApplyPaladinCastEffects(abilityKey, now, observedSpellID)
             if hand.uses <= 0 then self.pendingPaladinHandOfDivinity = nil end
             changed = true
         end
+    elseif abilityKey == "paladin_divine_toll" or abilityKey == "paladin_holy_prism" then
+        changed = self:ArmPaladinDivineResonance(now) or changed
     elseif abilityKey == "paladin_avenging_wrath" then
         self.paladinWingsUntil = now + self:GetPaladinMajorCooldownDuration(abilityKey)
         self.paladinCrusaderUntil = nil
@@ -1244,7 +1285,10 @@ function HeliHeal:ApplyPaladinCastEffects(abilityKey, now, observedSpellID)
         self.paladinVirtueUntil = now + PALADIN_VIRTUE_DURATION
         changed = true
     elseif abilityKey == "paladin_holy_armament" then
+        changed = self:ArmPaladinDivineResonance(now) or changed
         changed = self:TrackPaladinArmament(observedSpellID, now) or changed
+    elseif abilityKey == "paladin_aura_mastery" and self:IsTalentActive("paladinRingingHeavens") then
+        changed = self:ArmPaladinDivineResonance(now) or changed
     end
     return changed
 end

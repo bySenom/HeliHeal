@@ -7,7 +7,7 @@ assert(#general == 3,
     "every supported healer must receive the general HeliHeal usage FAQ")
 
 local paladin = namespace.FAQ:GetEntries("PALADIN", 65)
-assert(#paladin == 15,
+assert(#paladin == 16,
     "Holy Paladin must receive general and specialization-specific FAQ entries")
 
 for index, entry in ipairs(paladin) do
@@ -19,7 +19,7 @@ local paladinSpellTopics = 0
 for _, entry in ipairs(paladin) do
     if entry.spellIDs and #entry.spellIDs > 0 then paladinSpellTopics = paladinSpellTopics + 1 end
 end
-assert(paladinSpellTopics == 12,
+assert(paladinSpellTopics == 13,
     "every Holy Paladin guide topic must expose related spell icons")
 
 local combined = {}
@@ -33,6 +33,7 @@ assert(content:find("Holy Bulwark", 1, true)
         and content:find("Hand of Divinity", 1, true)
         and content:find("Divine Overload", 1, true)
         and content:find("Rising Sunlight", 1, true)
+        and content:find("Divine Resonance", 1, true)
         and content:find("Beacon of Virtue", 1, true)
         and content:find("Mana", 1, true)
         and content:find("Cleanse", 1, true)

@@ -32,6 +32,7 @@ addon.talentSnapshot = {
     paladinDivineToll = true,
     paladinHolyPrism = false,
     paladinQuickenedInvocation = true,
+    paladinDivineResonance = false,
     paladinLightsConviction = true,
     paladinCrusadersMight = true,
     paladinImbuedInfusions = true,
@@ -220,6 +221,30 @@ assert(not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
     and not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
         "paladin_herald_mythicplus", "mana"), "paladin_beacon_of_virtue"),
     "Virtue must not be forced by Single Target or Mana Saving modes")
+
+addon.talentSnapshot.paladinDivineResonance = true
+addon:ResetRuntimeState()
+addon:SetHolyPowerEstimate(0, true)
+now = 0
+addon:AcknowledgeSlot(tollIndex)
+local resonance = addon:GetPaladinDivineResonanceState(now)
+assert(resonance and resonance.nextTickAt == 5 and resonance.ticksRemaining == 3,
+    "a confirmed Divine Toll must arm the three deterministic Divine Resonance timings")
+addon:SetHolyPowerEstimate(4, true)
+now = 3.6
+local resonanceOrder = addon:GetDisplayOrder(now)
+assert(resonanceOrder[1].ability.abilityKey == "paladin_eternal_flame",
+    "four Holy Power shortly before a Divine Resonance tick must promote the healing spender")
+now = 5
+resonance = addon:GetPaladinDivineResonanceState(now)
+assert(resonance and resonance.nextTickAt == 10 and resonance.ticksRemaining == 2,
+    "the first fixed Divine Resonance timing must advance without reading a combat aura")
+now = 15
+assert(not addon:GetPaladinDivineResonanceState(now),
+    "Divine Resonance must end after its third fixed Holy Shock timing")
+addon.talentSnapshot.paladinDivineResonance = false
+addon:ResetRuntimeState()
+now = 0
 
 addon:SetRotationPreset("paladin_herald_raid")
 addon:SetHealingMode("aoe", true)

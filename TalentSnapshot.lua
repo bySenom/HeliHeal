@@ -36,6 +36,7 @@ local TALENTS = {
     paladinDivineToll = { 375576, 304971 },
     paladinHolyPrism = { 114165 },
     paladinQuickenedInvocation = { 379391 },
+    paladinDivineResonance = { 384027, 386730 },
     paladinLightsConviction = { 414073 },
     paladinCrusadersMight = { 196926 },
     paladinImbuedInfusions = { 392961 },
@@ -148,7 +149,7 @@ local SNAPSHOT_FLAGS = {
     "druidInnerPeace", "druidFlourish", "druidSoulOfTheForest", "druidReforestation",
     "druidControlOfTheDream",
     "paladinHerald", "paladinLightsmith", "paladinDivineToll", "paladinHolyPrism",
-    "paladinQuickenedInvocation", "paladinLightsConviction", "paladinCrusadersMight",
+    "paladinQuickenedInvocation", "paladinDivineResonance", "paladinLightsConviction", "paladinCrusadersMight",
     "paladinImbuedInfusions", "paladinInflorescenceSunwell",
     "paladinSanctifiedWrath", "paladinHandOfDivinity",
     "paladinAvengingWrath", "paladinAvengingCrusader", "paladinAuraMastery",
@@ -381,11 +382,12 @@ function HeliHeal:PrintTalentSnapshot()
         return
     end
     if self.classToken == "PALADIN" then
-        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Light's Conviction %s | Crusader's Might %s | Imbued Infusions %s | Inflorescence %s | Sanctified Wrath %s | Hand of Divinity %s | Wings %s | Crusader %s | Aura Mastery %s | Ringing %s | Walk Into Light %s | Aurora %s | Divine Favor %s | Divine Overload %s | Rising Sunlight %s | Call %d/2 | Unwavering %s | Divine Purpose %s | Sacrifice %s | Sacrifice of the Just %s | BoP %s | Improved BoP %s | Lay on Hands %s | Tirion %s | Steed %s | Cavalier %s | Unbreakable %s | Forewarning %s | Valiance %s | Laying Down Arms %s | Solidarity %s | Tier 4pc %s")
+        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Divine Resonance %s | Light's Conviction %s | Crusader's Might %s | Imbued Infusions %s | Inflorescence %s | Sanctified Wrath %s | Hand of Divinity %s | Wings %s | Crusader %s | Aura Mastery %s | Ringing %s | Walk Into Light %s | Aurora %s | Divine Favor %s | Divine Overload %s | Rising Sunlight %s | Call %d/2 | Unwavering %s | Divine Purpose %s | Sacrifice %s | Sacrifice of the Just %s | BoP %s | Improved BoP %s | Lay on Hands %s | Tirion %s | Steed %s | Cavalier %s | Unbreakable %s | Forewarning %s | Valiance %s | Laying Down Arms %s | Solidarity %s | Tier 4pc %s")
             :format(yesNo(snapshot.paladinHerald), yesNo(snapshot.paladinLightsmith),
                 yesNo(snapshot.paladinDivineToll), yesNo(snapshot.paladinHolyPrism),
                 yesNo(snapshot.paladinBeaconVirtue),
-                yesNo(snapshot.paladinQuickenedInvocation), yesNo(snapshot.paladinLightsConviction),
+                yesNo(snapshot.paladinQuickenedInvocation), yesNo(snapshot.paladinDivineResonance),
+                yesNo(snapshot.paladinLightsConviction),
                 yesNo(snapshot.paladinCrusadersMight),
                 yesNo(snapshot.paladinImbuedInfusions),
                 yesNo(snapshot.paladinInflorescenceSunwell),

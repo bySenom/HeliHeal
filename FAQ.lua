@@ -72,6 +72,13 @@ local HOLY_PALADIN = {
     },
     {
         group = "HOLY PALADIN",
+        tag = "RESSOURCE",
+        spellIDs = { 384027, 20473, 375576, 114165 },
+        question = "Wie behandelt HeliHeal Divine Resonance?",
+        answer = "Divine Resonance wirkt nach Divine Toll, Holy Prism oder Holy Armaments bei 5, 10 und 15 Sekunden automatisch Holy Shock. HeliHeal sagt diese drei festen Zeitpunkte lokal voraus. Stehst du kurz vor einem Tick bei 4 Holy Power, wird zuerst ein verfügbarer Spender angehoben, damit der automatische Generator nicht übercappt. Den tatsächlich erhaltenen Punkt gleicht HeliHeal weiterhin über Blizzards erlaubten Holy-Power-Wert ab; zufällige Folgeprocs werden nicht erfunden.",
+    },
+    {
+        group = "HOLY PALADIN",
         tag = "DEFENSIV",
         spellIDs = { 498, 6940, 633 },
         question = "Was bedeutet das separate DEF-Fenster?",
