@@ -13,6 +13,9 @@ assert(not german.localeFallback, "deDE must be a native HeliHeal locale")
 
 local english = loadLocale("enUS")
 assert(english.L("Übersicht") == "Overview", "enUS must translate the German source key")
+assert(english.L("FAQ & Spielhilfe") == "FAQ & Play Guide"
+    and english.L("Auf wen caste ich Holy Bulwark?") == "Who should receive Holy Bulwark?",
+    "the FAQ navigation and Holy Paladin guidance must be localized for English clients")
 assert(english.L("HUD-Schriftart") == "HUD font" and english.L("Rollenfarben") == "Role colors",
     "appearance customization controls must be localized for English clients")
 assert(english.L("Optionsfenster-Hintergrund") == "Options window background"

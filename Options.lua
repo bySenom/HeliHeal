@@ -1627,6 +1627,52 @@ function HeliHeal:BuildChangelogPage(parent)
     return page
 end
 
+function HeliHeal:BuildFAQPage(parent)
+    local page = CreateFrame("Frame", nil, parent)
+    page:SetAllPoints()
+    setPageHeader(page, L("FAQ & Spielhilfe"),
+        L("Kurze Antworten zur Anzeige und zur Spielweise deiner Spezialisierung."))
+
+    local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 28, -108)
+    scroll:SetPoint("BOTTOMRIGHT", -48, 22)
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetWidth(700)
+    scroll:SetScrollChild(content)
+    scroll:SetScript("OnSizeChanged", function(_, width)
+        content:SetWidth(math.max(1, width))
+    end)
+
+    local offset = 0
+    local entries = ns.FAQ and ns.FAQ:GetEntries(self.classToken, self.specializationID) or {}
+    for index, entry in ipairs(entries) do
+        local answer = L(entry.answer)
+        local estimatedLines = math.max(2, math.ceil(#answer / 92))
+        local cardHeight = 58 + (estimatedLines * 15)
+        local card = CreateFrame("Frame", nil, content, "BackdropTemplate")
+        card:SetPoint("TOPLEFT", 0, -offset)
+        card:SetPoint("TOPRIGHT", 0, -offset)
+        card:SetHeight(cardHeight)
+        backdrop(card, index == 1 and C.panelHover or C.panel,
+            index == 1 and C.accentDark or C.borderSoft)
+
+        local question = text(card, L(entry.question), 12, C.accent, "OUTLINE")
+        question:SetPoint("TOPLEFT", 18, -14)
+        question:SetPoint("RIGHT", -18, 0)
+        local body = text(card, answer, 10, C.text)
+        body:SetPoint("TOPLEFT", question, "BOTTOMLEFT", 0, -10)
+        body:SetPoint("RIGHT", -18, 0)
+        body:SetJustifyH("LEFT")
+        body:SetJustifyV("TOP")
+        body:SetWordWrap(true)
+
+        offset = offset + cardHeight + 10
+    end
+    content:SetHeight(math.max(1, offset))
+    page.scroll = scroll
+    return page
+end
+
 function HeliHeal:HideWhatsNewModal(markSeen)
     local modal = self.optionsWindow and self.optionsWindow.whatsNewModal
     if not modal then return end
@@ -1778,10 +1824,13 @@ function HeliHeal:CreateModernOptions()
         style = self:BuildStylePage(window.pagesHost),
         priorities = self:BuildPrioritiesPage(window.pagesHost),
         profiles = self:BuildProfilesPage(window.pagesHost),
+        faq = self:BuildFAQPage(window.pagesHost),
         changelog = self:BuildChangelogPage(window.pagesHost),
     }
     window.priorityPages = { [self.specializationID or 0] = window.pages.priorities }
     window.prioritiesSpecializationID = self.specializationID
+    window.faqPages = { [self.specializationID or 0] = window.pages.faq }
+    window.faqSpecializationID = self.specializationID
 
     window.navButtons = {}
     local navigation = {
@@ -1789,6 +1838,7 @@ function HeliHeal:CreateModernOptions()
         { "style", L("HUD-ELEMENTE"), L("Icon, Hotkey & Cooldown") },
         { "priorities", L("PRIORITÄTEN"), L("Fähigkeiten & Inputs") },
         { "profiles", L("PROFILE & RESET"), L("Konfiguration verwalten") },
+        { "faq", L("FAQ & GUIDE"), L("Spielweise & Ziele") },
         { "changelog", L("UPDATE-VERLAUF"), L("Was ist neu?") },
     }
     for index, item in ipairs(navigation) do
@@ -1983,19 +2033,32 @@ end
 
 function HeliHeal:EnsurePriorityOptionsForSpecialization()
     local window = self.optionsWindow
-    if not window or window.prioritiesSpecializationID == self.specializationID then return end
-
-    local current = window.pages.priorities
-    if current then current:Hide() end
+    if not window then return end
     local specializationKey = self.specializationID or 0
-    local priorityPage = window.priorityPages[specializationKey]
-    if not priorityPage then
-        priorityPage = self:BuildPrioritiesPage(window.pagesHost)
-        window.priorityPages[specializationKey] = priorityPage
+    if window.prioritiesSpecializationID ~= self.specializationID then
+        local current = window.pages.priorities
+        if current then current:Hide() end
+        local priorityPage = window.priorityPages[specializationKey]
+        if not priorityPage then
+            priorityPage = self:BuildPrioritiesPage(window.pagesHost)
+            window.priorityPages[specializationKey] = priorityPage
+        end
+        window.pages.priorities = priorityPage
+        window.prioritiesSpecializationID = self.specializationID
+        priorityPage:SetShown(self.selectedOptionsPage == "priorities")
     end
-    window.pages.priorities = priorityPage
-    window.prioritiesSpecializationID = self.specializationID
-    priorityPage:SetShown(self.selectedOptionsPage == "priorities")
+    if window.faqSpecializationID ~= self.specializationID then
+        local currentFAQ = window.pages.faq
+        if currentFAQ then currentFAQ:Hide() end
+        local faqPage = window.faqPages[specializationKey]
+        if not faqPage then
+            faqPage = self:BuildFAQPage(window.pagesHost)
+            window.faqPages[specializationKey] = faqPage
+        end
+        window.pages.faq = faqPage
+        window.faqSpecializationID = self.specializationID
+        faqPage:SetShown(self.selectedOptionsPage == "faq")
+    end
 end
 
 function HeliHeal:RefreshOptionsUI()

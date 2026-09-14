@@ -18,6 +18,7 @@ Libs\AceDB-3.0\AceDB-3.0.xml
 Namespace.lua
 Localization.lua
 Changelog.lua
+FAQ.lua
 AbilityLibrary.lua
 Classes\Shaman.lua
 Classes\Druid.lua
