@@ -23,6 +23,9 @@ local selectedSpellIDs = {
     414273, -- Hand of Divinity
     394088, -- Avenging Crusader talent definition
     31821, -- Aura Mastery
+    1270916, -- Divine Favor
+    1271077, -- Divine Overload
+    461250, -- Rising Sunlight (Midnight redesign)
     1241511, -- Call of the Righteous (rank 2)
     200025, -- Beacon of Virtue
     6940, -- Blessing of Sacrifice
@@ -95,6 +98,11 @@ assert(addon.talentSnapshot.paladinBeaconVirtue,
     "Beacon of Virtue must be detected from the committed Holy talent loadout")
 assert(addon.talentSnapshot.paladinAuraMastery and not addon.talentSnapshot.paladinRingingHeavens,
     "Aura Mastery must be detected independently from its optional Ringing improvement")
+assert(addon.talentSnapshot.paladinDivineFavor
+        and addon.talentSnapshot.paladinDivineOverload
+        and addon.talentSnapshot.paladinRisingSunlight,
+    "Holy Light modifiers and redesigned Rising Sunlight must be detected from committed entries")
+addon:PrintTalentSnapshot()
 assert(addon.talentSnapshot.paladinBlessingSacrifice
     and addon.talentSnapshot.paladinSacrificeOfTheJust
     and addon.talentSnapshot.paladinBlessingProtection
@@ -123,6 +131,9 @@ assert(addon:GetSlot(crusaderIndex).enabled and addon:GetSlot(crusaderIndex).coo
 selectedSpellIDs = {
     431377, -- Herald of the Sun
     439760, -- Aurora
+    1270916, -- Divine Favor
+    1271077, -- Divine Overload
+    461250, -- Rising Sunlight (Midnight redesign)
     375576, -- Divine Toll
     379391, -- Quickened Invocation
     414073, -- Light's Conviction

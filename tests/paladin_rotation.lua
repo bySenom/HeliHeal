@@ -43,6 +43,9 @@ addon.talentSnapshot = {
     paladinAuraMastery = true,
     paladinRingingHeavens = false,
     paladinWalkIntoLight = false,
+    paladinDivineFavor = false,
+    paladinDivineOverload = false,
+    paladinRisingSunlight = false,
     paladinBeaconVirtue = true,
     paladinTier4 = true,
     paladinBlessingSacrifice = true,
@@ -254,6 +257,16 @@ end
 assert(addon:GetSlot(holyLightIndex).roleLabel == "SAVE"
     and addon:GetSlot(flashIndex).roleLabel == "BURST",
     "Paladin contextual heal labels must survive preset resolution")
+addon.talentSnapshot.paladinDivineFavor = true
+addon.talentSnapshot.paladinDivineOverload = true
+local holyLightSummary = addon:GetPaladinHolyLightTalentSummary()
+assert(holyLightSummary and holyLightSummary:find("-10%% Mana")
+        and holyLightSummary:find("-15%% Cast")
+        and holyLightSummary:find("+30%% Heilung")
+        and holyLightSummary:find("+20%% Mana"),
+    "selected passive Holy Light talents must expose their reliable modifiers")
+addon.talentSnapshot.paladinDivineFavor = false
+addon.talentSnapshot.paladinDivineOverload = false
 assert(addon:GetSlot(shockIndex).cooldown == 5,
     "20 percent cached spell haste must reduce Holy Shock recharge from six to five seconds")
 local judgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")

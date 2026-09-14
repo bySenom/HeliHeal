@@ -52,6 +52,9 @@ local TALENTS = {
     paladinRingingHeavens = { 1241542 },
     paladinWalkIntoLight = { 1263782 },
     paladinAurora = { 439760 },
+    paladinDivineFavor = { 1270916 },
+    paladinDivineOverload = { 1271077 },
+    paladinRisingSunlight = { 461250 },
     paladinCallOfRighteous = { 1241511 },
     paladinUnwaveringSpirit = { 392911 },
     paladinDivinePurpose = { 408459, 223817 },
@@ -150,7 +153,7 @@ local SNAPSHOT_FLAGS = {
     "paladinSanctifiedWrath", "paladinHandOfDivinity",
     "paladinAvengingWrath", "paladinAvengingCrusader", "paladinAuraMastery",
     "paladinRingingHeavens", "paladinWalkIntoLight",
-    "paladinAurora",
+    "paladinAurora", "paladinDivineFavor", "paladinDivineOverload", "paladinRisingSunlight",
     "paladinCallOfRighteous", "paladinCallOfRighteousRank", "paladinUnwaveringSpirit",
     "paladinDivinePurpose", "paladinBeaconVirtue", "paladinTier4",
     "paladinBlessingSacrifice", "paladinSacrificeOfTheJust",
@@ -378,7 +381,7 @@ function HeliHeal:PrintTalentSnapshot()
         return
     end
     if self.classToken == "PALADIN" then
-        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Light's Conviction %s | Crusader's Might %s | Imbued Infusions %s | Inflorescence %s | Sanctified Wrath %s | Hand of Divinity %s | Wings %s | Crusader %s | Aura Mastery %s | Ringing %s | Walk Into Light %s | Aurora %s | Call %d/2 | Unwavering %s | Divine Purpose %s | Sacrifice %s | Sacrifice of the Just %s | BoP %s | Improved BoP %s | Lay on Hands %s | Tirion %s | Steed %s | Cavalier %s | Unbreakable %s | Forewarning %s | Valiance %s | Laying Down Arms %s | Solidarity %s | Tier 4pc %s")
+        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Light's Conviction %s | Crusader's Might %s | Imbued Infusions %s | Inflorescence %s | Sanctified Wrath %s | Hand of Divinity %s | Wings %s | Crusader %s | Aura Mastery %s | Ringing %s | Walk Into Light %s | Aurora %s | Divine Favor %s | Divine Overload %s | Rising Sunlight %s | Call %d/2 | Unwavering %s | Divine Purpose %s | Sacrifice %s | Sacrifice of the Just %s | BoP %s | Improved BoP %s | Lay on Hands %s | Tirion %s | Steed %s | Cavalier %s | Unbreakable %s | Forewarning %s | Valiance %s | Laying Down Arms %s | Solidarity %s | Tier 4pc %s")
             :format(yesNo(snapshot.paladinHerald), yesNo(snapshot.paladinLightsmith),
                 yesNo(snapshot.paladinDivineToll), yesNo(snapshot.paladinHolyPrism),
                 yesNo(snapshot.paladinBeaconVirtue),
@@ -390,7 +393,9 @@ function HeliHeal:PrintTalentSnapshot()
                 yesNo(snapshot.paladinAvengingWrath), yesNo(snapshot.paladinAvengingCrusader),
                 yesNo(snapshot.paladinAuraMastery), yesNo(snapshot.paladinRingingHeavens),
                 yesNo(snapshot.paladinWalkIntoLight),
-                yesNo(snapshot.paladinAurora), snapshot.paladinCallOfRighteousRank or 0,
+                yesNo(snapshot.paladinAurora), yesNo(snapshot.paladinDivineFavor),
+                yesNo(snapshot.paladinDivineOverload), yesNo(snapshot.paladinRisingSunlight),
+                snapshot.paladinCallOfRighteousRank or 0,
                 yesNo(snapshot.paladinUnwaveringSpirit), yesNo(snapshot.paladinDivinePurpose),
                 yesNo(snapshot.paladinBlessingSacrifice), yesNo(snapshot.paladinSacrificeOfTheJust),
                 yesNo(snapshot.paladinBlessingProtection), yesNo(snapshot.paladinImprovedBlessingProtection),

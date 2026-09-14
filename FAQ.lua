@@ -65,6 +65,13 @@ local HOLY_PALADIN = {
     },
     {
         group = "HOLY PALADIN",
+        tag = "TALENTE",
+        spellIDs = { 1270916, 1271077, 461250, 82326 },
+        question = "Wie berücksichtigt HeliHeal Divine Favor, Divine Overload und Rising Sunlight?",
+        answer = "Divine Favor senkt die Mana-Kosten von Holy Light um 10 Prozent und seine Zauberzeit um 15 Prozent. Divine Overload erhöht seine Heilung um 30 Prozent, aber auch die Mana-Kosten um 20 Prozent; ausgewählte Modifikatoren stehen direkt unter Holy Light in der Prioritätenliste. Rising Sunlight skaliert dagegen mit der durchschnittlichen Gesundheit deiner Beacon-Ziele. Diese Kampfwerte darf HeliHeal nicht für eigene Entscheidungen auswerten, deshalb zeigt es dafür bewusst keine erfundene Proc-Empfehlung.",
+    },
+    {
+        group = "HOLY PALADIN",
         tag = "DEFENSIV",
         spellIDs = { 498, 6940, 633 },
         question = "Was bedeutet das separate DEF-Fenster?",

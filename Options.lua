@@ -2325,7 +2325,11 @@ function HeliHeal:RefreshOptionsUI()
             elseif (ability.recommendationLockout or 0) > 0 then
                 row.cooldownLabel:SetText(L("Lokale Empfehlungspause: %ss", formatSeconds(ability.recommendationLockout)))
             else
-                row.cooldownLabel:SetText(ability.cooldown > 0 and L("Lokaler CD: %ss", formatSeconds(ability.cooldown)) or L("Filler • kein lokaler CD"))
+                local holyLightTalents = ability.abilityKey == "paladin_holy_light"
+                    and self:GetPaladinHolyLightTalentSummary() or nil
+                row.cooldownLabel:SetText(holyLightTalents
+                    or (ability.cooldown > 0 and L("Lokaler CD: %ss", formatSeconds(ability.cooldown))
+                        or L("Filler • kein lokaler CD")))
             end
             local bindingKey = slot.derivedBindingFrom or slot.abilityKey
             local conflict = conflictsByAbility[bindingKey]

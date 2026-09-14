@@ -17,6 +17,7 @@ ns.changelog = {
                 "Consume a known Infusion between the two Hand of Divinity Holy Lights instead of overwriting the second four-piece proc.",
                 "Keep Aura Mastery available without Ringing of the Heavens and apply Divine Toll effects only when Ringing is selected.",
                 "Track the confirmed nine-second Beacon of Virtue window and pair ready Divine Toll or Ringing-enhanced Aura Mastery with it in Raid AoE mode.",
+                "Detect Divine Favor, Divine Overload and the redesigned Rising Sunlight; show reliable Holy Light modifiers while leaving restricted Beacon-health scaling to the player.",
             },
         },
         {

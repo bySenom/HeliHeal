@@ -1100,6 +1100,18 @@ function HeliHeal:GetPaladinVirtueWindowPriority(abilityKey, now)
     if abilityKey == "paladin_aura_mastery" and self:IsTalentActive("paladinRingingHeavens") then return 2 end
 end
 
+function HeliHeal:GetPaladinHolyLightTalentSummary()
+    if self.classToken ~= "PALADIN" then return nil end
+    local parts = {}
+    if self:IsTalentActive("paladinDivineFavor") then
+        parts[#parts + 1] = L("Favor: -10% Mana/-15% Cast")
+    end
+    if self:IsTalentActive("paladinDivineOverload") then
+        parts[#parts + 1] = L("Overload: +30% Heilung/+20% Mana")
+    end
+    return #parts > 0 and table.concat(parts, " • ") or nil
+end
+
 function HeliHeal:GetPaladinMajorCooldownDuration(abilityKey)
     local base = abilityKey == "paladin_avenging_crusader"
         and PALADIN_CRUSADER_DURATION or PALADIN_WINGS_DURATION
