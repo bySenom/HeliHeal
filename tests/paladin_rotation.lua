@@ -298,6 +298,8 @@ assert(#order >= 5 and order[5].paladinResourceBlocked
 addon.talentSnapshot.paladinBeaconVirtue = true
 assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 36,
     "Lightsmith must combine Quickened Invocation and Forewarning on Holy Armament")
+assert(addon:GetSlot(armamentIndex).confirmOnPlayerSuccess,
+    "both transformed Holy Armament casts must support direct Blizzard success confirmation")
 addon:AcknowledgeSlot(armamentIndex)
 local armamentRechargeBeforeValiance = addon.sessionCharges[armamentIndex].nextRechargeAt
 assert(addon.paladinNextArmamentType == "sacred"
@@ -342,6 +344,25 @@ assert(addon:TrackPaladinArmament(432459, now)
         and not next(addon.paladinArmamentExpirations),
     "the Armament must still transform without inferring expiration when Solidarity is absent")
 addon.talentSnapshot.paladinSolidarity = true
+addon:ResetRuntimeState()
+now = now + 1
+assert(addon:RecordPlayerSpellSucceeded(432459, "Direct-Bulwark"),
+    "Holy Bulwark must confirm without a pending key observation")
+now = now + 2
+assert(addon:RecordPlayerSpellSucceeded(432472, "Direct-Sacred"),
+    "Sacred Weapon must confirm without a pending key observation")
+local directArmamentState = addon.sessionCharges[armamentIndex]
+assert(directArmamentState and directArmamentState.baseCharges == 0
+        and directArmamentState.nextRechargeAt > now,
+    "two directly confirmed Armament casts must consume both shared charges")
+addon:SetHolyPowerEstimate(0, true)
+order = addon:GetDisplayOrder(now)
+local armamentDisplay
+for _, item in ipairs(order) do
+    if item.ability.abilityKey == "paladin_holy_armament" then armamentDisplay = item break end
+end
+assert(armamentDisplay and armamentDisplay.remaining > 0,
+    "Holy Armament must remain on its local recharge after both charges are consumed")
 addon:ResetRuntimeState()
 assert(addon:GetSlot(wordIndex).enabled and not addon:GetSlotIndexByAbilityKey("paladin_eternal_flame"),
     "Lightsmith must use Word of Glory instead of Eternal Flame")

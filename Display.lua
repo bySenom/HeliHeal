@@ -815,7 +815,7 @@ function HeliHeal:RefreshSupportWindow(now)
             end
             button.icon:SetTexture(item.ability.icon)
             button.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
-            button.icon:SetDesaturated(item.remaining > 0 or item.paladinResourceBlocked)
+            button.icon:SetDesaturated(item.remaining > 0)
             if item.usedAt and item.cooldownDuration > 0 then
                 button.cooldown:SetCooldown(item.usedAt, item.cooldownDuration)
             else
@@ -1108,7 +1108,7 @@ function HeliHeal:RefreshDisplay()
             button.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
 
             button.icon:SetTexture(item.ability.icon)
-            button.icon:SetDesaturated(item.remaining > 0)
+            button.icon:SetDesaturated(item.remaining > 0 or item.paladinResourceBlocked)
             button.name:SetText(item.ability.name)
             button.priorityBadge:SetFont(hudFont, clamp(profile.priorityFontSize, 7, 20, 9), fontFlags)
             button.priorityBadge:ClearAllPoints()

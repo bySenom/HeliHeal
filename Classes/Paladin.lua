@@ -28,7 +28,7 @@ local abilities = {
         castSpellIDs = { 432459, 432472 }, holyPowerGain = 3, maxHolyPower = 2,
         requiresTalent = "paladinLightsmith", cooldownTalent = "paladinQuickenedInvocation",
         cooldownReduction = 15, cooldownPercentTalents = { paladinForewarning = 20 },
-        inputLockout = 1.5,
+        confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     paladin_avenging_wrath = {
         spellID = 31884, name = "Avenging Wrath", cooldown = 120,
