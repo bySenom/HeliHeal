@@ -61,7 +61,7 @@ local HOLY_PALADIN = {
         tag = "PROC",
         spellIDs = { 414273, 82326, 54149 },
         question = "Was mache ich mit Infusion of Light und Hand of Divinity?",
-        answer = "Eine lokal bekannte Infusion priorisiert Flash of Light in Heilmodi und Judgment beziehungsweise Hammer of Wrath im Mana-Sparmodus. Hand of Divinity macht nach Wings die nächsten zwei Holy Lights sofort wirkbar und günstiger; HeliHeal stellt diese Holy Lights deshalb an die erste Stelle.",
+        answer = "Eine lokal bekannte Infusion priorisiert Flash of Light in Heilmodi und Judgment beziehungsweise Hammer of Wrath im Mana-Sparmodus. Hand of Divinity macht nach Wings die nächsten zwei Holy Lights sofort wirkbar und günstiger. Mit dem 12.1-Viererset schiebt HeliHeal den garantierten Infusion-Verbrauch zwischen diese beiden Holy Lights, damit der zweite Proc nicht überschrieben wird.",
     },
     {
         group = "HOLY PALADIN",

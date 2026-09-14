@@ -444,6 +444,27 @@ assert(order[1].ability.abilityKey == "paladin_holy_light",
 addon:AcknowledgeSlot(holyLightIndex)
 assert(addon.pendingPaladinHandOfDivinity.uses == 1,
     "the first Hand of Divinity Holy Light must leave one use")
+assert(addon:GetPaladinInfusionCharges(now) == 1,
+    "the Season 2 four-set must grant Infusion after the first Hand of Divinity Holy Light")
+order = addon:GetDisplayOrder(now)
+assert(order[1].ability.abilityKey == "paladin_flash_of_light"
+        and abilityPosition((function()
+            local keys = {}
+            for _, item in ipairs(order) do keys[#keys + 1] = item.ability.abilityKey end
+            return keys
+        end)(), "paladin_holy_light") > 1,
+    "the known Infusion must be consumed before the second Hand of Divinity Holy Light")
+addon:AcknowledgeSlot(flashIndex)
+assert(addon:GetPaladinInfusionCharges(now) == 0,
+    "the interleaved Flash of Light must consume the known Infusion")
+order = addon:GetDisplayOrder(now)
+assert(order[1].ability.abilityKey == "paladin_eternal_flame"
+        and displayContains(order, "paladin_holy_light"),
+    "five Holy Power must be spent before the remaining Hand of Divinity Holy Light")
+addon:AcknowledgeSlot(flameIndex)
+order = addon:GetDisplayOrder(now)
+assert(order[1].ability.abilityKey == "paladin_holy_light",
+    "the remaining Hand of Divinity Holy Light must return after Infusion and capped Holy Power are spent")
 addon:AcknowledgeSlot(holyLightIndex)
 assert(not addon.pendingPaladinHandOfDivinity,
     "the second Hand of Divinity Holy Light must consume the local state")

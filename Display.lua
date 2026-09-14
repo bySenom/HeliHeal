@@ -48,15 +48,18 @@ local function readyBefore(a, b)
         return not a.priestHoldForApotheosis
     end
     if a.preferSpender ~= b.preferSpender then return a.preferSpender end
-    if a.paladinHandPriority ~= b.paladinHandPriority then
-        if not a.paladinHandPriority then return false end
-        if not b.paladinHandPriority then return true end
-        return a.paladinHandPriority < b.paladinHandPriority
-    end
+    -- A Season 2 Holy Light deterministically grants Infusion of Light. Spend
+    -- that known proc before the next Hand of Divinity Holy Light so the
+    -- second guaranteed proc is not overwritten at the normal one-charge cap.
     if a.paladinInfusionPriority ~= b.paladinInfusionPriority then
         if not a.paladinInfusionPriority then return false end
         if not b.paladinInfusionPriority then return true end
         return a.paladinInfusionPriority < b.paladinInfusionPriority
+    end
+    if a.paladinHandPriority ~= b.paladinHandPriority then
+        if not a.paladinHandPriority then return false end
+        if not b.paladinHandPriority then return true end
+        return a.paladinHandPriority < b.paladinHandPriority
     end
     if a.paladinCrusaderPriority ~= b.paladinCrusaderPriority then
         if not a.paladinCrusaderPriority then return false end

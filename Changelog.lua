@@ -14,6 +14,7 @@ ns.changelog = {
                 "Remove Surging Totem from the Single Target priority while retaining it in Standard and AoE.",
                 "Add a specialization-aware healing FAQ covering Holy Paladin targeting, procs, Beacons, mana, content types, utility and movement.",
                 "Rework the FAQ into collapsible sections with spell icons, related-spell tooltips and expand-all controls.",
+                "Consume a known Infusion between the two Hand of Divinity Holy Lights instead of overwriting the second four-piece proc.",
             },
         },
         {
