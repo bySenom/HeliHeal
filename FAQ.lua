@@ -25,6 +25,20 @@ local GENERAL = {
         question = "Wann sollte ich von der Empfehlung abweichen?",
         answer = "Immer wenn die Spielsituation es verlangt: Dispel, Bewegung, Mechaniken, ein sterbender Spieler oder ein geplanter defensiver Cooldown sind wichtiger. HeliHeal ersetzt keine Zielwahl und keine Begegnungskenntnis.",
     },
+    {
+        group = "ALLGEMEIN",
+        tag = "MODI",
+        icon = "Interface\\Icons\\INV_Misc_Map_01",
+        question = "Welchen Rotationsmodus sollte ich wählen?",
+        answer = "Standard ist der vielseitige Ausgangspunkt. AoE hebt Gruppenheilung an, Single Target priorisiert gezielte Heilung und Mana Saving verschiebt teure oder weniger effiziente Zauber nach hinten. Der Modus kennt die echte Gesundheit deiner Gruppe nicht; wechsle ihn deshalb passend zur erwarteten Schadensart und zu deinem Mana-Plan.",
+    },
+    {
+        group = "ALLGEMEIN",
+        tag = "SPELL-GUIDE",
+        icon = "Interface\\Icons\\INV_Misc_Book_11",
+        question = "Was zeigen die Spell-Icons im Guide?",
+        answer = "Die Icons unter einer geöffneten Antwort zeigen die Zauber, auf die sich der Text bezieht. Fahre mit der Maus darüber, um Blizzards vollständigen Spell-Tooltip mit deiner aktuellen Talentversion zu sehen. Die Icons sind Erklärhilfen und keine zusätzliche Empfehlungsliste.",
+    },
 }
 
 local HOLY_PALADIN = {

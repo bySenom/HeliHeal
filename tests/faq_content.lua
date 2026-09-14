@@ -3,11 +3,11 @@ local namespace = {}
 assert(loadfile("FAQ.lua"))("HeliHeal", namespace)
 
 local general = namespace.FAQ:GetEntries("SHAMAN", 264)
-assert(#general == 3,
+assert(#general == 5,
     "every supported healer must receive the general HeliHeal usage FAQ")
 
 local paladin = namespace.FAQ:GetEntries("PALADIN", 65)
-assert(#paladin == 16,
+assert(#paladin == 18,
     "Holy Paladin must receive general and specialization-specific FAQ entries")
 
 for index, entry in ipairs(paladin) do
@@ -38,6 +38,8 @@ assert(content:find("Holy Bulwark", 1, true)
         and content:find("Mana", 1, true)
         and content:find("Cleanse", 1, true)
         and content:find("Bewegung", 1, true)
+        and content:find("Rotationsmodus", 1, true)
+        and content:find("Spell-Icons", 1, true)
         and content:find("DEF", 1, true),
     "Holy Paladin FAQ must explain targets, contexts, mana, utility, movement and the DEF window")
 
