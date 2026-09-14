@@ -1236,6 +1236,11 @@ end
 function HeliHeal:RecordHolyPowerEvent(slotIndex, ability)
     local gain, cost = self:GetHolyPowerDelta(ability)
     if gain <= 0 and cost <= 0 then return false end
+    local grantsFreeSpender = ability.grantsFreeSpenderTalent
+        and self:IsTalentActive(ability.grantsFreeSpenderTalent) or false
+    if grantsFreeSpender and ability.grantsFreeSpenderRequiredTalent then
+        grantsFreeSpender = self:IsTalentActive(ability.grantsFreeSpenderRequiredTalent)
+    end
     self.nextHolyPowerEventID = (self.nextHolyPowerEventID or 0) + 1
     self.holyPowerEvents = self.holyPowerEvents or {}
     self.holyPowerEvents[#self.holyPowerEvents + 1] = {
@@ -1246,8 +1251,7 @@ function HeliHeal:RecordHolyPowerEvent(slotIndex, ability)
         cost = cost,
         forcedFree = cost > (self.sessionHolyPower or 0)
             and (self.pendingFreeHolyPowerSpenders or 0) <= 0,
-        grantsFreeSpender = ability.grantsFreeSpenderTalent
-            and self:IsTalentActive(ability.grantsFreeSpenderTalent) or false,
+        grantsFreeSpender = grantsFreeSpender,
     }
     self:RecalculateHolyPower()
     return true

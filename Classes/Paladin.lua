@@ -42,8 +42,11 @@ local abilities = {
     },
     paladin_aura_mastery = {
         spellID = 31821, name = "Aura Mastery", cooldown = 180,
-        requiresTalent = "paladinRingingHeavens", holyPowerGain = 3,
-        grantsFreeSpenderTalent = "paladinAurora", cooldownTalent = "paladinUnwaveringSpirit",
+        requiresTalent = "paladinAuraMastery", holyPowerGain = 0,
+        holyPowerGainTalent = "paladinRingingHeavens", holyPowerTalentGain = 3,
+        grantsFreeSpenderTalent = "paladinAurora",
+        grantsFreeSpenderRequiredTalent = "paladinRingingHeavens",
+        cooldownTalent = "paladinUnwaveringSpirit",
         cooldownReduction = 30, confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     paladin_beacon_of_virtue = {

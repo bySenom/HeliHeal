@@ -22,6 +22,7 @@ local selectedSpellIDs = {
     53376, -- Sanctified Wrath
     414273, -- Hand of Divinity
     394088, -- Avenging Crusader talent definition
+    31821, -- Aura Mastery
     1241511, -- Call of the Righteous (rank 2)
     200025, -- Beacon of Virtue
     6940, -- Blessing of Sacrifice
@@ -92,6 +93,8 @@ assert(addon.talentSnapshot.paladinSanctifiedWrath and addon.talentSnapshot.pala
     "Wings duration and Hand of Divinity must be detected from the committed loadout")
 assert(addon.talentSnapshot.paladinBeaconVirtue,
     "Beacon of Virtue must be detected from the committed Holy talent loadout")
+assert(addon.talentSnapshot.paladinAuraMastery and not addon.talentSnapshot.paladinRingingHeavens,
+    "Aura Mastery must be detected independently from its optional Ringing improvement")
 assert(addon.talentSnapshot.paladinBlessingSacrifice
     and addon.talentSnapshot.paladinSacrificeOfTheJust
     and addon.talentSnapshot.paladinBlessingProtection
@@ -124,6 +127,7 @@ selectedSpellIDs = {
     379391, -- Quickened Invocation
     414073, -- Light's Conviction
     31884,  -- Avenging Wrath
+    31821,  -- Aura Mastery
     1241542, -- Ringing of the Heavens
     392911,  -- Unwavering Spirit
     1241511, -- Call of the Righteous (rank 2)

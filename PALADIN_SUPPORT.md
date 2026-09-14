@@ -12,6 +12,7 @@ HeliHeal models Holy Paladin as a player-driven priority helper, not an automati
 - Hammer of Wrath replaces Judgment only during a confirmed Avenging Wrath window and inherits Judgment's Holy Power bonuses.
 - Avenging Crusader has its own timed window. Judgment remains available and Crusader Strike is added only during that window.
 - Call of the Righteous and Sanctified Wrath alter the locally simulated Avenging Wrath or Avenging Crusader duration.
+- Aura Mastery is detected independently from Ringing of the Heavens. Only a Ringing-enhanced cast receives the locally modeled Divine Toll Holy Power and Aurora free-spender effects.
 - Hand of Divinity tracks and prioritizes two Holy Light uses after Avenging Wrath, or one after Avenging Crusader, in every rotation mode for up to 20 seconds. A known Infusion of Light is consumed between the two Holy Lights so the second guaranteed four-piece proc is not overwritten.
 - The deterministic 12.1 four-piece Holy Light trigger arms one local Infusion of Light. Random Holy Shock and Judgment Infusion procs are not guessed.
 - Infusion prefers Flash of Light in healing modes and Judgment or its Hammer replacement in Mana Saving mode.

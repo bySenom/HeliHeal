@@ -40,6 +40,7 @@ addon.talentSnapshot = {
     paladinHandOfDivinity = false,
     paladinAvengingWrath = false,
     paladinAvengingCrusader = false,
+    paladinAuraMastery = true,
     paladinRingingHeavens = false,
     paladinWalkIntoLight = false,
     paladinBeaconVirtue = true,
@@ -85,6 +86,7 @@ local sacrificeIndex = addon:GetSlotIndexByAbilityKey("paladin_blessing_of_sacri
 local layOnHandsIndex = addon:GetSlotIndexByAbilityKey("paladin_lay_on_hands")
 local blessingProtectionIndex = addon:GetSlotIndexByAbilityKey("paladin_blessing_of_protection")
 local steedIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_steed")
+local auraMasteryIndex = addon:GetSlotIndexByAbilityKey("paladin_aura_mastery")
 
 local sharedJudgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")
 addon:SetAbilityBinding(sharedJudgmentIndex, "1")
@@ -107,6 +109,21 @@ assert(addon:GetSlot(shockIndex).maxCharges == 2,
 assert(addon:GetSlot(virtueIndex).enabled and addon:GetSlot(virtueIndex).cooldown == 15
     and addon:GetSlot(virtueIndex).roleLabel == "BURST",
     "selected Beacon of Virtue must be a tracked 15-second Mythic+ burst setup")
+assert(addon:GetSlot(auraMasteryIndex).enabled,
+    "Aura Mastery must remain available without Ringing of the Heavens")
+addon:SetHolyPowerEstimate(0, true)
+addon.talentSnapshot.paladinAurora = true
+addon:AcknowledgeSlot(auraMasteryIndex)
+assert(addon.sessionHolyPower == 0 and addon.pendingFreeHolyPowerSpenders == 0,
+    "Aura Mastery without Ringing must not imitate a Divine Toll or grant Aurora")
+addon:ResetRuntimeState()
+addon.talentSnapshot.paladinRingingHeavens = true
+addon:AcknowledgeSlot(auraMasteryIndex)
+assert(addon.sessionHolyPower == 3 and addon.pendingFreeHolyPowerSpenders == 1,
+    "Ringing Aura Mastery must inherit Divine Toll's Holy Power and Aurora effects")
+addon:ResetRuntimeState()
+addon.talentSnapshot.paladinRingingHeavens = false
+addon.talentSnapshot.paladinAurora = false
 assert(not dawnIndex, "Mythic+ must not expose Light of Dawn as a priority or binding")
 local function containsAbility(keys, expected)
     for _, key in ipairs(keys) do
