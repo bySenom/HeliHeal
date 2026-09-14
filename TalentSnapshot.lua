@@ -66,6 +66,8 @@ local TALENTS = {
     paladinDivineSteed = { 190784 },
     paladinCavalier = { 230332 },
     paladinUnbreakableSpirit = { 114154 },
+    paladinForewarning = { 432804 },
+    paladinValiance = { 432919 },
     priestArchon = { 120517 },
     priestOracle = { 1248423 },
     priestSanctify = { 34861 },
@@ -151,6 +153,7 @@ local SNAPSHOT_FLAGS = {
     "paladinBlessingProtection", "paladinImprovedBlessingProtection",
     "paladinLayOnHands", "paladinTirionsDevotion", "paladinDivineSteed",
     "paladinCavalier", "paladinUnbreakableSpirit",
+    "paladinForewarning", "paladinValiance",
     "priestArchon", "priestOracle", "priestSanctify", "priestPrayerOfHealing",
     "priestChastise", "priestUltimateSerenity",
     "priestMiracleWorker", "priestEternalSanctity", "priestHolyCelerity", "priestVoiceHarmony",
@@ -371,7 +374,7 @@ function HeliHeal:PrintTalentSnapshot()
         return
     end
     if self.classToken == "PALADIN" then
-        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Light's Conviction %s | Crusader's Might %s | Imbued Infusions %s | Inflorescence %s | Sanctified Wrath %s | Hand of Divinity %s | Wings %s | Crusader %s | Ringing %s | Walk Into Light %s | Aurora %s | Call %d/2 | Unwavering %s | Divine Purpose %s | Sacrifice %s | Sacrifice of the Just %s | BoP %s | Improved BoP %s | Lay on Hands %s | Tirion %s | Steed %s | Cavalier %s | Unbreakable %s | Tier 4pc %s")
+        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Light's Conviction %s | Crusader's Might %s | Imbued Infusions %s | Inflorescence %s | Sanctified Wrath %s | Hand of Divinity %s | Wings %s | Crusader %s | Ringing %s | Walk Into Light %s | Aurora %s | Call %d/2 | Unwavering %s | Divine Purpose %s | Sacrifice %s | Sacrifice of the Just %s | BoP %s | Improved BoP %s | Lay on Hands %s | Tirion %s | Steed %s | Cavalier %s | Unbreakable %s | Forewarning %s | Valiance %s | Tier 4pc %s")
             :format(yesNo(snapshot.paladinHerald), yesNo(snapshot.paladinLightsmith),
                 yesNo(snapshot.paladinDivineToll), yesNo(snapshot.paladinHolyPrism),
                 yesNo(snapshot.paladinBeaconVirtue),
@@ -389,6 +392,7 @@ function HeliHeal:PrintTalentSnapshot()
                 yesNo(snapshot.paladinLayOnHands), yesNo(snapshot.paladinTirionsDevotion),
                 yesNo(snapshot.paladinDivineSteed), yesNo(snapshot.paladinCavalier),
                 yesNo(snapshot.paladinUnbreakableSpirit),
+                yesNo(snapshot.paladinForewarning), yesNo(snapshot.paladinValiance),
                 yesNo(snapshot.paladinTier4))
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return

@@ -2,7 +2,7 @@ local _, ns = ...
 local library = ns.AbilityLibrary
 
 -- Holy Paladin priority data for Midnight 12.1.
--- Guide snapshot: Wowhead/Icy Veins/Method, reviewed 2026-09-13.
+-- Guide snapshot: Wowhead/Icy Veins/Method, reviewed 2026-09-14.
 -- https://www.wowhead.com/guide/classes/paladin/holy/rotation-cooldowns-pve-healer
 local abilities = {
     paladin_holy_shock = {
@@ -27,7 +27,8 @@ local abilities = {
         spellID = 432459, name = "Holy Armament", cooldown = 60, maxCharges = 2,
         castSpellIDs = { 432459, 432472 }, holyPowerGain = 3, maxHolyPower = 2,
         requiresTalent = "paladinLightsmith", cooldownTalent = "paladinQuickenedInvocation",
-        cooldownReduction = 15, inputLockout = 1.5,
+        cooldownReduction = 15, cooldownPercentTalents = { paladinForewarning = 20 },
+        inputLockout = 1.5,
     },
     paladin_avenging_wrath = {
         spellID = 31884, name = "Avenging Wrath", cooldown = 120,

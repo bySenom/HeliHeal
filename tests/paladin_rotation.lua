@@ -53,6 +53,8 @@ addon.talentSnapshot = {
     paladinDivineSteed = true,
     paladinCavalier = true,
     paladinUnbreakableSpirit = true,
+    paladinForewarning = false,
+    paladinValiance = false,
 }
 addon.IsTalentActive = function(self, key)
     return self.talentSnapshot.available and self.talentSnapshot[key] == true
@@ -261,11 +263,21 @@ addon:SetRotationPreset("paladin_lightsmith_raid")
 addon.talentSnapshot.paladinHerald = false
 addon.talentSnapshot.paladinLightsmith = true
 addon.talentSnapshot.paladinDivineToll = false
+addon.talentSnapshot.paladinForewarning = true
+addon.talentSnapshot.paladinValiance = true
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
 local wordIndex = addon:GetSlotIndexByAbilityKey("paladin_word_of_glory")
 local raidDawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
-assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 45,
-    "Lightsmith must expose its two-charge Holy Armament with Quickened Invocation")
+assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 36,
+    "Lightsmith must combine Quickened Invocation and Forewarning on Holy Armament")
+addon:AcknowledgeSlot(armamentIndex)
+local armamentRechargeBeforeValiance = addon.sessionCharges[armamentIndex].nextRechargeAt
+addon.pendingPaladinInfusion = true
+local lightsmithFlashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
+addon:AcknowledgeSlot(lightsmithFlashIndex)
+assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance - 3,
+    "Valiance must advance the active Holy Armament recharge by three seconds")
+addon:ResetRuntimeState()
 assert(addon:GetSlot(wordIndex).enabled and not addon:GetSlotIndexByAbilityKey("paladin_eternal_flame"),
     "Lightsmith must use Word of Glory instead of Eternal Flame")
 assert(addon:GetSlotIndexByAbilityKey("paladin_beacon_of_virtue"),
@@ -292,6 +304,8 @@ addon:SetRotationPreset("paladin_herald_mythicplus")
 addon.talentSnapshot.paladinHerald = true
 addon.talentSnapshot.paladinLightsmith = false
 addon.talentSnapshot.paladinDivineToll = true
+addon.talentSnapshot.paladinForewarning = false
+addon.talentSnapshot.paladinValiance = false
 addon.talentSnapshot.paladinAvengingWrath = true
 addon.talentSnapshot.paladinHandOfDivinity = true
 addon.talentSnapshot.paladinWalkIntoLight = true

@@ -56,7 +56,7 @@ local SWIFTNESS_CONSUMER_SPELL_IDS = {
 }
 
 local CURRENT_SCHEMA_VERSION = 5
-local ROTATION_DATA_VERSION = 12119
+local ROTATION_DATA_VERSION = 12120
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
@@ -998,6 +998,9 @@ function HeliHeal:ApplyPaladinInfusionEffects(abilityKey, now)
         if state.charges <= 0 then self.pendingPaladinInfusion = nil end
         if self:IsTalentActive("paladinImbuedInfusions") then
             self:ReduceLocalAbilityCooldown("paladin_holy_shock", 1, now)
+        end
+        if self:IsTalentActive("paladinValiance") then
+            self:ReduceLocalAbilityCooldown("paladin_holy_armament", 3, now)
         end
         return true
     end

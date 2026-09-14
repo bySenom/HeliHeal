@@ -33,6 +33,8 @@ local selectedSpellIDs = {
     190784, -- Divine Steed
     230332, -- Cavalier
     114154, -- Unbreakable Spirit
+    432804, -- Forewarning
+    432919, -- Valiance
 }
 
 C_ClassTalents = { GetActiveConfigID = function() return 9001 end }
@@ -100,12 +102,14 @@ assert(addon.talentSnapshot.paladinBlessingSacrifice
     "Paladin defensive, external and movement talents must be detected from committed entries")
 assert(addon.talentSnapshot.paladinTier4,
     "the Midnight 12.1 Holy Paladin four-set must be detected out of combat")
+assert(addon.talentSnapshot.paladinForewarning and addon.talentSnapshot.paladinValiance,
+    "Lightsmith cooldown talents must be detected from committed entries")
 assert(addon.db.profile.rotationPreset == "paladin_lightsmith_raid",
     "hero detection must preserve the selected Raid content type")
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
 local crusaderIndex = addon:GetSlotIndexByAbilityKey("paladin_avenging_crusader")
-assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 45,
-    "Lightsmith must enable Holy Armament and apply Quickened Invocation")
+assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 36,
+    "Lightsmith must apply Quickened Invocation and Forewarning to Holy Armament")
 assert(addon:GetSlot(crusaderIndex).enabled and addon:GetSlot(crusaderIndex).cooldown == 45,
     "Avenging Crusader must apply both ranks of Call of the Righteous")
 
