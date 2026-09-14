@@ -16,6 +16,11 @@ assert(english.L("Übersicht") == "Overview", "enUS must translate the German so
 assert(english.L("FAQ & Spielhilfe") == "FAQ & Play Guide"
     and english.L("Auf wen caste ich Holy Bulwark?") == "Who should receive Holy Bulwark?",
     "the FAQ navigation and Holy Paladin guidance must be localized for English clients")
+assert(english.L("Wie wähle ich Beacon-Ziele richtig?") == "How should I choose Beacon targets?"
+    and english.L("BEWEGUNG") == "MOVEMENT"
+    and english.L("Warum empfiehlt HeliHeal keinen Dispel automatisch?")
+        == "Why doesn't HeliHeal recommend dispels automatically?",
+    "expanded Holy Paladin FAQ contexts must never fall back to German on English clients")
 assert(english.L("HUD-Schriftart") == "HUD font" and english.L("Rollenfarben") == "Role colors",
     "appearance customization controls must be localized for English clients")
 assert(english.L("Optionsfenster-Hintergrund") == "Options window background"

@@ -40,14 +40,14 @@ local HOLY_PALADIN = {
         tag = "ZIELWAHL",
         spellIDs = { 432459 },
         question = "Auf wen caste ich Holy Bulwark?",
-        answer = "Gib Holy Bulwark bevorzugt einem Tank, einem verwundbaren Verbündeten oder einem Spieler vor sicherem Schaden. Die einfache Standardlösung mit Solidarity ist ein Cast auf dich selbst: Du behältst den Schild und ein Verbündeter erhält ebenfalls ein Armament. Überschreibe möglichst keinen bereits aktiven Holy Bulwark.",
+        answer = "Mit Solidarity ist der Self-Cast die starke Standardlösung: Der zusätzliche Holy Bulwark springt auf einen Tank und skaliert mit dessen hoher maximaler Gesundheit. Caste direkt auf einen verwundbaren oder besonders gefährdeten Verbündeten, wenn du das Ziel bewusst kontrollieren musst. Seit 12.1 verlängert ein erneuter Cast desselben Casters die laufende Armament-Dauer; HeliHeal bildet diese Verlängerung lokal nach.",
     },
     {
         group = "HOLY PALADIN",
         tag = "ZIELWAHL",
         spellIDs = { 432472 },
         question = "Auf wen caste ich Sacred Weapon?",
-        answer = "Für mehr Schaden eignet sich ein aktiver DPS-Spieler; für Heilwert ein Spieler mit hoher Zauberaktivität. Mit Solidarity ist Selbst-Cast erneut die einfache sichere Lösung, weil zusätzlich ein Verbündeter profitiert. Überschreibe möglichst keine bereits aktive Sacred Weapon.",
+        answer = "Caste Sacred Weapon normalerweise auf dich selbst. Mit Solidarity erhält zusätzlich ein anderer Heiler oder in Mythic+ ein DPS-Spieler die Waffe; ihr Heilungs- oder Schadenswert hängt nicht davon ab, welchen DPS oder Heiler sie trifft. Nutze einen direkten Fremd-Cast nur bewusst, etwa für die Verbindung von Tempered in Battle.",
     },
     {
         group = "HOLY PALADIN",
@@ -69,6 +69,41 @@ local HOLY_PALADIN = {
         spellIDs = { 498, 6940, 633 },
         question = "Was bedeutet das separate DEF-Fenster?",
         answer = "DEF zeigt nur, welche defensiven und unterstützenden Fähigkeiten lokal bereit sind. Es bedeutet nicht, dass du sie sofort casten sollst. Nutze Divine Protection, Blessing of Sacrifice, Lay on Hands und ähnliche Werkzeuge passend zur Mechanik und zum Ziel.",
+    },
+    {
+        group = "HOLY PALADIN",
+        tag = "BEACON",
+        spellIDs = { 53563, 200025 },
+        question = "Wie wähle ich Beacon-Ziele richtig?",
+        answer = "Beacon of Light oder Faith liegt häufig gut auf entfernten Spielern, weil das Ziel zusätzlich als Zentrum für Mastery: Lightbringer dient. Heile ein Beacon-Ziel nur direkt, wenn es die Heilung wirklich braucht, da normale Beacon-Übertragung von Heilung an anderen Zielen entsteht. Beacon of Virtue kommt auf einen verletzten Verbündeten, nicht auf dich selbst; plane die folgenden starken Heilzauber in sein kurzes Fenster.",
+    },
+    {
+        group = "HOLY PALADIN",
+        tag = "RAID / M+",
+        spellIDs = { 200025, 31821, 375576 },
+        question = "Wie unterscheiden sich Raid und Mythic+?",
+        answer = "Im Raid ist Beacon of Virtue ein wichtiges Burst-Fenster: Ringing of the Heavens und Divine Toll gewinnen viel Wert, wenn Virtue bereits aktiv ist. In Mythic+ kann diese vollständige Kombination unnötig viel auf einmal sein; trenne Virtue und große Cooldowns, um mehrere Schadenswellen abzudecken. Light of Dawn bleibt in HeliHeal eine Raid-Option, während Mythic+ den Einzelziel-Spender nutzt.",
+    },
+    {
+        group = "HOLY PALADIN",
+        tag = "MANA",
+        spellIDs = { 82326, 53600, 20473 },
+        question = "Wie spare ich Mana als Holy Paladin?",
+        answer = "Holy Light ist dein größter regelbarer Mana-Hebel: caste es häufiger für hohen Durchsatz und seltener, wenn du zu schnell Mana verlierst. Wenn gerade keine Heilung nötig ist, gibt Shield of the Righteous bei einem Treffer Mana zurück; ein offensiver Holy Shock kann mit Light's Conviction ebenfalls günstiger sein. Das sind bewusste Heilungsverluste und gehören deshalb in den Mana-Saving-Kontext, nicht in ein akutes Heilfenster.",
+    },
+    {
+        group = "HOLY PALADIN",
+        tag = "DISPEL / UTILITY",
+        spellIDs = { 4987, 1022, 6940 },
+        question = "Warum empfiehlt HeliHeal keinen Dispel automatisch?",
+        answer = "Midnight erlaubt HeliHeal nicht, einen Debuff zuverlässig auszuwerten und daraus eine eigene Kampfentscheidung zu berechnen. Nutze die Blizzard-Raidframes für Cleanse. Blessing of Protection entfernt oder verhindert physische Effekte, nimmt dem Ziel aber Aggro — deshalb nicht ohne Absprache auf den Tank. Blessing of Sacrifice ist dein häufiges externes Defensive; achte dabei selbst auf den übertragenen Schaden.",
+    },
+    {
+        group = "HOLY PALADIN",
+        tag = "BEWEGUNG",
+        spellIDs = { 190784, 20473, 85673 },
+        question = "Was mache ich während Bewegung?",
+        answer = "HeliHeal kann nicht zuverlässig erkennen, ob du gerade laufen musst. Nutze während Bewegung verfügbare Instant-Zauber wie Holy Shock und Holy-Power-Spender und verschiebe einen normalen Holy-Light-Cast. Ein durch Hand of Divinity vorbereiteter Holy Light ist instant und bleibt deshalb auch in Bewegung nutzbar. Divine Steed gehört zur Positionierung, nicht automatisch zur Heilpriorität.",
     },
 }
 
