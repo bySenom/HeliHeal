@@ -45,6 +45,8 @@ function AbilityLibrary:RegisterAbility(key, data)
     record.cooldownReductionPerRank = math.max(0, tonumber(record.cooldownReductionPerRank) or 0)
     record.cooldownMultiplierTalent = record.cooldownMultiplierTalent
     record.cooldownMultiplier = math.max(0, tonumber(record.cooldownMultiplier) or 1)
+    record.cooldownPercentTalents = type(record.cooldownPercentTalents) == "table"
+        and record.cooldownPercentTalents or nil
     record.bonusChargeTalent = record.bonusChargeTalent
     record.grantsFreeSpenderTalent = record.grantsFreeSpenderTalent
     record.confirmOnPlayerSuccess = record.confirmOnPlayerSuccess == true
@@ -92,6 +94,11 @@ function AbilityLibrary:GetPresetPriorityKeys(key, healingMode)
     return modeSlots or preset.slots
 end
 
+function AbilityLibrary:GetPresetSupportKeys(key)
+    local preset = assert(self:GetPreset(key), "Unknown HeliHeal rotation preset: " .. tostring(key))
+    return preset.supportSlots or {}
+end
+
 function AbilityLibrary:GetPreset(key)
     return self.presets[key]
 end
@@ -112,6 +119,7 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
     for _, modeSlots in pairs(preset.modeSlots or {}) do
         appendKeys(modeSlots)
     end
+    appendKeys(preset.supportSlots)
 
     local slots = {}
     for priority, abilityKey in ipairs(abilityKeys) do
@@ -150,6 +158,7 @@ function AbilityLibrary:BuildPresetSlots(key, bindings)
             cooldownReductionPerRank = ability.cooldownReductionPerRank,
             cooldownMultiplierTalent = ability.cooldownMultiplierTalent,
             cooldownMultiplier = ability.cooldownMultiplier,
+            cooldownPercentTalents = ability.cooldownPercentTalents,
             bonusChargeTalent = ability.bonusChargeTalent,
             grantsFreeSpenderTalent = ability.grantsFreeSpenderTalent,
             confirmOnPlayerSuccess = ability.confirmOnPlayerSuccess,
@@ -213,6 +222,8 @@ function AbilityLibrary:Resolve(slot)
         cooldownReductionPerRank = math.max(0, tonumber(slot.cooldownReductionPerRank) or 0),
         cooldownMultiplierTalent = slot.cooldownMultiplierTalent,
         cooldownMultiplier = math.max(0, tonumber(slot.cooldownMultiplier) or 1),
+        cooldownPercentTalents = type(slot.cooldownPercentTalents) == "table"
+            and slot.cooldownPercentTalents or nil,
         bonusChargeTalent = slot.bonusChargeTalent,
         grantsFreeSpenderTalent = slot.grantsFreeSpenderTalent,
         confirmOnPlayerSuccess = slot.confirmOnPlayerSuccess == true,

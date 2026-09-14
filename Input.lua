@@ -282,6 +282,9 @@ function HeliHeal:RecordExternalHolyPowerSpell(spellID, succeededAt)
     if not previous or succeededAt - previous > RECENT_SUCCESS_WINDOW or succeededAt < previous then
         self.recentExternalHolyPowerSuccess[ability.abilityKey] = succeededAt
         self:RecordHolyPowerEvent(0, ability)
+        if self.ApplyPaladinCooldownEffects then
+            self:ApplyPaladinCooldownEffects(ability.abilityKey, succeededAt)
+        end
     end
     -- A duplicate OBA correlation still counts as recognized even though its
     -- Holy Power delta has already been applied by the player success event.
@@ -362,11 +365,21 @@ end
 function HeliHeal:ScheduleHolyPowerSync()
     if self.classToken ~= "PALADIN" then return end
     local generation = self.inputGeneration or 0
+    self.holyPowerSyncToken = (self.holyPowerSyncToken or 0) + 1
+    local token = self.holyPowerSyncToken
     local sync = function()
-        if generation == (HeliHeal.inputGeneration or 0) then HeliHeal:SyncLiveHolyPower() end
+        if generation == (HeliHeal.inputGeneration or 0)
+            and token == (HeliHeal.holyPowerSyncToken or 0) then
+            HeliHeal:SyncLiveHolyPower()
+        end
     end
     if C_Timer and type(C_Timer.After) == "function" then
-        C_Timer.After(0, sync)
+        -- UNIT_SPELLCAST_SUCCEEDED can precede Blizzard's resource update for
+        -- instant casts. A same-frame read can therefore replace the correct
+        -- local gain or spend with the previous Holy Power value. Reconcile
+        -- after the resource has had time to settle, then verify once more.
+        C_Timer.After(0.08, sync)
+        C_Timer.After(0.25, sync)
     else
         sync()
     end

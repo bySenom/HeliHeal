@@ -25,6 +25,7 @@ addon.sessionCharges[3] = { baseCharges = 1, bonusCharges = 0, nextRechargeAt = 
 addon.sessionTimedEffects.rejuvenation = { 132, 136 }
 addon.pendingSwiftness = { slotIndex = 4, expiresAt = 135 }
 addon.riptideRechargeRateUntil = 128
+addon.paladinWingsUntil = 140
 
 assert(addon:CaptureZoneRuntimeState(), "supported specs must capture zone runtime")
 addon.sessionCharges[3].baseCharges = 0
@@ -36,6 +37,8 @@ assert(addon.sessionUses[2] == 120 and addon.sessionCharges[3].baseCharges == 1
 assert(addon.sessionTimedEffects.rejuvenation[2] == 136
     and addon.pendingSwiftness.expiresAt == 135 and addon.riptideRechargeRateUntil == 128,
     "tracked effects and specialization windows must survive the transition")
+assert(addon.paladinWingsUntil == 140,
+    "deterministic Paladin Wings windows must survive loading screens")
 
 specializationID = nil
 assert(not addon:RefreshPlayerSupport(false),

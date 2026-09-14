@@ -927,10 +927,11 @@ function HeliHeal:BuildStylePage(parent)
         { "hotkey", L("HOTKEY") },
         { "text", L("TEXT") },
         { "colors", L("FARBEN") },
+        { "support", L("DEF WINDOW") },
     }) do
         local categoryKey = category[1]
-        local tab = createButton(page, category[2], 132, 32, false)
-        tab:SetPoint("TOPLEFT", 20 + ((index - 1) * 140), -104)
+        local tab = createButton(page, category[2], 112, 32, false)
+        tab:SetPoint("TOPLEFT", 20 + ((index - 1) * 120), -104)
         tab:SetScript("OnClick", function() page:SelectCategory(categoryKey) end)
         tab:SetScript("OnEnter", function(button)
             button:SetBackdropBorderColor(unpackColor(C.accent))
@@ -955,6 +956,7 @@ function HeliHeal:BuildStylePage(parent)
         { L("Rollen-Hinweis"), L("Zeigt AOE, SINGLE, BURST oder SAVE mittig auf passenden Heilfähigkeiten."), "showRoleLabel" },
         { L("Situationsauswahl"), L("Zeigt gleichwertige situative Fähigkeiten als ODER-Auswahl an."), "showChoiceIndicator" },
         { L("Cooldown-Zahl"), L("Zeigt den lokal simulierten Cooldown mittig auf dem Icon."), "showCooldown" },
+        { L("DEF / Utility-Fenster"), L("Zeigt Paladin-Defensiv-, externe Schutz- und Bewegungsfähigkeiten als separate Bereitschaftsleiste."), "showSupportWindow" },
         { L("Dispel-Cooldown am Mauszeiger"), L("Zeigt nach einem bestätigten Dispel dessen lokalen Cooldown neben der Maus."), "showDispelCursor" },
     }
 
@@ -1017,7 +1019,7 @@ function HeliHeal:BuildStylePage(parent)
     end
 
     page.refreshers = {}
-    page.categoryRows = { visibility = {}, icons = {}, hotkey = {}, text = {}, colors = {} }
+    page.categoryRows = { visibility = {}, icons = {}, hotkey = {}, text = {}, colors = {}, support = {} }
     for index, definition in ipairs(definitions) do
         local row = createSettingRow(content, -6 - ((index - 1) * 68), definition[1], definition[2])
         local settingKey = definition[3]
@@ -1062,6 +1064,58 @@ function HeliHeal:BuildStylePage(parent)
     local function pixels(value) return ("%d px"):format(value) end
     local function signedPixels(value) return ("%+d px"):format(value) end
     local function percent(value) return ("%d%%"):format(math.floor((value * 100) + 0.5)) end
+
+    local orientationSelector = createDropdownSelector(content, page, {
+        { value = "HORIZONTAL", label = L("Horizontal") },
+        { value = "VERTICAL", label = L("Vertikal") },
+    }, function() return self.db.profile.supportWindowOrientation end,
+        function(value)
+            self.db.profile.supportWindowOrientation = value
+            self:RefreshDisplay()
+        end)
+    addControlRow("support", L("DEF-Ausrichtung"),
+        L("Ordnet die DEF- und Utility-Fähigkeiten waagerecht oder senkrecht an."), orientationSelector)
+
+    for _, definition in ipairs({
+        { "supportWindowShowPanelBackground", "DEF-Panel-Hintergrund", "Zeigt einen eigenen Hintergrund um das DEF-Fenster." },
+        { "supportWindowShowHeader", "DEF-Header", "Zeigt die Überschrift DEF / UTILITY in diesem Fenster." },
+        { "supportWindowShowAbilityName", "DEF-Fähigkeitsnamen", "Zeigt die Fähigkeitsnamen nur im DEF-Fenster." },
+        { "supportWindowShowIconBorder", "DEF-Icon-Rahmen", "Zeigt Rahmen und Schatten nur an den DEF-Icons." },
+        { "supportWindowShowHotkey", "DEF-Hotkeys", "Zeigt die beobachteten Tasten nur im DEF-Fenster." },
+        { "supportWindowShowCooldown", "DEF-Cooldowns", "Zeigt lokale Timer und Aufladungen nur im DEF-Fenster." },
+    }) do
+        local settingKey, titleText, descriptionText = definition[1], definition[2], definition[3]
+        local toggle = createToggle(content,
+            function() return self.db.profile[settingKey] end,
+            function(value)
+                self.db.profile[settingKey] = value
+                self:RefreshDisplay()
+            end)
+        addControlRow("support", L(titleText), L(descriptionText), toggle)
+    end
+
+    addSlider("support", "DEF-Fenster-Skalierung", "Skaliert dieses Fenster unabhängig von der Hauptleiste.",
+        "supportWindowScale", 0.6, 1.8, 0.05, percent)
+    addSlider("support", "DEF-Icon-Breite", "Breite der Icons in diesem Fenster.",
+        "supportWindowIconWidth", 24, 128, 1, pixels)
+    addSlider("support", "DEF-Icon-Höhe", "Höhe der Icons in diesem Fenster.",
+        "supportWindowIconHeight", 24, 128, 1, pixels)
+    addSlider("support", "DEF-Icon-Zoom", "Zoomt die Textur nur in den DEF-Icons.",
+        "supportWindowIconZoom", 0.7, 1.6, 0.05, percent)
+    addSlider("support", "DEF-Abstand", "Abstand zwischen den DEF-Icons.",
+        "supportWindowSpacing", 0, 40, 1, pixels)
+    addSlider("support", "DEF-Icons X", "Verschiebt die Icon-Gruppe innerhalb des DEF-Fensters horizontal.",
+        "supportWindowIconOffsetX", -40, 40, 1, signedPixels)
+    addSlider("support", "DEF-Icons Y", "Verschiebt die Icon-Gruppe innerhalb des DEF-Fensters vertikal.",
+        "supportWindowIconOffsetY", -40, 40, 1, signedPixels)
+    addSlider("support", "DEF-Icon-Innenabstand", "Abstand zwischen DEF-Textur und Rahmen.",
+        "supportWindowIconInset", 0, 12, 1, pixels)
+    addSlider("support", "DEF-Panel-Innenabstand X", "Horizontaler Innenraum des DEF-Fensters.",
+        "supportWindowPaddingX", 0, 40, 1, pixels)
+    addSlider("support", "DEF-Panel-Innenabstand Y", "Vertikaler Innenraum des DEF-Fensters.",
+        "supportWindowPaddingY", 0, 40, 1, pixels)
+    addSlider("support", "DEF-Panel-Deckkraft", "Deckkraft des eigenen DEF-Hintergrunds.",
+        "supportWindowPanelBackgroundAlpha", 0, 1, 0.05, percent)
 
     local fontOptions = {}
     for _, key in ipairs(ns.media.fontOrder or {}) do
@@ -1292,6 +1346,12 @@ function HeliHeal:BuildStylePage(parent)
             "primaryIconWidth", "primaryIconHeight", "primaryIconZoom", "primaryIconOffsetX", "primaryIconOffsetY",
             "secondaryIconWidth", "secondaryIconHeight", "secondaryIconZoom", "secondaryIconOffsetX", "secondaryIconOffsetY",
             "iconInset", "panelPaddingX", "panelPaddingY", "panelBackgroundAlpha",
+            "supportWindowScale", "supportWindowOrientation", "supportWindowSpacing",
+            "supportWindowIconWidth", "supportWindowIconHeight", "supportWindowIconZoom",
+            "supportWindowIconOffsetX", "supportWindowIconOffsetY", "supportWindowIconInset",
+            "supportWindowPaddingX", "supportWindowPaddingY", "supportWindowPanelBackgroundAlpha",
+            "supportWindowShowPanelBackground", "supportWindowShowHeader", "supportWindowShowAbilityName",
+            "supportWindowShowIconBorder", "supportWindowShowHotkey", "supportWindowShowCooldown",
             "dispelCursorSize", "dispelCursorOffsetX", "dispelCursorOffsetY",
             "roleLabelSize", "roleLabelOffsetX", "roleLabelOffsetY",
             "hotkeyFontSize", "hotkeyOffsetX", "hotkeyOffsetY", "hotkeyBadgeHeight", "hotkeyBadgeMinWidth",

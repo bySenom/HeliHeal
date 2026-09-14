@@ -2,7 +2,7 @@ local _, ns = ...
 local library = ns.AbilityLibrary
 
 -- Holy Paladin priority data for Midnight 12.1.
--- Guide snapshot: Wowhead, updated 2026-07-10.
+-- Guide snapshot: Wowhead/Icy Veins/Method, reviewed 2026-09-13.
 -- https://www.wowhead.com/guide/classes/paladin/holy/rotation-cooldowns-pve-healer
 local abilities = {
     paladin_holy_shock = {
@@ -54,15 +54,22 @@ local abilities = {
         spellID = 275773, name = "Judgment", cooldown = 11,
         holyPowerGain = 1, hastedCooldown = true, inputLockout = 1.5,
     },
+    paladin_hammer_of_wrath = {
+        spellID = 24275, name = "Hammer of Wrath", cooldown = 7.5,
+        holyPowerGain = 1, hastedCooldown = true,
+        confirmOnPlayerSuccess = true, inputLockout = 1.5,
+    },
     -- Observed for One Button Assistant resource reconciliation. These do not
     -- appear in HeliHeal's healing priority or binding options.
     paladin_crusader_strike = {
         spellID = 35395, name = "Crusader Strike", cooldown = 6,
-        holyPowerGain = 1, hastedCooldown = true, inputLockout = 1.5,
+        holyPowerGain = 1, hastedCooldown = true,
+        requiresTalent = "paladinAvengingCrusader",
+        confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     paladin_shield_of_the_righteous = {
-        spellID = 53600, name = "Shield of the Righteous", cooldown = 1,
-        holyPowerCost = 3, inputLockout = 1.0,
+        spellID = 53600, name = "Shield of the Righteous", cooldown = 0,
+        holyPowerCost = 3, confirmOnPlayerSuccess = true, inputLockout = 1.0,
     },
     paladin_word_of_glory = {
         spellID = 85673, name = "Word of Glory", cooldown = 0,
@@ -84,6 +91,46 @@ local abilities = {
         spellID = 19750, name = "Flash of Light", cooldown = 0,
         holyPowerGain = 1, roleLabel = "BURST", inputLockout = 1.5,
     },
+    -- These tools use the same confirmed-cast and local cooldown ledger as the
+    -- healing rotation, but are rendered in a separate readiness strip. Their
+    -- correct use depends on incoming damage, target state and encounter
+    -- mechanics that Midnight intentionally keeps out of recommendation logic.
+    paladin_divine_protection = {
+        spellID = 498, name = "Divine Protection", cooldown = 60,
+        cooldownPercentTalents = { paladinUnbreakableSpirit = 30 },
+        confirmOnPlayerSuccess = true, inputLockout = 0.5,
+    },
+    paladin_divine_shield = {
+        spellID = 642, name = "Divine Shield", cooldown = 300,
+        cooldownPercentTalents = { paladinUnbreakableSpirit = 30 },
+        confirmOnPlayerSuccess = true, inputLockout = 1.5,
+    },
+    paladin_blessing_of_sacrifice = {
+        spellID = 6940, name = "Blessing of Sacrifice", cooldown = 120,
+        requiresTalent = "paladinBlessingSacrifice",
+        cooldownTalent = "paladinSacrificeOfTheJust", cooldownReduction = 15,
+        confirmOnPlayerSuccess = true, inputLockout = 0.5,
+    },
+    paladin_lay_on_hands = {
+        spellID = 633, name = "Lay on Hands", cooldown = 600,
+        requiresTalent = "paladinLayOnHands",
+        cooldownPercentTalents = {
+            paladinUnbreakableSpirit = 30,
+            paladinTirionsDevotion = 40,
+        },
+        confirmOnPlayerSuccess = true, inputLockout = 0.5,
+    },
+    paladin_blessing_of_protection = {
+        spellID = 1022, name = "Blessing of Protection", cooldown = 300,
+        requiresTalent = "paladinBlessingProtection",
+        cooldownTalent = "paladinImprovedBlessingProtection", cooldownReduction = 60,
+        confirmOnPlayerSuccess = true, inputLockout = 1.5,
+    },
+    paladin_divine_steed = {
+        spellID = 190784, name = "Divine Steed", cooldown = 45, maxCharges = 1,
+        requiresTalent = "paladinDivineSteed", bonusChargeTalent = "paladinCavalier",
+        confirmOnPlayerSuccess = true, inputLockout = 0.5,
+    },
 }
 
 for key, ability in pairs(abilities) do
@@ -96,7 +143,12 @@ local function modeSlots(hero, raid)
     local spender = hero == "herald" and "paladin_eternal_flame" or "paladin_word_of_glory"
     local generator = hero == "lightsmith" and "paladin_holy_armament" or "paladin_divine_toll"
     local prism = hero == "herald" and { "paladin_holy_prism" } or {}
-    local virtue = not raid and { "paladin_beacon_of_virtue" } or {}
+    -- Beacon of Virtue is a normal talent choice in both content types. Its
+    -- requiresTalent flag keeps it hidden when the active loadout omits it.
+    local virtue = { "paladin_beacon_of_virtue" }
+    -- Light of Dawn is a raid-only Holy Power spender. In Mythic+ the local
+    -- model should reserve Holy Power for Eternal Flame or Word of Glory.
+    local dawn = raid and { "paladin_light_of_dawn" } or {}
     local function list(...)
         local result = {}
         for _, value in ipairs({ ... }) do
@@ -108,22 +160,36 @@ local function modeSlots(hero, raid)
         end
         return result
     end
-    local primarySpender = raid and "paladin_light_of_dawn" or spender
-    local secondarySpender = raid and spender or "paladin_light_of_dawn"
     return {
-        standard = list("paladin_avenging_wrath", "paladin_avenging_crusader", generator, prism,
-            virtue, "paladin_holy_shock", primarySpender, secondarySpender, "paladin_holy_light",
-            "paladin_flash_of_light", "paladin_judgment"),
+        -- Major cooldowns are intentionally reserved for the explicit AoE
+        -- context because the static tracker cannot see incoming damage.
+        standard = list(generator, prism, virtue, "paladin_holy_shock", spender,
+            dawn, "paladin_judgment", "paladin_hammer_of_wrath",
+            "paladin_crusader_strike", "paladin_flash_of_light", "paladin_holy_light",
+            "paladin_shield_of_the_righteous"),
         aoe = list("paladin_aura_mastery", "paladin_avenging_wrath", "paladin_avenging_crusader",
-            generator, prism, virtue, "paladin_holy_shock", "paladin_light_of_dawn", spender,
-            "paladin_holy_light", "paladin_flash_of_light", "paladin_judgment"),
-        single = list("paladin_avenging_wrath", "paladin_avenging_crusader", generator, prism,
-            "paladin_holy_shock", spender, "paladin_holy_light", "paladin_flash_of_light",
-            "paladin_judgment", "paladin_light_of_dawn"),
-        mana = list(generator, prism, "paladin_holy_shock", primarySpender,
-            secondarySpender, "paladin_flash_of_light", "paladin_judgment", "paladin_holy_light"),
+            generator, prism, virtue, "paladin_holy_shock", dawn, spender,
+            "paladin_flash_of_light", "paladin_holy_light", "paladin_judgment",
+            "paladin_hammer_of_wrath", "paladin_crusader_strike", "paladin_shield_of_the_righteous"),
+        single = list(generator, prism, "paladin_holy_shock", spender,
+            "paladin_flash_of_light", "paladin_holy_light", "paladin_judgment",
+            "paladin_hammer_of_wrath", "paladin_crusader_strike",
+            "paladin_shield_of_the_righteous", dawn),
+        mana = list(generator, prism, "paladin_holy_shock", spender,
+            dawn, "paladin_judgment", "paladin_hammer_of_wrath",
+            "paladin_crusader_strike", "paladin_shield_of_the_righteous",
+            "paladin_flash_of_light", "paladin_holy_light"),
     }
 end
+
+local SUPPORT_SLOTS = {
+    "paladin_divine_protection",
+    "paladin_divine_shield",
+    "paladin_blessing_of_sacrifice",
+    "paladin_lay_on_hands",
+    "paladin_blessing_of_protection",
+    "paladin_divine_steed",
+}
 
 local function registerPreset(key, name, heroTalent, hero, content)
     local modes = modeSlots(hero, content == "Raid")
@@ -134,9 +200,10 @@ local function registerPreset(key, name, heroTalent, hero, content)
         heroTalent = heroTalent,
         content = content,
         guideVersion = "12.1",
-        guideUpdated = "2026-07-10",
+        guideUpdated = "2026-09-13",
         slots = modes.standard,
         modeSlots = modes,
+        supportSlots = SUPPORT_SLOTS,
     })
 end
 

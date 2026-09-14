@@ -55,12 +55,16 @@ local SWIFTNESS_CONSUMER_SPELL_IDS = {
     },
 }
 
-local CURRENT_SCHEMA_VERSION = 4
-local ROTATION_DATA_VERSION = 12118
+local CURRENT_SCHEMA_VERSION = 5
+local ROTATION_DATA_VERSION = 12119
 local STORMSTREAM_CAST_SPELL_IDS = {
     [1267068] = true,
     [1267089] = true,
 }
+local PALADIN_WINGS_DURATION = 20
+local PALADIN_CRUSADER_DURATION = 15
+local PALADIN_HAND_OF_DIVINITY_DURATION = 20
+local PALADIN_INFUSION_DURATION = 15
 
 local function copyTable(source)
     local result = {}
@@ -78,7 +82,9 @@ local PERSISTENT_RUNTIME_FIELDS = {
     "sessionUses", "sessionCharges", "sessionSpendHistory", "sessionTimedEffects",
     "sessionAtonements", "holyPowerBaseline", "holyPowerFreeSpenderBaseline",
     "sessionHolyPower", "holyPowerEvents", "nextHolyPowerEventID",
-    "pendingFreeHolyPowerSpenders", "pendingSwiftness", "pendingDownpour",
+    "pendingFreeHolyPowerSpenders", "pendingPaladinInfusion", "paladinWingsUntil",
+    "paladinCrusaderUntil", "pendingPaladinHandOfDivinity",
+    "pendingSwiftness", "pendingDownpour",
     "pendingUnleash", "pendingArchdruid", "pendingDruidSoul",
     "unleashConsumptionHistory", "riptideRechargeRateUntil", "priestApotheosisUntil",
     "pendingMonkTea", "monkJadeSerpentUntil", "monkConduitHeartAt",
@@ -89,6 +95,7 @@ local PERSISTENT_RUNTIME_FIELDS = {
 function HeliHeal:ResetInputState()
     if self.CancelPendingAcknowledgements then self:CancelPendingAcknowledgements() end
     self.inputGeneration = (self.inputGeneration or 0) + 1
+    self.holyPowerSyncToken = (self.holyPowerSyncToken or 0) + 1
     self.pendingAcknowledgements = {}
     self.recentSuccessfulSpells = {}
     self.recentDirectConfirmations = {}
@@ -113,6 +120,10 @@ function HeliHeal:ResetRuntimeState()
     self.holyPowerEvents = {}
     self.nextHolyPowerEventID = 0
     self.pendingFreeHolyPowerSpenders = 0
+    self.pendingPaladinInfusion = nil
+    self.paladinWingsUntil = nil
+    self.paladinCrusaderUntil = nil
+    self.pendingPaladinHandOfDivinity = nil
     self.pendingSwiftness = nil
     self.pendingDownpour = nil
     self.pendingUnleash = nil
@@ -251,6 +262,31 @@ function HeliHeal:MigrateProfile(profile)
             profile.dispelCursorOffsetX = 42
         end
     end
+    if originalVersion < 5 then
+        local supportCopies = {
+            supportWindowSpacing = "spacing",
+            supportWindowIconWidth = "secondaryIconWidth",
+            supportWindowIconHeight = "secondaryIconHeight",
+            supportWindowIconZoom = "secondaryIconZoom",
+            supportWindowIconOffsetX = "secondaryIconOffsetX",
+            supportWindowIconOffsetY = "secondaryIconOffsetY",
+            supportWindowIconInset = "iconInset",
+            supportWindowPaddingX = "panelPaddingX",
+            supportWindowPaddingY = "panelPaddingY",
+            supportWindowPanelBackgroundAlpha = "panelBackgroundAlpha",
+            supportWindowShowPanelBackground = "showPanelBackground",
+            supportWindowShowHeader = "showHeader",
+            supportWindowShowAbilityName = "showAbilityName",
+            supportWindowShowIconBorder = "showIconBorder",
+            supportWindowShowHotkey = "showHotkey",
+            supportWindowShowCooldown = "showCooldown",
+        }
+        for supportKey, sharedKey in pairs(supportCopies) do
+            local value = rawget(profile, sharedKey)
+            if value ~= nil then profile[supportKey] = value end
+        end
+        profile.supportWindowOrientation = "HORIZONTAL"
+    end
     profile.schemaVersion = CURRENT_SCHEMA_VERSION
     profile.rotationDataVersion = ROTATION_DATA_VERSION
     return true
@@ -331,6 +367,7 @@ function HeliHeal:OnDisable()
     if self.Mana then self.Mana:Disable() end
     self:ResetRuntimeState()
     if self.frame then self.frame:Hide() end
+    if self.supportFrame then self.supportFrame:Hide() end
     if self.dispelCursorFrame then self.dispelCursorFrame:Hide() end
 end
 
@@ -679,6 +716,11 @@ function HeliHeal:BuildDiagnosticReport()
         "mana=" .. tostring(self.Mana and self.Mana.current or "unavailable"),
         "manaReliability=" .. tostring(self.Mana and self.Mana.reliability or "UNKNOWN"),
         "freeSpenders=" .. tostring(self.pendingFreeHolyPowerSpenders or 0),
+        "paladinInfusions=" .. tostring(self:GetPaladinInfusionCharges()),
+        "paladinWingsUntil=" .. tostring(self.paladinWingsUntil or 0),
+        "paladinCrusaderUntil=" .. tostring(self.paladinCrusaderUntil or 0),
+        "paladinHandUses=" .. tostring(self.pendingPaladinHandOfDivinity
+            and self.pendingPaladinHandOfDivinity.uses or 0),
         "pendingInputs=" .. countEntries(self.pendingAcknowledgements),
     }, "; ")
 end
@@ -822,6 +864,15 @@ function HeliHeal:GetSlot(slotIndex)
         if ability.cooldownMultiplierTalent and self:IsTalentActive(ability.cooldownMultiplierTalent) then
             ability.cooldown = math.max(0, ability.cooldown * ability.cooldownMultiplier)
         end
+        if ability.cooldownPercentTalents then
+            local reductionPercent = 0
+            for talentKey, percent in pairs(ability.cooldownPercentTalents) do
+                if self:IsTalentActive(talentKey) then
+                    reductionPercent = reductionPercent + math.max(0, tonumber(percent) or 0)
+                end
+            end
+            ability.cooldown = math.max(0, ability.cooldown * (1 - math.min(100, reductionPercent) / 100))
+        end
         if ability.bonusChargeTalent and self:IsTalentActive(ability.bonusChargeTalent) then
             ability.maxCharges = ability.maxCharges + 1
         end
@@ -874,7 +925,191 @@ function HeliHeal:GetHolyPowerDelta(ability)
     if ability.holyPowerGainTalent and self:IsTalentActive(ability.holyPowerGainTalent) then
         gain = gain + math.max(0, tonumber(ability.holyPowerTalentGain) or 0)
     end
+    if (ability.abilityKey == "paladin_judgment" or ability.abilityKey == "paladin_hammer_of_wrath")
+        and self:GetPaladinInfusionCharges() > 0 then
+        gain = gain + 1
+    end
+    if ability.abilityKey == "paladin_hammer_of_wrath" and self:IsPaladinWingsActive() then
+        -- Hammer replaces Judgment during Avenging Wrath and inherits its
+        -- additional Holy Power generation.
+        gain = gain + 1
+    end
     return gain, math.max(0, tonumber(ability.holyPowerCost) or 0)
+end
+
+function HeliHeal:GetPaladinInfusionState(now)
+    local state = self.pendingPaladinInfusion
+    if state == true or type(state) == "number" then
+        state = {
+            charges = state == true and 1 or math.max(0, math.floor(state)),
+            expiresAt = (now or GetTime()) + PALADIN_INFUSION_DURATION,
+        }
+        self.pendingPaladinInfusion = state
+    end
+    if type(state) ~= "table" then return nil end
+    now = now or GetTime()
+    if (tonumber(state.charges) or 0) <= 0 or now >= (tonumber(state.expiresAt) or 0) then
+        self.pendingPaladinInfusion = nil
+        return nil
+    end
+    return state
+end
+
+function HeliHeal:GetPaladinInfusionCharges(now)
+    local state = self:GetPaladinInfusionState(now)
+    return state and math.max(0, math.floor(tonumber(state.charges) or 0)) or 0
+end
+
+function HeliHeal:ArmPaladinInfusion(now)
+    now = now or GetTime()
+    local state = self:GetPaladinInfusionState(now)
+    local maximum = self:IsTalentActive("paladinInflorescenceSunwell") and 2 or 1
+    self.pendingPaladinInfusion = {
+        charges = math.min(maximum, (state and state.charges or 0) + 1),
+        expiresAt = now + PALADIN_INFUSION_DURATION,
+    }
+    return true
+end
+
+function HeliHeal:GetPaladinInfusionConsumerPriority(abilityKey, now)
+    if self.classToken ~= "PALADIN" or self:GetPaladinInfusionCharges(now) <= 0 then return nil end
+    -- Healing contexts spend Infusion on Flash of Light. Mana Saving is the
+    -- explicit low-pressure/damage context and may convert it through the
+    -- active Judgment replacement for the extra Holy Power instead.
+    if self:GetHealingMode() == "mana" then
+        if abilityKey == "paladin_judgment" or abilityKey == "paladin_hammer_of_wrath" then return 1 end
+        if abilityKey == "paladin_flash_of_light" then return 2 end
+    else
+        if abilityKey == "paladin_flash_of_light" then return 1 end
+        if abilityKey == "paladin_judgment" or abilityKey == "paladin_hammer_of_wrath" then return 2 end
+    end
+end
+
+function HeliHeal:ApplyPaladinInfusionEffects(abilityKey, now)
+    if self.classToken ~= "PALADIN" then return false end
+    if abilityKey == "paladin_holy_light" and self:IsTalentActive("paladinTier4") then
+        return self:ArmPaladinInfusion(now)
+    end
+    local state = self:GetPaladinInfusionState(now)
+    if state
+        and (abilityKey == "paladin_flash_of_light" or abilityKey == "paladin_judgment"
+            or abilityKey == "paladin_hammer_of_wrath") then
+        state.charges = state.charges - 1
+        if state.charges <= 0 then self.pendingPaladinInfusion = nil end
+        if self:IsTalentActive("paladinImbuedInfusions") then
+            self:ReduceLocalAbilityCooldown("paladin_holy_shock", 1, now)
+        end
+        return true
+    end
+    return false
+end
+
+function HeliHeal:IsPaladinWingsActive(now)
+    if self.classToken ~= "PALADIN" then return false end
+    now = now or GetTime()
+    if self.paladinWingsUntil and now >= self.paladinWingsUntil then
+        self.paladinWingsUntil = nil
+    end
+    return self.paladinWingsUntil ~= nil
+end
+
+function HeliHeal:IsPaladinCrusaderActive(now)
+    if self.classToken ~= "PALADIN" then return false end
+    now = now or GetTime()
+    if self.paladinCrusaderUntil and now >= self.paladinCrusaderUntil then
+        self.paladinCrusaderUntil = nil
+    end
+    return self.paladinCrusaderUntil ~= nil
+end
+
+function HeliHeal:GetPaladinMajorCooldownDuration(abilityKey)
+    local base = abilityKey == "paladin_avenging_crusader"
+        and PALADIN_CRUSADER_DURATION or PALADIN_WINGS_DURATION
+    local rank = self.GetTalentRank and self:GetTalentRank("paladinCallOfRighteous") or 0
+    local reduction = abilityKey == "paladin_avenging_crusader" and 2 or 3
+    local duration = math.max(1, base - (math.max(0, rank) * reduction))
+    if self:IsTalentActive("paladinSanctifiedWrath") then duration = duration * 1.5 end
+    return duration
+end
+
+function HeliHeal:GetPaladinHandOfDivinityState(now)
+    local state = self.pendingPaladinHandOfDivinity
+    if not state then return nil end
+    now = now or GetTime()
+    if state.uses <= 0 or now >= state.expiresAt then
+        self.pendingPaladinHandOfDivinity = nil
+        return nil
+    end
+    return state
+end
+
+function HeliHeal:GetPaladinHandOfDivinityPriority(abilityKey, now)
+    if abilityKey ~= "paladin_holy_light" or not self:GetPaladinHandOfDivinityState(now) then return nil end
+    local mode = self:GetHealingMode()
+    return (mode == "single" or mode == "aoe") and 1 or nil
+end
+
+function HeliHeal:ReducePaladinJudgmentCooldown(seconds, now)
+    if self.classToken ~= "PALADIN" then return false end
+    local slotIndex = self:GetSlotIndexByAbilityKey("paladin_judgment")
+    local ability = slotIndex and self:GetSlot(slotIndex)
+    local usedAt = slotIndex and self.sessionUses[slotIndex]
+    if not ability or not usedAt then return false end
+    now = now or GetTime()
+    self.sessionUses[slotIndex] = usedAt - math.max(0, tonumber(seconds) or 0)
+    if now >= self.sessionUses[slotIndex] + ability.cooldown then
+        self.sessionUses[slotIndex] = nil
+    end
+    return true
+end
+
+function HeliHeal:ApplyPaladinCooldownEffects(abilityKey, now)
+    if self.classToken ~= "PALADIN" then return false end
+    local changed = false
+    if abilityKey == "paladin_shield_of_the_righteous" then
+        changed = self:ReduceLocalAbilityCooldown("paladin_holy_shock", 2, now) or changed
+    end
+    if self:IsTalentActive("paladinCrusadersMight")
+        and (abilityKey == "paladin_holy_shock" or abilityKey == "paladin_crusader_strike") then
+        changed = self:ReducePaladinJudgmentCooldown(1.5, now) or changed
+    end
+    return changed
+end
+
+function HeliHeal:ApplyPaladinCastEffects(abilityKey, now)
+    local changed = self:ApplyPaladinInfusionEffects(abilityKey, now)
+    changed = self:ApplyPaladinCooldownEffects(abilityKey, now) or changed
+    if self.classToken ~= "PALADIN" then return changed end
+    now = now or GetTime()
+    if abilityKey == "paladin_holy_light" then
+        local hand = self:GetPaladinHandOfDivinityState(now)
+        if hand then
+            hand.uses = hand.uses - 1
+            if hand.uses <= 0 then self.pendingPaladinHandOfDivinity = nil end
+            changed = true
+        end
+    elseif abilityKey == "paladin_avenging_wrath" then
+        self.paladinWingsUntil = now + self:GetPaladinMajorCooldownDuration(abilityKey)
+        self.paladinCrusaderUntil = nil
+        if self:IsTalentActive("paladinHandOfDivinity") then
+            self.pendingPaladinHandOfDivinity = {
+                uses = 2,
+                expiresAt = now + PALADIN_HAND_OF_DIVINITY_DURATION,
+            }
+        end
+        changed = true
+    elseif abilityKey == "paladin_avenging_crusader" then
+        self.paladinCrusaderUntil = now + self:GetPaladinMajorCooldownDuration(abilityKey)
+        self.paladinWingsUntil = nil
+        if self:IsTalentActive("paladinHandOfDivinity") then
+            self.pendingPaladinHandOfDivinity = {
+                uses = 1,
+                expiresAt = now + PALADIN_HAND_OF_DIVINITY_DURATION,
+            }
+        end
+        changed = true
+    end
+    return changed
 end
 
 function HeliHeal:RecalculateHolyPower()
@@ -1797,6 +2032,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
     end
 
     self:RecordHolyPowerEvent(slotIndex, slot)
+    self:ApplyPaladinCastEffects(slot.abilityKey, now)
     self:ApplyPriestHolyWordEffects(slot.abilityKey, now)
     self:ApplyMistweaverCastEffects(slot.abilityKey, now)
 
@@ -1847,6 +2083,8 @@ function HeliHeal:RefundAbility(abilityName)
         wordofglory = "paladin_word_of_glory", wog = "paladin_word_of_glory",
         eternalflame = "paladin_eternal_flame", flame = "paladin_eternal_flame",
         lightofdawn = "paladin_light_of_dawn", lod = "paladin_light_of_dawn",
+        judgment = "paladin_judgment", hammerofwrath = "paladin_hammer_of_wrath", how = "paladin_hammer_of_wrath",
+        shieldoftherighteous = "paladin_shield_of_the_righteous", sotr = "paladin_shield_of_the_righteous",
         holylight = "paladin_holy_light", flashoflight = "paladin_flash_of_light", fol = "paladin_flash_of_light",
     }
     local key = (abilityName or ""):lower():gsub("[%s_%-]", "")

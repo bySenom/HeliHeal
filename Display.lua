@@ -3,6 +3,7 @@ local HeliHeal = ns.addon
 local L = ns.L or function(value, ...) return select("#", ...) > 0 and value:format(...) or value end
 
 local DISPLAY_SLOT_COUNT = 5
+local SUPPORT_SLOT_COUNT = 6
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local DEFAULT_ROLE_COLORS = {
     AOE = { 0.2, 0.82, 1.0 },
@@ -47,6 +48,21 @@ local function readyBefore(a, b)
         return not a.priestHoldForApotheosis
     end
     if a.preferSpender ~= b.preferSpender then return a.preferSpender end
+    if a.paladinInfusionPriority ~= b.paladinInfusionPriority then
+        if not a.paladinInfusionPriority then return false end
+        if not b.paladinInfusionPriority then return true end
+        return a.paladinInfusionPriority < b.paladinInfusionPriority
+    end
+    if a.paladinHandPriority ~= b.paladinHandPriority then
+        if not a.paladinHandPriority then return false end
+        if not b.paladinHandPriority then return true end
+        return a.paladinHandPriority < b.paladinHandPriority
+    end
+    if a.paladinCrusaderPriority ~= b.paladinCrusaderPriority then
+        if not a.paladinCrusaderPriority then return false end
+        if not b.paladinCrusaderPriority then return true end
+        return a.paladinCrusaderPriority < b.paladinCrusaderPriority
+    end
     if a.preferredConsumer ~= b.preferredConsumer then return a.preferredConsumer end
     if a.druidSoulConsumer ~= b.druidSoulConsumer then return a.druidSoulConsumer end
     if a.unleashPriority ~= b.unleashPriority then
@@ -141,6 +157,70 @@ function HeliHeal:ShouldShowAutomaticManaBadge()
     local profile = self.db and self.db.profile
     return profile and profile.autoManaMode == true and self.Mana
         and self.Mana.current ~= nil and self.Mana.maximum ~= nil
+end
+
+local function createSupportFrame()
+    local frame = CreateFrame("Frame", "HeliHealSupportFrame", UIParent, "BackdropTemplate")
+    frame:SetClampedToScreen(true)
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+    frame:SetBackdropColor(0.018, 0.026, 0.034, 0.92)
+    frame:SetBackdropBorderColor(0.08, 0.14, 0.16, 0.95)
+    frame.accent = frame:CreateTexture(nil, "ARTWORK")
+    frame.accent:SetTexture(WHITE)
+    frame.accent:SetPoint("TOPLEFT", 1, -1)
+    frame.accent:SetPoint("TOPRIGHT", -1, -1)
+    frame.accent:SetHeight(2)
+    frame:SetScript("OnDragStart", function(display)
+        if not HeliHeal.db.profile.locked then display:StartMoving() end
+    end)
+    frame:SetScript("OnDragStop", function(display)
+        display:StopMovingOrSizing()
+        local point, _, relativePoint, x, y = display:GetPoint(1)
+        local profile = HeliHeal.db.profile
+        profile.supportWindowPoint = point
+        profile.supportWindowRelativePoint = relativePoint
+        profile.supportWindowX = x
+        profile.supportWindowY = y
+    end)
+    frame.title = frame:CreateFontString(nil, "OVERLAY")
+    frame.title:SetFont(ns.media.font, 9, "OUTLINE")
+    frame.title:SetPoint("TOPLEFT", 8, -6)
+    frame.title:SetText("DEF / UTILITY")
+    frame.slots = {}
+    for index = 1, SUPPORT_SLOT_COUNT do
+        local button = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+        button:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+        button.shadow = button:CreateTexture(nil, "BACKGROUND", nil, -1)
+        button.shadow:SetTexture(WHITE)
+        button.shadow:SetColorTexture(0, 0, 0, 0.55)
+        button.shadow:SetPoint("TOPLEFT", -4, 4)
+        button.shadow:SetPoint("BOTTOMRIGHT", 4, -4)
+        button.icon = button:CreateTexture(nil, "ARTWORK")
+        button.icon:SetAllPoints()
+        button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
+        button.cooldown:SetAllPoints(button.icon)
+        button.cooldown:SetDrawEdge(false)
+        button.cooldown:SetHideCountdownNumbers(true)
+        button.remaining = button:CreateFontString(nil, "OVERLAY")
+        button.remaining:SetFont(ns.media.font, 14, "OUTLINE")
+        button.remaining:SetPoint("CENTER")
+        button.keyBadge = CreateFrame("Frame", nil, button, "BackdropTemplate")
+        button.keyBadge:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+        button.key = button.keyBadge:CreateFontString(nil, "OVERLAY")
+        button.key:SetFont(ns.media.font, 9, "OUTLINE")
+        button.key:SetPoint("CENTER")
+        button.name = button:CreateFontString(nil, "OVERLAY")
+        button.name:SetFont(ns.media.font, 9, "OUTLINE")
+        button.name:SetPoint("BOTTOM", button, "TOP", 0, 4)
+        button.name:SetWidth(106)
+        button.name:SetMaxLines(1)
+        frame.slots[index] = button
+    end
+    frame:Hide()
+    return frame
 end
 
 function HeliHeal:CreateDisplay()
@@ -284,6 +364,7 @@ function HeliHeal:CreateDisplay()
     end)
 
     self.frame = frame
+    self.supportFrame = createSupportFrame()
 
     local dispelFrame = CreateFrame("Frame", "HeliHealDispelCursorFrame", UIParent, "BackdropTemplate")
     dispelFrame:SetFrameStrata("TOOLTIP")
@@ -304,6 +385,51 @@ function HeliHeal:CreateDisplay()
     end)
     dispelFrame:Hide()
     self.dispelCursorFrame = dispelFrame
+end
+
+function HeliHeal:GetSupportDisplayOrder(now)
+    if self.classToken ~= "PALADIN" or self.specializationID ~= 65 then return {} end
+    now = now or GetTime()
+    self.supportReadyScratch = self.supportReadyScratch or {}
+    self.supportWaitingScratch = self.supportWaitingScratch or {}
+    self.supportItemScratch = self.supportItemScratch or {}
+    local ready, waiting = self.supportReadyScratch, self.supportWaitingScratch
+    clearArray(ready)
+    clearArray(waiting)
+    local keys = ns.AbilityLibrary:GetPresetSupportKeys(self.db.profile.rotationPreset)
+    local ranks = {}
+    for rank, abilityKey in ipairs(keys) do ranks[abilityKey] = rank end
+    for slotIndex, configuredSlot in ipairs(self.db.profile.slots or {}) do
+        local ability = configuredSlot and self:GetSlot(slotIndex)
+        local priorityRank = ability and ranks[ability.abilityKey]
+        if ability and ability.enabled and priorityRank then
+            local usedAt, readyAt, charges
+            if ability.maxCharges > 1 then
+                local state = self:GetChargeState(slotIndex, ability, now)
+                charges = state.baseCharges + state.bonusCharges
+                readyAt = charges > 0 and 0 or (state.nextRechargeAt or 0)
+                usedAt = readyAt > 0 and (readyAt - ability.cooldown) or nil
+            else
+                usedAt = self.sessionUses[slotIndex]
+                readyAt = usedAt and (usedAt + ability.cooldown) or 0
+            end
+            local item = self.supportItemScratch[slotIndex] or {}
+            self.supportItemScratch[slotIndex] = item
+            item.slotIndex = slotIndex
+            item.ability = ability
+            item.usedAt = usedAt
+            item.readyAt = readyAt
+            item.remaining = math.max(0, readyAt - now)
+            item.charges = charges
+            item.cooldownDuration = ability.cooldown
+            item.priorityRank = priorityRank
+            if item.remaining <= 0 then ready[#ready + 1] = item else waiting[#waiting + 1] = item end
+        end
+    end
+    table.sort(ready, function(a, b) return a.priorityRank < b.priorityRank end)
+    table.sort(waiting, waitingBefore)
+    for _, item in ipairs(waiting) do ready[#ready + 1] = item end
+    return ready
 end
 
 function HeliHeal:GetDisplayOrder(now)
@@ -372,15 +498,31 @@ function HeliHeal:GetDisplayOrder(now)
         end
         if ability and self.classToken == "PALADIN" then
             local holyPower = self.sessionHolyPower or 0
-            local holyPowerGain = self:GetHolyPowerDelta(ability)
+            local wingsActive = self:IsPaladinWingsActive(now)
+            local crusaderActive = self:IsPaladinCrusaderActive(now)
             if (ability.holyPowerCost or 0) > holyPower
                 and (self.pendingFreeHolyPowerSpenders or 0) <= 0 then
                 contextAvailable = false
             elseif ability.maxHolyPower and holyPower > ability.maxHolyPower then
                 contextAvailable = false
-            elseif holyPowerGain > 0 and holyPower >= 5 then
+            elseif ability.abilityKey == "paladin_judgment" and self:GetPaladinInfusionCharges(now) > 0
+                and holyPower > 3 then
+                -- Infused Judgment generates two Holy Power. Hold it at four
+                -- points so the healing consumer can be used without waste.
                 contextAvailable = false
             end
+            if ability.abilityKey == "paladin_hammer_of_wrath" then
+                contextAvailable = contextAvailable and wingsActive
+            elseif ability.abilityKey == "paladin_judgment" then
+                contextAvailable = contextAvailable and not wingsActive
+            elseif ability.abilityKey == "paladin_crusader_strike" then
+                contextAvailable = contextAvailable and crusaderActive
+            end
+            -- Keep ordinary generators in the secondary queue at the Holy
+            -- Power cap. The ready-order sorter forces a healing spender into
+            -- the primary position first; after that cast, these become valid
+            -- follow-up actions. Removing them from the entire queue left the
+            -- five-icon strip with only three useful entries.
         end
         if ability and ability.enabled and priorityRank and contextAvailable and not swiftnessIsArmed then
             -- In contextual modes Downpour temporarily occupies Healing Rain's
@@ -462,6 +604,12 @@ function HeliHeal:GetDisplayOrder(now)
             item.cooldownDuration = cooldownDuration
             item.priorityRank = priorityRank
             item.preferSpender = preferHolyPowerSpender and (ability.holyPowerCost or 0) > 0 or false
+            item.paladinInfusionPriority = self:GetPaladinInfusionConsumerPriority(ability.abilityKey, now)
+            item.paladinHandPriority = self:GetPaladinHandOfDivinityPriority(ability.abilityKey, now)
+            item.paladinCrusaderPriority = self:IsPaladinCrusaderActive(now)
+                and (ability.abilityKey == "paladin_judgment" and 1
+                    or ability.abilityKey == "paladin_crusader_strike" and 2 or nil)
+                or nil
             item.preferredConsumer = preferredConsumer == ability.abilityKey
             item.druidSoulConsumer = self:IsDruidSoulReady(now)
                 and (ability.abilityKey == "druid_rejuvenation" or ability.abilityKey == "druid_regrowth")
@@ -499,11 +647,201 @@ function HeliHeal:ApplyDisplaySettings()
     frame:SetScale(profile.scale)
     frame:EnableMouse(not profile.locked)
     frame:SetShown(profile.enabled and self.supportedClass)
+    if self.supportFrame then
+        self.supportFrame:ClearAllPoints()
+        self.supportFrame:SetPoint(profile.supportWindowPoint or "CENTER", UIParent,
+            profile.supportWindowRelativePoint or "CENTER",
+            profile.supportWindowX or 0, profile.supportWindowY or -250)
+        self.supportFrame:SetScale(profile.supportWindowScale or 1)
+        self.supportFrame:EnableMouse(not profile.locked)
+        if not profile.enabled or not self.supportedClass or profile.showSupportWindow == false then
+            self.supportFrame:Hide()
+        end
+    end
     if self.dispelCursorFrame and (not profile.enabled or not self.supportedClass
         or not profile.showDispelCursor) then
         self.dispelCursorFrame:Hide()
     end
     self:RefreshDisplay()
+end
+
+function HeliHeal:RefreshSupportWindow(now)
+    local frame = self.supportFrame
+    local profile = self.db and self.db.profile
+    local order = frame and self:GetSupportDisplayOrder(now) or nil
+    if not frame or not profile or not profile.enabled or profile.showSupportWindow == false
+        or not order or #order == 0 then
+        if frame then frame:Hide() end
+        return
+    end
+    local width = clamp(profile.supportWindowIconWidth, 24, 128, 46)
+    local height = clamp(profile.supportWindowIconHeight, 24, 128, 46)
+    local spacing = clamp(profile.supportWindowSpacing, 0, 40, 7)
+    local vertical = profile.supportWindowOrientation == "VERTICAL"
+    local showPanelBackground = profile.supportWindowShowPanelBackground == true
+    local showHeader = profile.supportWindowShowHeader == true
+    local showAbilityName = profile.supportWindowShowAbilityName == true
+    local showIconBorder = profile.supportWindowShowIconBorder ~= false
+    local showHotkey = profile.supportWindowShowHotkey ~= false
+    local showCooldown = profile.supportWindowShowCooldown ~= false
+    local font, flags = getHudFont(profile), getFontFlags(profile)
+    local hotkeySize = clamp(profile.hotkeyFontSize, 7, 20, 9)
+    local cooldownSize = clamp(profile.cooldownFontSize, 10, 30, 14)
+    local abilityNameSize = clamp(profile.abilityNameFontSize, 7, 20, 9)
+    local headerSize = clamp(profile.headerFontSize, 7, 20, 9)
+    local hotkeyHeight = clamp(profile.hotkeyBadgeHeight, 12, 44, 18)
+    local hotkeyOffsetX = clamp(profile.hotkeyOffsetX, -80, 80, 0)
+    local hotkeyOffsetY = clamp(profile.hotkeyOffsetY, -40, 40, -8)
+    local iconInset = clamp(profile.supportWindowIconInset, 0, 12, 4)
+    local secondaryOffsetX = clamp(profile.supportWindowIconOffsetX, -40, 40, 0)
+    local secondaryOffsetY = clamp(profile.supportWindowIconOffsetY, -40, 40, 0)
+    local configuredPaddingX = clamp(profile.supportWindowPaddingX, 0, 40, 2)
+    local configuredPaddingY = clamp(profile.supportWindowPaddingY, 0, 40, 2)
+    local sidePadding = showPanelBackground and math.max(10, configuredPaddingX) or configuredPaddingX
+    local crop = getIconCrop(profile.supportWindowIconZoom)
+    local accentR, accentG, accentB = getColor(profile.accentColor, DEFAULT_ACCENT)
+    local hotkeyR, hotkeyG, hotkeyB = getColor(profile.hotkeyColor, DEFAULT_HOTKEY)
+    local cooldownR, cooldownG, cooldownB = getColor(profile.cooldownColor, DEFAULT_COOLDOWN)
+    local panelR, panelG, panelB = getColor(profile.panelBackgroundColor, DEFAULT_PANEL)
+    local borderR, borderG, borderB = getColor(profile.panelBorderColor, DEFAULT_PANEL_BORDER)
+    local iconR, iconG, iconB = getColor(profile.iconBackgroundColor, DEFAULT_ICON_BACKGROUND)
+    local nameR, nameG, nameB = getColor(profile.abilityNameColor, DEFAULT_NAME)
+    local headerR, headerG, headerB = getColor(profile.headerColor, DEFAULT_ACCENT)
+    local hotkeyBackgroundR, hotkeyBackgroundG, hotkeyBackgroundB =
+        getColor(profile.hotkeyBackgroundColor, DEFAULT_PANEL)
+    local count = math.min(SUPPORT_SLOT_COUNT, #order)
+    local bottomPadding = configuredPaddingY
+    if showHotkey then
+        bottomPadding = math.max(bottomPadding, math.max(0, -hotkeyOffsetY + (hotkeyHeight / 2)) + 2)
+    end
+    bottomPadding = bottomPadding + math.max(0, -secondaryOffsetY)
+    local topPadding = configuredPaddingY
+        + (showHeader and (headerSize + 13) or 0)
+        + (showAbilityName and (abilityNameSize
+            + math.max(6, clamp(profile.abilityNameOffsetY, -40, 60, 4))) or 0)
+        + math.max(0, secondaryOffsetY)
+    local hotkeyExtra = showHotkey and math.max(0, -hotkeyOffsetY + (hotkeyHeight / 2)) + 2 or 0
+    local nameExtra = showAbilityName and (abilityNameSize
+        + math.max(6, clamp(profile.abilityNameOffsetY, -40, 60, 4))) or 0
+    local verticalGap = spacing + hotkeyExtra + nameExtra
+    frame:SetScale(profile.supportWindowScale or 1)
+    if showPanelBackground then
+        frame:SetBackdropColor(panelR, panelG, panelB,
+            clamp(profile.supportWindowPanelBackgroundAlpha, 0, 1, 0.92))
+        frame:SetBackdropBorderColor(borderR, borderG, borderB, 0.95)
+    else
+        frame:SetBackdropColor(0, 0, 0, 0)
+        frame:SetBackdropBorderColor(0, 0, 0, 0)
+    end
+    frame.accent:SetColorTexture(accentR, accentG, accentB, 1)
+    frame.accent:SetShown(showPanelBackground)
+    frame.title:SetFont(font, headerSize, flags)
+    frame.title:ClearAllPoints()
+    frame.title:SetPoint("TOPLEFT", frame, "TOPLEFT",
+        clamp(profile.headerOffsetX, -80, 80, 10), clamp(profile.headerOffsetY, -50, 30, -9))
+    frame.title:SetTextColor(headerR, headerG, headerB, 1)
+    frame.title:SetText("DEF / UTILITY")
+    frame.title:SetShown(showHeader)
+    local totalWidth, previousBadgeWidth, lastOverhang, maxOverhang = 0, nil, 0, 0
+    for index = 1, SUPPORT_SLOT_COUNT do
+        local button, item = frame.slots[index], order[index]
+        if item then
+            button:SetSize(width, height)
+            button:SetBackdropColor(iconR, iconG, iconB, 1)
+            button:ClearAllPoints()
+            local configuredSlot = self.db.profile.slots[item.slotIndex]
+            local hotkey = configuredSlot.inputKey or ("P" .. item.slotIndex)
+            if profile.compactHotkeys ~= false then hotkey = self:FormatHotkeyLabel(hotkey) end
+            button.key:SetFont(font, hotkeySize, flags)
+            button.key:SetTextColor(hotkeyR, hotkeyG, hotkeyB, 1)
+            button.key:SetText(hotkey)
+            button.keyBadge:SetHeight(math.max(hotkeyHeight, hotkeySize + 4))
+            local badgeWidth = math.max(clamp(profile.hotkeyBadgeMinWidth, 20, 180, 46),
+                button.key:GetStringWidth() + clamp(profile.hotkeyBadgePadding, 0, 60, 16))
+            button.keyBadge:SetWidth(badgeWidth)
+            local layoutBadgeWidth = showHotkey
+                and (badgeWidth + (math.abs(hotkeyOffsetX) * 2)) or width
+            local overhang = self:GetHotkeyBadgeOverhang(width, layoutBadgeWidth)
+            maxOverhang = math.max(maxOverhang, overhang)
+            if index == 1 then
+                button:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT",
+                    sidePadding + overhang + math.max(0, -secondaryOffsetX) + secondaryOffsetX,
+                    bottomPadding + secondaryOffsetY)
+                totalWidth = overhang + math.max(0, -secondaryOffsetX) + secondaryOffsetX + width
+            elseif vertical then
+                button:SetPoint("BOTTOM", frame.slots[index - 1], "TOP", 0, verticalGap)
+            else
+                local badgeSpacing = self:GetBadgeAwareSpacing(
+                    width, previousBadgeWidth, width, layoutBadgeWidth, spacing)
+                button:SetPoint("LEFT", frame.slots[index - 1], "RIGHT", badgeSpacing, 0)
+                totalWidth = totalWidth + badgeSpacing + width
+            end
+            button:SetBackdropBorderColor(item.remaining <= 0 and accentR or 0.15,
+                item.remaining <= 0 and accentG or 0.2,
+                item.remaining <= 0 and accentB or 0.23,
+                showIconBorder and 1 or 0)
+            button.icon:ClearAllPoints()
+            if showIconBorder then
+                button.icon:SetPoint("TOPLEFT", iconInset, -iconInset)
+                button.icon:SetPoint("BOTTOMRIGHT", -iconInset, iconInset)
+                button.shadow:Show()
+            else
+                button.icon:SetAllPoints()
+                button.shadow:Hide()
+            end
+            button.icon:SetTexture(item.ability.icon)
+            button.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
+            button.icon:SetDesaturated(item.remaining > 0)
+            if item.usedAt and item.cooldownDuration > 0 then
+                button.cooldown:SetCooldown(item.usedAt, item.cooldownDuration)
+            else
+                button.cooldown:Clear()
+            end
+            button.remaining:SetFont(font, cooldownSize, flags)
+            button.remaining:ClearAllPoints()
+            button.remaining:SetPoint("CENTER", button, "CENTER",
+                clamp(profile.cooldownOffsetX, -80, 80, 0),
+                clamp(profile.cooldownOffsetY, -80, 80, 0))
+            button.remaining:SetTextColor(cooldownR, cooldownG, cooldownB, 1)
+            if item.remaining > 0 then
+                button.remaining:SetText(formatRemaining(item.remaining))
+            elseif item.charges and item.charges > 1 then
+                button.remaining:SetText(("×%d"):format(item.charges))
+            else
+                button.remaining:SetText("")
+            end
+            button.remaining:SetShown(showCooldown)
+            button.keyBadge:ClearAllPoints()
+            button.keyBadge:SetPoint("BOTTOM", button, "BOTTOM", hotkeyOffsetX, hotkeyOffsetY)
+            button.keyBadge:SetBackdropColor(hotkeyBackgroundR, hotkeyBackgroundG, hotkeyBackgroundB, 0.94)
+            button.keyBadge:SetBackdropBorderColor(accentR, accentG, accentB, 0.8)
+            button.keyBadge:SetShown(showHotkey)
+            button.name:SetFont(font, abilityNameSize, flags)
+            button.name:SetTextColor(nameR, nameG, nameB, 1)
+            button.name:SetWidth(clamp(profile.abilityNameWidth, 40, 240, 106))
+            button.name:ClearAllPoints()
+            button.name:SetPoint("BOTTOM", button, "TOP",
+                clamp(profile.abilityNameOffsetX, -100, 100, 0),
+                clamp(profile.abilityNameOffsetY, -40, 60, 4))
+            button.name:SetText(item.ability.name)
+            button.name:SetShown(showAbilityName)
+            button:Show()
+            previousBadgeWidth = layoutBadgeWidth
+            lastOverhang = overhang
+        else
+            button:Hide()
+        end
+    end
+    if vertical then
+        local nameWidth = showAbilityName and clamp(profile.abilityNameWidth, 40, 240, 106) or 0
+        local contentWidth = math.max(width + (maxOverhang * 2), nameWidth)
+        frame:SetSize(contentWidth + (sidePadding * 2) + math.abs(secondaryOffsetX),
+            (count * height) + ((count - 1) * verticalGap) + topPadding + bottomPadding)
+    else
+        frame:SetSize(totalWidth + sidePadding + lastOverhang + math.max(0, secondaryOffsetX),
+            height + topPadding + bottomPadding)
+    end
+    frame:Show()
 end
 
 function HeliHeal:UpdateDispelCursorPosition(frame)
@@ -564,12 +902,14 @@ end
 
 function HeliHeal:RefreshDisplay()
     if not self.frame or not self.db.profile.enabled then
+        if self.supportFrame then self.supportFrame:Hide() end
         if self.dispelCursorFrame then self.dispelCursorFrame:Hide() end
         return
     end
 
     local now = GetTime()
     self:RefreshDispelCursor(now)
+    self:RefreshSupportWindow(now)
     if self.Mana and self.Mana:EvaluateAutoMode(now) then return end
     local order = self:GetDisplayOrder(now)
     local profile = self.db.profile

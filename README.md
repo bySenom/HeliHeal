@@ -18,6 +18,7 @@ HeliHeal 1.0 is the first stable release. Individual experimental features are m
 - Successful-cast confirmation and live GCD locking
 - Optional healer-dispel cooldown display beside the mouse cursor
 - Local cooldown, charge and HoT estimates
+- Separate Holy Paladin DEF / UTILITY readiness strip with talent-adjusted local timers
 - Optional AOE, SINGLE, BURST and SAVE role labels on contextual healing icons
 - Per-element HUD sizing, positioning, icon zoom, fonts, outlines and colors
 - Out-of-combat spell-haste snapshots for haste-scaled healer cooldowns
@@ -56,6 +57,8 @@ HeliHeal 1.0 is the first stable release. Individual experimental features are m
 HeliHeal observes configured action-bar and physical mouse inputs without replacing Blizzard's protected input handling. A recommendation advances only after Blizzard confirms that the expected player spell succeeded. Failed, interrupted or unmatched inputs do not consume it.
 
 Class mechanics such as Healing Stream charges, Stormstream uses, Riptide recharge, Rejuvenation and Renewing Mist coverage, Thunder Focus Tea empowers, Holy Power, Holy Word cooldown reduction and Discipline Priest charge/recharge rules are simulated locally from confirmed casts and an out-of-combat talent snapshot.
+
+Holy Paladin's exact supported state model and the situations that still require player judgment are documented in [PALADIN_SUPPORT.md](PALADIN_SUPPORT.md).
 
 ## Commands
 

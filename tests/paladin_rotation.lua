@@ -15,6 +15,7 @@ assert(loadfile("Input.lua"))("HeliHeal", namespace)
 assert(loadfile("Display.lua"))("HeliHeal", namespace)
 
 addon.classToken = "PALADIN"
+addon.specializationID = 65
 addon.db = {
     profile = {
         rotationPreset = "paladin_herald_mythicplus",
@@ -32,11 +33,26 @@ addon.talentSnapshot = {
     paladinHolyPrism = false,
     paladinQuickenedInvocation = true,
     paladinLightsConviction = true,
+    paladinCrusadersMight = true,
+    paladinImbuedInfusions = true,
+    paladinInflorescenceSunwell = false,
+    paladinSanctifiedWrath = false,
+    paladinHandOfDivinity = false,
     paladinAvengingWrath = false,
     paladinAvengingCrusader = false,
     paladinRingingHeavens = false,
     paladinWalkIntoLight = false,
     paladinBeaconVirtue = true,
+    paladinTier4 = true,
+    paladinBlessingSacrifice = true,
+    paladinSacrificeOfTheJust = true,
+    paladinBlessingProtection = true,
+    paladinImprovedBlessingProtection = true,
+    paladinLayOnHands = true,
+    paladinTirionsDevotion = true,
+    paladinDivineSteed = true,
+    paladinCavalier = true,
+    paladinUnbreakableSpirit = true,
 }
 addon.IsTalentActive = function(self, key)
     return self.talentSnapshot.available and self.talentSnapshot[key] == true
@@ -56,6 +72,15 @@ local dawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
 local holyLightIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_light")
 local flashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
 local virtueIndex = addon:GetSlotIndexByAbilityKey("paladin_beacon_of_virtue")
+local hammerIndex = addon:GetSlotIndexByAbilityKey("paladin_hammer_of_wrath")
+local shieldIndex = addon:GetSlotIndexByAbilityKey("paladin_shield_of_the_righteous")
+local crusaderStrikeIndex = addon:GetSlotIndexByAbilityKey("paladin_crusader_strike")
+local protectionIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_protection")
+local shieldDefensiveIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_shield")
+local sacrificeIndex = addon:GetSlotIndexByAbilityKey("paladin_blessing_of_sacrifice")
+local layOnHandsIndex = addon:GetSlotIndexByAbilityKey("paladin_lay_on_hands")
+local blessingProtectionIndex = addon:GetSlotIndexByAbilityKey("paladin_blessing_of_protection")
+local steedIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_steed")
 
 assert(addon:GetSlot(tollIndex).cooldown == 30,
     "Quickened Invocation must reduce Divine Toll to 30 seconds")
@@ -64,24 +89,103 @@ assert(addon:GetSlot(shockIndex).maxCharges == 2,
 assert(addon:GetSlot(virtueIndex).enabled and addon:GetSlot(virtueIndex).cooldown == 15
     and addon:GetSlot(virtueIndex).roleLabel == "BURST",
     "selected Beacon of Virtue must be a tracked 15-second Mythic+ burst setup")
+assert(not dawnIndex, "Mythic+ must not expose Light of Dawn as a priority or binding")
 local function containsAbility(keys, expected)
     for _, key in ipairs(keys) do
         if key == expected then return true end
     end
     return false
 end
+local function abilityPosition(keys, expected)
+    for index, key in ipairs(keys) do
+        if key == expected then return index end
+    end
+end
+local function displayContains(items, expected)
+    for _, item in ipairs(items) do
+        if item.ability.abilityKey == expected then return true end
+    end
+    return false
+end
+
+assert(protectionIndex and shieldDefensiveIndex and sacrificeIndex and layOnHandsIndex
+    and blessingProtectionIndex and steedIndex,
+    "Paladin presets must register every defensive, external and movement support binding")
+assert(addon:GetSlot(protectionIndex).cooldown == 42
+    and addon:GetSlot(shieldDefensiveIndex).cooldown == 210,
+    "Unbreakable Spirit must reduce the local Divine Protection and Divine Shield timers by 30 percent")
+assert(addon:GetSlot(sacrificeIndex).cooldown == 105
+    and addon:GetSlot(blessingProtectionIndex).cooldown == 240,
+    "selected blessing talents must reduce the local Sacrifice and Protection timers")
+assert(math.abs(addon:GetSlot(layOnHandsIndex).cooldown - 180) < 0.001,
+    "Tirion's Devotion and Unbreakable Spirit must both contribute to Lay on Hands' local timer")
+assert(addon:GetSlot(steedIndex).maxCharges == 2,
+    "Cavalier must grant the second locally tracked Divine Steed charge")
+local supportOrder = addon:GetSupportDisplayOrder(now)
+assert(#supportOrder == 6 and displayContains(supportOrder, "paladin_divine_protection")
+    and displayContains(supportOrder, "paladin_divine_steed"),
+    "the separate support strip must expose ready Paladin tools")
+assert(not displayContains(addon:GetDisplayOrder(now), "paladin_divine_protection")
+    and not displayContains(addon:GetDisplayOrder(now), "paladin_divine_steed"),
+    "support tools must never enter the five healing recommendations")
+addon:AcknowledgeSlot(protectionIndex)
+supportOrder = addon:GetSupportDisplayOrder(now)
+for _, item in ipairs(supportOrder) do
+    if item.ability.abilityKey == "paladin_divine_protection" then
+        assert(item.remaining == 42,
+            "a confirmed defensive cast must start its talent-adjusted local cooldown")
+    end
+end
+addon:ResetRuntimeState()
+for _, presetKey in ipairs({
+        "paladin_herald_mythicplus", "paladin_lightsmith_mythicplus",
+        "paladin_herald_raid", "paladin_lightsmith_raid",
+    }) do
+    for _, mode in ipairs({ "standard", "aoe", "single", "mana" }) do
+        local keys = namespace.AbilityLibrary:GetPresetPriorityKeys(presetKey, mode)
+        assert(abilityPosition(keys, "paladin_shield_of_the_righteous"),
+            "every Holy Paladin mode must expose Shield of the Righteous for confirmed damage spending")
+        assert(abilityPosition(keys, "paladin_judgment")
+            and abilityPosition(keys, "paladin_hammer_of_wrath")
+            and abilityPosition(keys, "paladin_flash_of_light")
+            and abilityPosition(keys, "paladin_holy_light"),
+            "every Holy Paladin mode must retain both healing and damage fillers")
+        if mode == "aoe" or mode == "single" then
+            assert(abilityPosition(keys, "paladin_flash_of_light") < abilityPosition(keys, "paladin_judgment")
+                and abilityPosition(keys, "paladin_holy_light") < abilityPosition(keys, "paladin_judgment"),
+                "explicit healing contexts must prefer direct healing over damage fillers")
+        end
+    end
+end
+assert(addon:GetSlot(hammerIndex).cooldown == 6.25 and addon:GetSlot(hammerIndex).holyPowerGain == 1,
+    "cached haste must scale Hammer of Wrath and its confirmed cast must generate Holy Power")
+assert(addon:GetSlot(shieldIndex).holyPowerCost == 3,
+    "Shield of the Righteous must remain a bindable three-Holy-Power spender")
+assert(not addon:GetSlot(crusaderStrikeIndex).enabled,
+    "Crusader Strike must stay disabled without Avenging Crusader")
 assert(containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
         "paladin_herald_mythicplus", "standard"), "paladin_beacon_of_virtue")
     and containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
         "paladin_herald_mythicplus", "aoe"), "paladin_beacon_of_virtue"),
     "Virtue must be available in Mythic+ Standard and AoE modes")
+assert(containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
+        "paladin_herald_raid", "standard"), "paladin_beacon_of_virtue")
+    and containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
+        "paladin_herald_raid", "aoe"), "paladin_beacon_of_virtue"),
+    "selected Beacon of Virtue must also remain available in Raid priorities")
 assert(not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
         "paladin_herald_mythicplus", "single"), "paladin_beacon_of_virtue")
     and not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(
         "paladin_herald_mythicplus", "mana"), "paladin_beacon_of_virtue"),
     "Virtue must not be forced by Single Target or Mana Saving modes")
-assert(addon:GetSlot(dawnIndex).roleLabel == "AOE"
-    and addon:GetSlot(holyLightIndex).roleLabel == "SAVE"
+for _, presetKey in ipairs({ "paladin_herald_mythicplus", "paladin_lightsmith_mythicplus" }) do
+    for _, mode in ipairs({ "standard", "aoe", "single", "mana" }) do
+        assert(not containsAbility(namespace.AbilityLibrary:GetPresetPriorityKeys(presetKey, mode),
+                "paladin_light_of_dawn"),
+            "every Holy Paladin Mythic+ mode must omit Light of Dawn")
+    end
+end
+assert(addon:GetSlot(holyLightIndex).roleLabel == "SAVE"
     and addon:GetSlot(flashIndex).roleLabel == "BURST",
     "Paladin contextual heal labels must survive preset resolution")
 assert(addon:GetSlot(shockIndex).cooldown == 5,
@@ -89,6 +193,13 @@ assert(addon:GetSlot(shockIndex).cooldown == 5,
 local judgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")
 assert(addon:GetSlot(judgmentIndex).cooldown == 9.17,
     "cached spell haste must also reduce Judgment's eleven-second cooldown")
+addon:AcknowledgeSlot(judgmentIndex)
+now = 1
+addon:AcknowledgeSlot(shockIndex)
+assert(addon.sessionUses[judgmentIndex] == -1.5,
+    "Crusader's Might must reduce the running Judgment cooldown by 1.5 seconds per Holy Shock")
+addon:ResetRuntimeState()
+now = 0
 InCombatLockdown = function() return true end
 UnitSpellHaste = function() return 100 end
 assert(not addon:RefreshSpellHasteSnapshot(true) and addon:GetSlot(shockIndex).cooldown == 5,
@@ -124,6 +235,13 @@ assert(addon.sessionHolyPower == 5, "the second Holy Shock must cap the local es
 order = addon:GetDisplayOrder(now)
 assert(order[1].ability.abilityKey == "paladin_eternal_flame",
     "Herald Mythic+ must force Eternal Flame first at five Holy Power")
+assert(#order >= 5 and containsAbility({
+        order[2].ability.abilityKey,
+        order[3].ability.abilityKey,
+        order[4].ability.abilityKey,
+        order[5].ability.abilityKey,
+    }, "paladin_judgment"),
+    "capped Holy Power must retain five recommendations with Judgment behind the spender")
 
 addon:AcknowledgeSlot(flameIndex)
 assert(addon.sessionHolyPower == 2, "Eternal Flame must spend three local Holy Power")
@@ -134,7 +252,8 @@ assert(addon.sessionHolyPower == 0, "a spender at three Holy Power must return t
 order = addon:GetDisplayOrder(now)
 for _, item in ipairs(order) do
     assert(item.ability.abilityKey ~= "paladin_eternal_flame"
-        and item.ability.abilityKey ~= "paladin_light_of_dawn",
+        and item.ability.abilityKey ~= "paladin_light_of_dawn"
+        and item.ability.abilityKey ~= "paladin_shield_of_the_righteous",
         "spenders must hide again after falling below three Holy Power")
 end
 
@@ -144,28 +263,45 @@ addon.talentSnapshot.paladinLightsmith = true
 addon.talentSnapshot.paladinDivineToll = false
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
 local wordIndex = addon:GetSlotIndexByAbilityKey("paladin_word_of_glory")
+local raidDawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
 assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 45,
     "Lightsmith must expose its two-charge Holy Armament with Quickened Invocation")
 assert(addon:GetSlot(wordIndex).enabled and not addon:GetSlotIndexByAbilityKey("paladin_eternal_flame"),
     "Lightsmith must use Word of Glory instead of Eternal Flame")
-assert(not addon:GetSlotIndexByAbilityKey("paladin_beacon_of_virtue"),
-    "Beacon of Virtue must remain exclusive to the Mythic+ priority packs")
-assert(namespace.AbilityLibrary:GetPresetPriorityKeys("paladin_lightsmith_raid", "standard")[3]
+assert(addon:GetSlotIndexByAbilityKey("paladin_beacon_of_virtue"),
+    "Beacon of Virtue must remain bindable in Raid when the talent is selected")
+assert(addon:GetSlot(raidDawnIndex).roleLabel == "AOE",
+    "Raid must retain Light of Dawn as its labelled AoE spender")
+assert(namespace.AbilityLibrary:GetPresetPriorityKeys("paladin_lightsmith_raid", "standard")[1]
         == "paladin_holy_armament",
-    "Lightsmith Raid must keep Holy Armament ahead of its normal healing priority")
+    "Lightsmith Raid must open with Holy Armament instead of a situational major cooldown")
 assert(namespace.AbilityLibrary:GetPresetPriorityKeys("paladin_lightsmith_raid", "standard")[5]
         == "paladin_light_of_dawn",
-    "Raid standard mode must prioritize Light of Dawn as its spender")
+    "Raid standard mode must keep Word of Glory ahead of the situational Light of Dawn")
+for _, abilityKey in ipairs(namespace.AbilityLibrary:GetPresetPriorityKeys(
+        "paladin_lightsmith_raid", "standard")) do
+    assert(abilityKey ~= "paladin_avenging_wrath" and abilityKey ~= "paladin_avenging_crusader"
+        and abilityKey ~= "paladin_aura_mastery",
+        "Standard mode must not force situational major cooldowns")
+end
+assert(namespace.AbilityLibrary:GetPresetPriorityKeys("paladin_lightsmith_raid", "aoe")[1]
+        == "paladin_aura_mastery",
+    "explicit AoE mode must retain the optional major-cooldown path")
 
 addon:SetRotationPreset("paladin_herald_mythicplus")
 addon.talentSnapshot.paladinHerald = true
 addon.talentSnapshot.paladinLightsmith = false
 addon.talentSnapshot.paladinDivineToll = true
 addon.talentSnapshot.paladinAvengingWrath = true
+addon.talentSnapshot.paladinHandOfDivinity = true
 addon.talentSnapshot.paladinWalkIntoLight = true
 addon.talentSnapshot.paladinAurora = false
 local wingsIndex = addon:GetSlotIndexByAbilityKey("paladin_avenging_wrath")
 assert(addon:GetSlot(wingsIndex).enabled, "Avenging Wrath must replace the unselected Avenging Crusader")
+order = addon:GetDisplayOrder(now)
+assert(displayContains(order, "paladin_judgment")
+    and not displayContains(order, "paladin_hammer_of_wrath"),
+    "Judgment alone must occupy the damage-generator branch outside Wings")
 addon:SetHolyPowerEstimate(0, true)
 addon:AcknowledgeSlot(tollIndex)
 addon:AcknowledgeSlot(shockIndex)
@@ -176,6 +312,43 @@ assert(addon.sessionHolyPower == 1,
 addon:AcknowledgeSlot(wingsIndex)
 assert(addon.sessionHolyPower == 1,
     "Walk Into Light must not generate Holy Power after its 12.0.5 redesign")
+order = addon:GetDisplayOrder(now)
+assert(addon:IsPaladinWingsActive(now)
+    and displayContains(order, "paladin_hammer_of_wrath")
+    and not displayContains(order, "paladin_judgment"),
+    "Hammer of Wrath alone must replace Judgment during confirmed Wings")
+assert(addon.pendingPaladinHandOfDivinity and addon.pendingPaladinHandOfDivinity.uses == 2,
+    "Hand of Divinity must arm two Holy Lights after Avenging Wrath")
+addon:SetHolyPowerEstimate(0, true)
+assert(addon:RecordPlayerSpellSucceeded(24275, "Wings-Hammer"),
+    "Hammer of Wrath must be directly confirmable during Wings")
+assert(addon.sessionHolyPower == 2,
+    "Hammer of Wrath must inherit Judgment's additional Holy Power during Wings")
+now = now + 1
+addon.pendingPaladinInfusion = true
+addon:SetHolyPowerEstimate(0, true)
+assert(addon:RecordPlayerSpellSucceeded(24275, "Infused-Wings-Hammer"),
+    "the Wings replacement must remain a valid Infusion consumer")
+assert(addon.sessionHolyPower == 3 and not addon.pendingPaladinInfusion,
+    "infused Hammer of Wrath must inherit both Judgment bonuses and consume Infusion")
+addon:SetHealingMode("single", true)
+order = addon:GetDisplayOrder(now)
+assert(order[1].ability.abilityKey == "paladin_holy_light",
+    "Hand of Divinity must surface its instant Holy Light in an explicit healing context")
+addon:AcknowledgeSlot(holyLightIndex)
+assert(addon.pendingPaladinHandOfDivinity.uses == 1,
+    "the first Hand of Divinity Holy Light must leave one use")
+addon:AcknowledgeSlot(holyLightIndex)
+assert(not addon.pendingPaladinHandOfDivinity,
+    "the second Hand of Divinity Holy Light must consume the local state")
+addon:SetHealingMode("standard", true)
+now = now + 20
+addon:SetHolyPowerEstimate(0, true)
+order = addon:GetDisplayOrder(now)
+assert(not addon:IsPaladinWingsActive(now)
+    and displayContains(order, "paladin_judgment")
+    and not displayContains(order, "paladin_hammer_of_wrath"),
+    "Judgment must return when the local Wings window expires")
 assert(addon:SetHolyPowerEstimate(5, true) and addon.sessionHolyPower == 5,
     "manual Holy Power synchronization must accept exact values from zero to five")
 
@@ -207,15 +380,146 @@ addon:RecordHolyPowerEvent(0, shield)
 assert(addon.sessionHolyPower == 4 and addon.pendingFreeHolyPowerSpenders == 0,
     "an OBA damage spender must consume a guaranteed free-spender state without losing Holy Power")
 
+local activeShockIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_shock")
+addon.sessionCharges[activeShockIndex] = nil
+addon:AcknowledgeSlot(activeShockIndex)
+local shockRechargeBeforeShield = addon.sessionCharges[activeShockIndex].nextRechargeAt
 addon:SetHolyPowerEstimate(3, true)
 now = now + 1
 assert(addon:RecordPlayerSpellSucceeded(53600, "Direct-Shield"),
-    "a directly confirmed Shield of the Righteous must be observed outside the healing priority")
+    "a directly confirmed Shield of the Righteous must be observed from the configured priority")
 assert(addon.sessionHolyPower == 0,
     "Shield of the Righteous must spend three Holy Power before Word of Glory is evaluated")
-assert(addon:RecordExternalHolyPowerSpell(53600, now),
-    "a later OBA correlation must recognize the already confirmed Shield cast")
+assert(addon.sessionCharges[activeShockIndex].nextRechargeAt == shockRechargeBeforeShield - 2,
+    "Shield of the Righteous must reduce the running Holy Shock recharge by two seconds")
+assert(not addon:RecordExternalHolyPowerSpell(53600, now),
+    "a configured Shield must not also enter the external-spell fallback")
 assert(addon.sessionHolyPower == 0,
-    "the same Shield success must not spend Holy Power twice through OBA correlation")
+    "the same Shield success must not spend Holy Power twice")
+
+addon:SetHolyPowerEstimate(3, true)
+addon.pendingAssistedCombat = { generation = addon.inputGeneration or 0, expectedSpellID = 53600 }
+assert(addon:RecordPlayerSpellSucceeded(53600, "OBA-Shield"),
+    "One Button Assistant must correlate Shield of the Righteous through its configured slot")
+assert(addon.sessionHolyPower == 0,
+    "One Button Assistant Shield must spend exactly three local Holy Power")
+assert(addon.sessionCharges[activeShockIndex].nextRechargeAt == nil
+        and addon.sessionCharges[activeShockIndex].baseCharges == 2,
+    "One Button Assistant Shield must apply the same reduction and finish a ready Holy Shock charge")
+
+addon.pendingPaladinInfusion = nil
+assert(addon:RecordPlayerSpellSucceeded(24275, "Direct-Hammer"),
+    "a confirmed Hammer of Wrath must be recognized directly")
+assert(addon.sessionHolyPower == 1,
+    "Hammer of Wrath must add one Holy Power only after its successful cast")
+
+-- Only the deterministic 12.1 four-set Infusion is modeled. Random Holy
+-- Shock and Judgment procs remain intentionally unreadable in combat.
+addon:SetRotationPreset("paladin_herald_raid")
+addon.talentSnapshot.paladinHerald = true
+addon.talentSnapshot.paladinLightsmith = false
+addon.talentSnapshot.paladinDivineToll = true
+addon.talentSnapshot.paladinBeaconVirtue = false
+addon.talentSnapshot.paladinTier4 = true
+addon:SetHealingMode("standard", true)
+addon:SetHolyPowerEstimate(0, true)
+local raidHolyLightIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_light")
+local raidFlashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
+local raidJudgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")
+addon:AcknowledgeSlot(raidHolyLightIndex)
+assert(addon.pendingPaladinInfusion, "four-set Holy Light must arm one guaranteed Infusion")
+local raidShockIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_shock")
+addon:AcknowledgeSlot(raidShockIndex)
+local shockRechargeBeforeInfusion = addon.sessionCharges[raidShockIndex].nextRechargeAt
+order = addon:GetDisplayOrder(now)
+assert(order[1].ability.abilityKey == "paladin_flash_of_light"
+    and order[2].ability.abilityKey == "paladin_judgment"
+    and not displayContains(order, "paladin_hammer_of_wrath"),
+    "healing modes must spend Infusion on Flash of Light before the damage consumer")
+addon:AcknowledgeSlot(raidJudgmentIndex)
+assert(not addon.pendingPaladinInfusion, "Judgment must consume the local guaranteed Infusion")
+assert(addon.sessionCharges[raidShockIndex].nextRechargeAt == shockRechargeBeforeInfusion - 1,
+    "Imbued Infusions must reduce the locally tracked Holy Shock recharge by one second")
+
+addon.pendingPaladinInfusion = true
+addon:AcknowledgeSlot(raidFlashIndex)
+assert(not addon.pendingPaladinInfusion, "Flash of Light must remain a valid Infusion consumer")
+
+addon:ResetRuntimeState()
+addon.talentSnapshot.paladinTier4 = true
+addon:SetHealingMode("mana", true)
+addon:AcknowledgeSlot(raidHolyLightIndex)
+assert(addon.pendingPaladinInfusion, "Holy Light must re-arm Infusion after a runtime reset")
+order = addon:GetDisplayOrder(now)
+assert(order[1].ability.abilityKey == "paladin_judgment",
+    "Mana Saving must prefer the damage Infusion consumer")
+addon:AcknowledgeSlot(raidJudgmentIndex)
+assert(addon.sessionHolyPower == 3,
+    "Holy Light plus infused Judgment must generate one plus two Holy Power")
+assert(not addon.pendingPaladinInfusion, "Judgment must consume the local guaranteed Infusion")
+
+addon:ResetRuntimeState()
+addon.talentSnapshot.paladinTier4 = false
+addon:AcknowledgeSlot(raidHolyLightIndex)
+assert(not addon.pendingPaladinInfusion,
+    "Holy Light must not invent an Infusion without the detected four-set")
+
+addon:ResetRuntimeState()
+addon.talentSnapshot.paladinTier4 = true
+addon.talentSnapshot.paladinInflorescenceSunwell = true
+now = 100
+addon:AcknowledgeSlot(raidHolyLightIndex)
+addon:AcknowledgeSlot(raidHolyLightIndex)
+assert(addon:GetPaladinInfusionCharges(now) == 2,
+    "Inflorescence of the Sunwell must retain two guaranteed Infusion charges")
+addon:AcknowledgeSlot(raidFlashIndex)
+assert(addon:GetPaladinInfusionCharges(now) == 1,
+    "an Infusion consumer must spend only one of two locally tracked charges")
+now = 116
+assert(addon:GetPaladinInfusionCharges(now) == 0 and not addon.pendingPaladinInfusion,
+    "locally tracked Infusion must expire after its 15-second duration")
+addon.talentSnapshot.paladinInflorescenceSunwell = false
+now = 0
+
+-- Avenging Crusader is a separate replacement window: it adds Crusader Strike
+-- without removing Judgment or enabling Hammer of Wrath.
+addon:SetRotationPreset("paladin_lightsmith_raid")
+addon.talentSnapshot.paladinHerald = false
+addon.talentSnapshot.paladinLightsmith = true
+addon.talentSnapshot.paladinAvengingWrath = false
+addon.talentSnapshot.paladinAvengingCrusader = true
+addon.talentSnapshot.paladinHandOfDivinity = true
+addon.talentSnapshot.paladinSanctifiedWrath = false
+addon.talentSnapshot.paladinCallOfRighteous = true
+addon.talentSnapshot.paladinCallOfRighteousRank = 2
+addon.GetTalentRank = function(self, key)
+    return key == "paladinCallOfRighteous" and self.talentSnapshot.paladinCallOfRighteousRank or 0
+end
+addon:SetHealingMode("aoe", true)
+local crusaderIndex = addon:GetSlotIndexByAbilityKey("paladin_avenging_crusader")
+local activeCrusaderStrikeIndex = addon:GetSlotIndexByAbilityKey("paladin_crusader_strike")
+assert(addon:GetPaladinMajorCooldownDuration("paladin_avenging_crusader") == 11,
+    "Call of the Righteous must remove two seconds per rank from Avenging Crusader")
+addon:AcknowledgeSlot(crusaderIndex)
+assert(addon:IsPaladinCrusaderActive(now) and addon.pendingPaladinHandOfDivinity.uses == 1,
+    "Avenging Crusader must open its own window and arm one Hand of Divinity cast")
+order = addon:GetDisplayOrder(now)
+assert(displayContains(order, "paladin_judgment")
+    and displayContains(order, "paladin_crusader_strike")
+    and not displayContains(order, "paladin_hammer_of_wrath"),
+    "Avenging Crusader must show Judgment plus Crusader Strike, never Hammer of Wrath")
+local activeJudgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")
+addon:AcknowledgeSlot(activeJudgmentIndex)
+local judgmentUsedAt = addon.sessionUses[activeJudgmentIndex]
+now = now + 1
+addon:SetHolyPowerEstimate(0, true)
+addon:AcknowledgeSlot(activeCrusaderStrikeIndex)
+assert(addon.sessionHolyPower == 1,
+    "confirmed Crusader Strike must generate one Holy Power in its active window")
+assert(addon.sessionUses[activeJudgmentIndex] == judgmentUsedAt - 1.5,
+    "Crusader's Might must reduce Judgment after confirmed Crusader Strike")
+addon.talentSnapshot.paladinSanctifiedWrath = true
+assert(addon:GetPaladinMajorCooldownDuration("paladin_avenging_wrath") == 21,
+    "Sanctified Wrath must extend the Call-adjusted Avenging Wrath duration by 50 percent")
 
 print("paladin_rotation.lua: OK")

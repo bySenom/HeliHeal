@@ -32,13 +32,22 @@ local TALENTS = {
     druidReforestation = { 392360 },
     druidControlOfTheDream = { 434249 },
     paladinHerald = { 431377, 156322 },
-    paladinLightsmith = { 432459, 432472, 434132 },
+    paladinLightsmith = { 1289728, 432459, 432472, 434132 },
     paladinDivineToll = { 375576, 304971 },
     paladinHolyPrism = { 114165 },
     paladinQuickenedInvocation = { 379391 },
     paladinLightsConviction = { 414073 },
+    paladinCrusadersMight = { 196926 },
+    paladinImbuedInfusions = { 392961 },
+    paladinInflorescenceSunwell = { 392907 },
+    paladinSanctifiedWrath = { 53376, 326731 },
+    -- 414273 is the talent definition; 1242008 is the Midnight passive effect
+    -- shown by some client tooltips. Accept both without reading combat auras.
+    paladinHandOfDivinity = { 414273, 1242008 },
     paladinAvengingWrath = { 31884 },
-    paladinAvengingCrusader = { 216331 },
+    -- The committed talent definition and the spell cast during its window use
+    -- separate IDs in Midnight. Either is sufficient for the static snapshot.
+    paladinAvengingCrusader = { 394088, 216331 },
     paladinRingingHeavens = { 1241542 },
     paladinWalkIntoLight = { 1263782 },
     paladinAurora = { 439760 },
@@ -46,6 +55,17 @@ local TALENTS = {
     paladinUnwaveringSpirit = { 392911 },
     paladinDivinePurpose = { 408459, 223817 },
     paladinBeaconVirtue = { 200025 },
+    paladinBlessingSacrifice = { 6940 },
+    paladinSacrificeOfTheJust = { 384820 },
+    paladinBlessingProtection = { 1022 },
+    paladinImprovedBlessingProtection = { 384909 },
+    paladinLayOnHands = { 633 },
+    -- Holy and Protection use different Tirion's Devotion definitions in the
+    -- Midnight tree. HeliHeal supports Holy, whose current definition is 414720.
+    paladinTirionsDevotion = { 414720 },
+    paladinDivineSteed = { 190784 },
+    paladinCavalier = { 230332 },
+    paladinUnbreakableSpirit = { 114154 },
     priestArchon = { 120517 },
     priestOracle = { 1248423 },
     priestSanctify = { 34861 },
@@ -120,11 +140,17 @@ local SNAPSHOT_FLAGS = {
     "druidInnerPeace", "druidFlourish", "druidSoulOfTheForest", "druidReforestation",
     "druidControlOfTheDream",
     "paladinHerald", "paladinLightsmith", "paladinDivineToll", "paladinHolyPrism",
-    "paladinQuickenedInvocation", "paladinLightsConviction",
+    "paladinQuickenedInvocation", "paladinLightsConviction", "paladinCrusadersMight",
+    "paladinImbuedInfusions", "paladinInflorescenceSunwell",
+    "paladinSanctifiedWrath", "paladinHandOfDivinity",
     "paladinAvengingWrath", "paladinAvengingCrusader", "paladinRingingHeavens", "paladinWalkIntoLight",
     "paladinAurora",
     "paladinCallOfRighteous", "paladinCallOfRighteousRank", "paladinUnwaveringSpirit",
-    "paladinDivinePurpose", "paladinBeaconVirtue",
+    "paladinDivinePurpose", "paladinBeaconVirtue", "paladinTier4",
+    "paladinBlessingSacrifice", "paladinSacrificeOfTheJust",
+    "paladinBlessingProtection", "paladinImprovedBlessingProtection",
+    "paladinLayOnHands", "paladinTirionsDevotion", "paladinDivineSteed",
+    "paladinCavalier", "paladinUnbreakableSpirit",
     "priestArchon", "priestOracle", "priestSanctify", "priestPrayerOfHealing",
     "priestChastise", "priestUltimateSerenity",
     "priestMiracleWorker", "priestEternalSanctity", "priestHolyCelerity", "priestVoiceHarmony",
@@ -254,6 +280,7 @@ function HeliHeal:RefreshTalentSnapshot(silent)
     end
     snapshot.restorationTier2 = self.classToken == "SHAMAN" and isKnownSpell(1264866)
     snapshot.restorationTier4 = self.classToken == "SHAMAN" and isKnownSpell(1264867)
+    snapshot.paladinTier4 = self.classToken == "PALADIN" and isKnownSpell(1296657)
 
     local changed = not snapshotsEqual(self.talentSnapshot, snapshot)
     self.talentSnapshot = snapshot
@@ -344,15 +371,25 @@ function HeliHeal:PrintTalentSnapshot()
         return
     end
     if self.classToken == "PALADIN" then
-        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Light's Conviction %s | Wings %s | Crusader %s | Ringing %s | Walk Into Light %s | Aurora %s | Call %d/2 | Unwavering %s | Divine Purpose %s")
+        local details = ("Herald %s | Lightsmith %s | Divine Toll %s | Holy Prism %s | Virtue %s | Quickened Invocation %s | Light's Conviction %s | Crusader's Might %s | Imbued Infusions %s | Inflorescence %s | Sanctified Wrath %s | Hand of Divinity %s | Wings %s | Crusader %s | Ringing %s | Walk Into Light %s | Aurora %s | Call %d/2 | Unwavering %s | Divine Purpose %s | Sacrifice %s | Sacrifice of the Just %s | BoP %s | Improved BoP %s | Lay on Hands %s | Tirion %s | Steed %s | Cavalier %s | Unbreakable %s | Tier 4pc %s")
             :format(yesNo(snapshot.paladinHerald), yesNo(snapshot.paladinLightsmith),
                 yesNo(snapshot.paladinDivineToll), yesNo(snapshot.paladinHolyPrism),
                 yesNo(snapshot.paladinBeaconVirtue),
                 yesNo(snapshot.paladinQuickenedInvocation), yesNo(snapshot.paladinLightsConviction),
+                yesNo(snapshot.paladinCrusadersMight),
+                yesNo(snapshot.paladinImbuedInfusions),
+                yesNo(snapshot.paladinInflorescenceSunwell),
+                yesNo(snapshot.paladinSanctifiedWrath), yesNo(snapshot.paladinHandOfDivinity),
                 yesNo(snapshot.paladinAvengingWrath), yesNo(snapshot.paladinAvengingCrusader),
                 yesNo(snapshot.paladinRingingHeavens), yesNo(snapshot.paladinWalkIntoLight),
                 yesNo(snapshot.paladinAurora), snapshot.paladinCallOfRighteousRank or 0,
-                yesNo(snapshot.paladinUnwaveringSpirit), yesNo(snapshot.paladinDivinePurpose))
+                yesNo(snapshot.paladinUnwaveringSpirit), yesNo(snapshot.paladinDivinePurpose),
+                yesNo(snapshot.paladinBlessingSacrifice), yesNo(snapshot.paladinSacrificeOfTheJust),
+                yesNo(snapshot.paladinBlessingProtection), yesNo(snapshot.paladinImprovedBlessingProtection),
+                yesNo(snapshot.paladinLayOnHands), yesNo(snapshot.paladinTirionsDevotion),
+                yesNo(snapshot.paladinDivineSteed), yesNo(snapshot.paladinCavalier),
+                yesNo(snapshot.paladinUnbreakableSpirit),
+                yesNo(snapshot.paladinTier4))
         self:Print(L("Talente (Config %s): %s", tostring(snapshot.configID or "?"), details))
         return
     end

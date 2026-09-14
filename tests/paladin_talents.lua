@@ -8,20 +8,41 @@ end
 GetTime = function() return 0 end
 InCombatLockdown = function() return false end
 IsPlayerSpell = function() return false end
+C_SpellBook = {
+    IsSpellKnown = function(spellID) return spellID == 1296657 end,
+}
 
 local selectedSpellIDs = {
-    432459, -- Lightsmith / Holy Armament
+    1289728, -- Lightsmith / Holy Armaments talent definition
     379391, -- Quickened Invocation
     414073, -- Light's Conviction
-    216331, -- Avenging Crusader
+    196926, -- Crusader's Might
+    392961, -- Imbued Infusions
+    392907, -- Inflorescence of the Sunwell
+    53376, -- Sanctified Wrath
+    414273, -- Hand of Divinity
+    394088, -- Avenging Crusader talent definition
     1241511, -- Call of the Righteous (rank 2)
     200025, -- Beacon of Virtue
+    6940, -- Blessing of Sacrifice
+    384820, -- Sacrifice of the Just
+    1022, -- Blessing of Protection
+    384909, -- Improved Blessing of Protection
+    633, -- Lay on Hands
+    414720, -- Tirion's Devotion (Holy)
+    190784, -- Divine Steed
+    230332, -- Cavalier
+    114154, -- Unbreakable Spirit
 }
 
 C_ClassTalents = { GetActiveConfigID = function() return 9001 end }
 C_Traits = {
     GetConfigInfo = function() return { treeIDs = { 1 } } end,
-    GetTreeNodes = function() return { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } end,
+    GetTreeNodes = function()
+        local nodes = {}
+        for index = 1, #selectedSpellIDs do nodes[index] = index end
+        return nodes
+    end,
     GetNodeInfo = function(_, nodeID)
         if not selectedSpellIDs[nodeID] then return { entryIDsWithCommittedRanks = {} } end
         return { entryIDsWithCommittedRanks = { {
@@ -57,8 +78,28 @@ addon:ResetRuntimeState()
 assert(addon:RefreshTalentSnapshot(true), "Paladin talent snapshot must be readable")
 assert(addon.talentSnapshot.paladinLightsmith and addon.talentSnapshot.paladinQuickenedInvocation,
     "Lightsmith and Quickened Invocation must be detected from committed entries")
+assert(addon.talentSnapshot.paladinCrusadersMight,
+    "Crusader's Might must be detected for Judgment cooldown reduction")
+assert(addon.talentSnapshot.paladinImbuedInfusions,
+    "Imbued Infusions must be detected for the Holy Shock cooldown reduction")
+assert(addon.talentSnapshot.paladinInflorescenceSunwell,
+    "Inflorescence of the Sunwell must be detected for the second Infusion charge")
+assert(addon.talentSnapshot.paladinSanctifiedWrath and addon.talentSnapshot.paladinHandOfDivinity,
+    "Wings duration and Hand of Divinity must be detected from the committed loadout")
 assert(addon.talentSnapshot.paladinBeaconVirtue,
     "Beacon of Virtue must be detected from the committed Holy talent loadout")
+assert(addon.talentSnapshot.paladinBlessingSacrifice
+    and addon.talentSnapshot.paladinSacrificeOfTheJust
+    and addon.talentSnapshot.paladinBlessingProtection
+    and addon.talentSnapshot.paladinImprovedBlessingProtection
+    and addon.talentSnapshot.paladinLayOnHands
+    and addon.talentSnapshot.paladinTirionsDevotion
+    and addon.talentSnapshot.paladinDivineSteed
+    and addon.talentSnapshot.paladinCavalier
+    and addon.talentSnapshot.paladinUnbreakableSpirit,
+    "Paladin defensive, external and movement talents must be detected from committed entries")
+assert(addon.talentSnapshot.paladinTier4,
+    "the Midnight 12.1 Holy Paladin four-set must be detected out of combat")
 assert(addon.db.profile.rotationPreset == "paladin_lightsmith_raid",
     "hero detection must preserve the selected Raid content type")
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")

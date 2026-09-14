@@ -165,7 +165,11 @@ assert(addon.inputLockedUntil[2] == now,
     "a readable inactive GCD must not fall back to a stale 1.5-second lock")
 
 local nextFrameCallback
-C_Timer.After = function(_, callback) nextFrameCallback = callback end
+local afterCallbacks = {}
+C_Timer.After = function(delay, callback)
+    nextFrameCallback = callback
+    afterCallbacks[#afterCallbacks + 1] = { delay = delay, callback = callback }
+end
 gcdDuration = 1.2
 now = 60
 addon:ReleaseInputKey("1")
@@ -197,7 +201,7 @@ C_ActionBar = {
 C_AssistedCombat = { GetNextCastSpell = function() return 275773 end }
 GetBindingKey = function() return "1" end
 addon.classToken = "PALADIN"
-local liveHolyPower = 2
+local liveHolyPower = 3
 UnitPower = function(unit, powerType)
     assert(unit == "player" and powerType == 9)
     return liveHolyPower
@@ -207,6 +211,8 @@ addon.ApplyAuthoritativeHolyPower = function(self, value)
     return true
 end
 now = 80
+afterCallbacks = {}
+addon.sessionHolyPower = 3
 assert(addon:ObserveAssistedCombatBinding("ACTIONBUTTON1"),
     "the standard action bar must recognize Blizzard's Assisted Combat action")
 assert(addon:RecordPlayerSpellSucceeded(275773),
@@ -215,10 +221,37 @@ assert(manaSuccesses[#manaSuccesses].playerInitiated == true,
     "an observed Assisted Combat action must remain a player-initiated mana event")
 assert(acknowledgements[4] == 1,
     "a known Assisted Combat spell must advance its matching HeliHeal cooldown exactly once")
-assert(nextFrameCallback, "Assisted Combat success must schedule authoritative Holy Power sync")
-nextFrameCallback()
+assert(#afterCallbacks >= 2, "Assisted Combat success must schedule authoritative Holy Power sync")
+for _, scheduledAfter in ipairs(afterCallbacks) do
+    if scheduledAfter.delay > 0 then
+        assert(scheduledAfter.delay >= 0.08,
+            "Holy Power must never be sampled again in the successful cast's stale frame")
+    end
+end
+assert(addon.sessionHolyPower == 3,
+    "the local Holy Power result must remain intact until Blizzard's value has settled")
+liveHolyPower = 2
+for _, scheduledAfter in ipairs(afterCallbacks) do scheduledAfter.callback() end
 assert(addon.sessionHolyPower == 2,
-    "readable player Holy Power must correct the local model after Assisted Combat")
+    "readable player Holy Power must correct the local model after its delayed update")
+
+afterCallbacks = {}
+local authoritativeApplications = 0
+local originalApplyAuthoritativeHolyPower = addon.ApplyAuthoritativeHolyPower
+addon.ApplyAuthoritativeHolyPower = function(self, value)
+    authoritativeApplications = authoritativeApplications + 1
+    return originalApplyAuthoritativeHolyPower(self, value)
+end
+addon:ScheduleHolyPowerSync()
+local staleCallbacks = afterCallbacks
+afterCallbacks = {}
+addon:ScheduleHolyPowerSync()
+for _, scheduledAfter in ipairs(staleCallbacks) do scheduledAfter.callback() end
+assert(authoritativeApplications == 0,
+    "callbacks from an older cast must not overwrite a newer Holy Power state")
+for _, scheduledAfter in ipairs(afterCallbacks) do scheduledAfter.callback() end
+assert(authoritativeApplications == 2,
+    "the latest delayed Holy Power sample must reconcile and verify the live value")
 
 now = 90
 C_AssistedCombat.GetNextCastSpell = function() return 20473 end
