@@ -51,6 +51,8 @@ local function isImpulseInput(inputKey)
 end
 
 local RECENT_SUCCESS_WINDOW = 0.25
+local PALADIN_ARMAMENT_ECHO_WINDOW = 1.5
+local PALADIN_ARMAMENT_SPELLS = { [432459] = true, [432472] = true }
 
 local function getActionSlot(bindingAction)
     local button = bindingAction and tonumber(bindingAction:match("^ACTIONBUTTON(%d+)$"))
@@ -229,10 +231,32 @@ function HeliHeal:HasObservedPlayerInputForSpell(spellID)
     return self:HasObservedAssistedInputForSpell(spellID)
 end
 
+function HeliHeal:IsDuplicatePaladinArmamentSuccess(spellID, castGUID, succeededAt)
+    spellID = tonumber(spellID)
+    if self.classToken ~= "PALADIN" or not PALADIN_ARMAMENT_SPELLS[spellID] then return false end
+    succeededAt = succeededAt or GetTime()
+    local previous = self.recentPaladinArmamentSuccess
+    local elapsed = previous and succeededAt - previous.succeededAt
+    local duplicate = previous and elapsed >= 0 and (
+        (castGUID and previous.castGUID and castGUID == previous.castGUID)
+        or (previous.spellID == spellID and elapsed <= PALADIN_ARMAMENT_ECHO_WINDOW)
+        or elapsed <= RECENT_SUCCESS_WINDOW)
+    if duplicate then return true end
+    self.recentPaladinArmamentSuccess = {
+        spellID = spellID,
+        castGUID = castGUID,
+        succeededAt = succeededAt,
+    }
+    return false
+end
+
 function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
     spellID = tonumber(spellID)
     if not spellID then return false end
     local succeededAt = GetTime()
+    if self:IsDuplicatePaladinArmamentSuccess(spellID, castGUID, succeededAt) then
+        return true
+    end
     local assistedPlayerInitiated = self:HasObservedAssistedInputForSpell(spellID)
     local manaPlayerInitiated = self:HasObservedPlayerInputForSpell(spellID)
     if assistedPlayerInitiated and not self.pendingSwiftness

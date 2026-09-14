@@ -431,7 +431,16 @@ addon:ResetRuntimeState()
 now = now + 1
 assert(addon:RecordPlayerSpellSucceeded(432459, "Direct-Bulwark"),
     "Holy Bulwark must confirm without a pending key observation")
-now = now + 2
+local firstArmamentState = addon.sessionCharges[armamentIndex]
+assert(firstArmamentState and firstArmamentState.baseCharges == 1
+        and addon.paladinNextArmamentType == "sacred",
+    "one Holy Bulwark cast must spend exactly one shared Armament charge")
+now = now + 0.6
+assert(addon:RecordPlayerSpellSucceeded(432459, "Solidarity-Bulwark")
+        and addon.sessionCharges[armamentIndex].baseCharges == 1
+        and addon.paladinNextArmamentType == "sacred",
+    "the delayed Solidarity copy must not spend another charge or flip the Armament again")
+now = now + 1.4
 assert(addon:RecordPlayerSpellSucceeded(432472, "Direct-Sacred"),
     "Sacred Weapon must confirm without a pending key observation")
 local directArmamentState = addon.sessionCharges[armamentIndex]

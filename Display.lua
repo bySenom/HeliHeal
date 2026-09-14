@@ -156,6 +156,11 @@ function HeliHeal:GetManaBadgeBottomOffset(baseOffset, hasChoicePair)
     return (baseOffset or 4) + (hasChoicePair and 18 or 0)
 end
 
+function HeliHeal:ShouldRenderLocalCooldown(item)
+    return item ~= nil and (tonumber(item.remaining) or 0) > 0
+        and item.usedAt ~= nil and (tonumber(item.cooldownDuration) or 0) > 0
+end
+
 function HeliHeal:GetPrimaryChoiceGroup(order, mode)
     if type(order) ~= "table" or (mode or self:GetHealingMode()) ~= "standard" then return nil end
     local first, second = order[1], order[2]
@@ -216,6 +221,7 @@ local function createSupportFrame()
         button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
         button.cooldown:SetAllPoints(button.icon)
         button.cooldown:SetDrawEdge(false)
+        button.cooldown:SetDrawBling(false)
         button.cooldown:SetHideCountdownNumbers(true)
         button.remaining = button:CreateFontString(nil, "OVERLAY")
         button.remaining:SetFont(ns.media.font, 14, "OUTLINE")
@@ -832,7 +838,7 @@ function HeliHeal:RefreshSupportWindow(now)
             button.icon:SetTexture(item.ability.icon)
             button.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
             button.icon:SetDesaturated(item.remaining > 0)
-            if item.usedAt and item.cooldownDuration > 0 then
+            if self:ShouldRenderLocalCooldown(item) then
                 button.cooldown:SetCooldown(item.usedAt, item.cooldownDuration)
             else
                 button.cooldown:Clear()
@@ -1172,7 +1178,7 @@ function HeliHeal:RefreshDisplay()
             button.name:SetShown(profile.showAbilityName)
             button.priorityBadge:SetShown(profile.showPriorityBadge and not choiceMember)
 
-            if item.remaining > 0 and item.usedAt and item.cooldownDuration > 0 then
+            if self:ShouldRenderLocalCooldown(item) then
                 button.cooldown:SetCooldown(item.usedAt, item.cooldownDuration)
                 button:SetBackdropBorderColor(0.15, 0.2, 0.23, profile.showIconBorder and 1 or 0)
                 button.keyBadge:SetBackdropBorderColor(0.18, 0.24, 0.27, 1)

@@ -106,6 +106,7 @@ function HeliHeal:ResetInputState()
     self.recentSuccessfulSpells = {}
     self.recentDirectConfirmations = {}
     self.recentExternalHolyPowerSuccess = {}
+    self.recentPaladinArmamentSuccess = nil
     self.heldInputKeys = {}
     self.mouseHeldInputs = {}
     self.inputLockedUntil = {}

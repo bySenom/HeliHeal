@@ -31,6 +31,12 @@ assert(addon:GetManaBadgeBottomOffset(4, true) == 22,
     "the mana badge must move one row above a visible choice badge")
 assert(addon:GetManaBadgeBottomOffset(15, true) == 33,
     "stacked badges must preserve the customized ability-name clearance")
+assert(addon:ShouldRenderLocalCooldown({ remaining = 3, usedAt = 100, cooldownDuration = 60 }),
+    "an active local timer must render its cooldown swipe")
+assert(not addon:ShouldRenderLocalCooldown({ remaining = 0, usedAt = 100, cooldownDuration = 60 }),
+    "a ready support ability must clear its cooldown instead of replaying the finish effect")
+assert(not addon:ShouldRenderLocalCooldown({ remaining = 3, cooldownDuration = 60 }),
+    "a timer without a confirmed local start must not render a synthetic cooldown")
 assert(addon:FormatHotkeyLabel("SHIFT-BUTTON1") == "S-M1",
     "modifier mouse bindings must use a compact HUD label")
 assert(addon:FormatHotkeyLabel("CTRL-ALT-MOUSEWHEELDOWN") == "C-A-WD",

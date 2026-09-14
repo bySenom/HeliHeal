@@ -15,6 +15,8 @@ ns.changelog = {
                 "Add a specialization-aware healing FAQ covering Holy Paladin targeting, procs, Beacons, mana, content types, utility and movement.",
                 "Rework the FAQ into collapsible sections with spell icons, related-spell tooltips and expand-all controls.",
                 "Add collapsible FAQ categories, responsive spell cards, remembered open topics and mode guidance.",
+                "Stop ready abilities in the DEF window from repeatedly replaying cooldown completion effects.",
+                "Count Holy Bulwark or Sacred Weapon once per player cast without consuming another shared charge for its Solidarity copy.",
                 "Consume a known Infusion between the two Hand of Divinity Holy Lights instead of overwriting the second four-piece proc.",
                 "Keep Aura Mastery available without Ringing of the Heavens and apply Divine Toll effects only when Ringing is selected.",
                 "Track the confirmed nine-second Beacon of Virtue window and pair ready Divine Toll or Ringing-enhanced Aura Mastery with it in Raid AoE mode.",
