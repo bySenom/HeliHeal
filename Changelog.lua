@@ -28,6 +28,7 @@ ns.changelog = {
                 "Apply Valiance conditionally: extend active Armaments, or reduce their recharge only when none are active.",
                 "Reconcile one locally available charge after Blizzard rejects a charged ability three times, preventing phantom charges from returning as the primary recommendation.",
                 "Add a read-only Infusion of Light proof-of-concept using Blizzard's Buff Bar Cooldown Viewer, with /hh iol and /hh cdmbuffs diagnostics.",
+                "Use a dedicated Infusion of Light Tracked Bar's visibility as the proc signal and ignore empty Edit Mode pool frames.",
             },
         },
         {

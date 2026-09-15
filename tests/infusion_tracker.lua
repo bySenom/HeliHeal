@@ -46,6 +46,7 @@ local otherFrame = {
 local frames = { otherFrame, infusionFrame }
 local scans = 0
 BuffBarCooldownViewer = {
+    GetHideWhenInactive = function() return true end,
     itemFramePool = {
         EnumerateActive = function()
             scans = scans + 1
@@ -71,11 +72,13 @@ local scansAfterCache = scans
 assert(not addon.ProcTracker:HasInfusionOfLight() and scans == scansAfterCache,
     "an inactive hidden Blizzard frame must stay cached without another pool scan")
 infusionActive = true
+infusionShown = true
 addon.ProcTracker.listener.callback(nil, "UNIT_AURA", "player")
 assert(addon.ProcTracker.active and addon.ProcTracker:HasInfusionOfLight()
         and scans == scansAfterCache,
-    "a player aura event must refresh IsActive independently from IsShown without rescanning")
+    "a player aura event must refresh the dedicated item's visibility without rescanning")
 infusionActive = false
+infusionShown = false
 addon.ProcTracker.listener.callback(nil, "UNIT_AURA", "player")
 assert(not addon.ProcTracker.active and not addon.ProcTracker:HasInfusionOfLight(),
     "the player aura signal must detect the active-to-inactive transition")
@@ -84,7 +87,7 @@ local replacementFrame = {
     cooldownID = 99,
     GetBaseSpellID = function() return 53576 end,
     IsActive = function() return true end,
-    IsShown = function() return false end,
+    IsShown = function() return true end,
 }
 infusionFrame.cooldownID = 1000
 frames = { replacementFrame }
@@ -92,8 +95,30 @@ assert(addon.ProcTracker:Refresh(true) and addon.ProcTracker.infusionFrame == re
         and addon.ProcTracker.cooldownID == 99,
     "a recycled pool frame must invalidate the cache and bind the replacement")
 
+local emptyShell = {
+    IsShown = function() return false end,
+}
+local dedicatedShown = false
+local dedicatedFrame = {
+    cooldownID = 123,
+    IsShown = function() return dedicatedShown end,
+}
+frames = { emptyShell, dedicatedFrame }
+replacementFrame.cooldownID = 1001
+assert(not addon.ProcTracker:Refresh(true)
+        and addon.ProcTracker.infusionFrame == dedicatedFrame
+        and addon.ProcTracker.dedicated,
+    "one identity-redacted configured item must bind as the dedicated Infusion frame while edit-mode shells are ignored")
+dedicatedShown = true
+assert(addon.ProcTracker:HasInfusionOfLight(),
+    "the dedicated Infusion item must report active from its shown state")
+BuffBarCooldownViewer.GetHideWhenInactive = function() return false end
+assert(not addon.ProcTracker:HasInfusionOfLight(),
+    "visibility detection must refuse an always-visible viewer when Hide When Inactive is disabled")
+BuffBarCooldownViewer.GetHideWhenInactive = function() return true end
+
 addon.ProcTracker:PrintStatus()
 addon.ProcTracker:PrintRegisteredBuffs()
 assert(#addon.messages > 0, "debug commands must produce one-time diagnostic output")
 
-print("Infusion tracker OK: CDM identity, IsActive state, hidden frame and recycling")
+print("Infusion tracker OK: CDM identity, dedicated visibility state, shells and recycling")

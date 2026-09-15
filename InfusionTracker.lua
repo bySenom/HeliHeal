@@ -28,6 +28,7 @@ end
 
 local function cleanString(value)
     if type(value) ~= "string" or isSecret(value) then return nil end
+    if value == "" then return nil end
     return value
 end
 
@@ -89,6 +90,7 @@ local function inspectFrame(frame)
     end
     result.active = cleanBoolean(safeMethod(frame, "IsActive"))
     result.shown = cleanBoolean(safeMethod(frame, "IsShown"))
+    result.placeholder = frame and frame._isPlaceholderFrame == true or false
     return result
 end
 
@@ -134,6 +136,12 @@ function Tracker:IsCachedFrameValid()
     return cooldownID ~= nil
 end
 
+local function isConfiguredFrame(info)
+    -- Edit Mode can leave acquired example shells in the pool. They have no
+    -- cooldown identity and must not count as the dedicated tracked-bar item.
+    return info and info.cooldownID ~= nil and not info.placeholder
+end
+
 function Tracker:ClearFrame()
     self.infusionFrame = nil
     self.cooldownID = nil
@@ -141,6 +149,10 @@ function Tracker:ClearFrame()
     self.name = nil
     self.active = false
     self.registered = false
+    self.dedicated = false
+    self.configuredFrameCount = nil
+    self.secretShown = false
+    self.hideWhenInactive = nil
 end
 
 function Tracker:FindInfusionFrame(force)
@@ -156,19 +168,43 @@ function Tracker:FindInfusionFrame(force)
     local viewer = self:GetViewer()
     if not viewer then return nil end
     local infusionNames = getInfusionNames()
+    local configured = {}
     for frame in viewer.itemFramePool:EnumerateActive() do
         local info = inspectFrame(frame)
+        if isConfiguredFrame(info) then
+            configured[#configured + 1] = info
+        end
         if isInfusionInfo(info, infusionNames) then
             self.infusionFrame = frame
             self.cooldownID = info.cooldownID
             self.spellID = info.auraSpellID or info.spellID or info.baseSpellID
                 or info.spellIDs[1]
             self.name = info.name
-            self.active = info.active == true
+            self.active = info.shown == true
             self.registered = true
+            self.dedicated = #configured == 1
             return frame
         end
     end
+
+
+    -- Dedicated-viewer fallback: the user keeps exactly one real Blizzard
+    -- Tracked Bar and that entry is Infusion of Light. During restricted
+    -- states Blizzard may redact the spell identity, but the frame object,
+    -- cooldownID and shown state remain usable. Never guess when multiple
+    -- configured entries exist.
+    if #configured == 1 and #configured[1].spellIDs == 0 and not configured[1].name then
+        local info = configured[1]
+        self.infusionFrame = info.frame
+        self.cooldownID = info.cooldownID
+        self.spellID = nil
+        self.name = "Infusion of Light (dedicated viewer)"
+        self.active = info.shown == true
+        self.registered = true
+        self.dedicated = true
+        return info.frame
+    end
+    self.configuredFrameCount = #configured
     return nil
 end
 
@@ -182,15 +218,22 @@ function Tracker:Refresh(forceSearch)
         self.active = false
         return false
     end
-    local active = cleanBoolean(safeMethod(frame, "IsActive"))
-    if active == nil then
+    self.hideWhenInactive = cleanBoolean(safeMethod(self:GetViewer(), "GetHideWhenInactive"))
+    if self.hideWhenInactive ~= true then
+        -- Visibility only represents proc state when Blizzard is configured to
+        -- hide inactive tracked bars. Refuse an always-visible false positive.
         self.active = false
-        self.secretActive = true
         return false
     end
-    self.secretActive = false
-    self.active = active
-    return active
+    local shown = cleanBoolean(safeMethod(frame, "IsShown"))
+    if shown == nil then
+        self.active = false
+        self.secretShown = true
+        return false
+    end
+    self.secretShown = false
+    self.active = shown
+    return shown
 end
 
 function Tracker:HasInfusionOfLight()
@@ -215,9 +258,13 @@ function Tracker:PrintStatus()
     HeliHeal:Print("Name=" .. debugValue(info and info.name))
     HeliHeal:Print("IsActive=" .. debugValue(info and info.active))
     HeliHeal:Print("IsShown=" .. debugValue(info and info.shown))
+    HeliHeal:Print("Hide When Inactive=" .. debugValue(self.hideWhenInactive))
+    HeliHeal:Print("Detection=DEDICATED ITEM VISIBILITY")
     HeliHeal:Print("Tracker State=" .. (self.active and "ACTIVE" or "INACTIVE"))
     if self:GetViewer() and not frame then
-        HeliHeal:Print("Infusion of Light is not registered in Blizzard BuffBarCooldownViewer. Add it to a Blizzard Tracked Buff Bar once.")
+        HeliHeal:Print("Dedicated Infusion viewer not ready. Keep exactly one Blizzard Tracked Bar and set it to Infusion of Light.")
+    elseif frame and self.hideWhenInactive ~= true then
+        HeliHeal:Print("Enable Hide When Inactive for Blizzard Tracked Bars so visibility can represent the Infusion proc.")
     end
 end
 
