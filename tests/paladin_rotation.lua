@@ -382,16 +382,16 @@ addon.talentSnapshot.paladinBeaconVirtue = false
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
 local wordIndex = addon:GetSlotIndexByAbilityKey("paladin_word_of_glory")
 local raidDawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
-assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 60,
-    "Quickened Invocation must not reduce Holy Armament's current 60-second recharge")
+assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 45,
+    "Quickened Invocation must not reduce Holy Armament's current 45-second recharge")
 addon.talentSnapshot.paladinForewarning = true
 order = addon:GetDisplayOrder(now)
 assert(#order >= 5 and order[5].paladinResourceBlocked
         and (order[5].ability.holyPowerCost or 0) == 3,
     "Lightsmith without Beacon or Infusion must backfill a fifth future Holy Power spender")
 addon.talentSnapshot.paladinBeaconVirtue = true
-assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 48,
-    "Forewarning must reduce Holy Armament to 48 seconds without the obsolete Quickened Invocation reduction")
+assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 36,
+    "Forewarning must reduce Holy Armament to 36 seconds without the obsolete Quickened Invocation reduction")
 assert(addon:GetSlot(armamentIndex).confirmOnPlayerSuccess,
     "both transformed Holy Armament casts must support direct Blizzard success confirmation")
 addon:AcknowledgeSlot(armamentIndex)
@@ -631,6 +631,9 @@ assert(addon.pendingFreeHolyPowerSpenders == 1,
 local shield = namespace.AbilityLibrary:FindAbilityBySpellID(53600, "PALADIN")
 assert(shield and shield.abilityKey == "paladin_shield_of_the_righteous",
     "the OBA observer must resolve Shield of the Righteous outside the healing priority")
+local currentShield = namespace.AbilityLibrary:FindAbilityBySpellID(415091, "PALADIN")
+assert(currentShield and currentShield.abilityKey == "paladin_shield_of_the_righteous",
+    "the current Shield of the Righteous success spell ID must resolve to the same ability")
 addon:RecordHolyPowerEvent(0, shield)
 assert(addon.sessionHolyPower == 4 and addon.pendingFreeHolyPowerSpenders == 0,
     "an OBA damage spender must consume a guaranteed free-spender state without losing Holy Power")
@@ -647,12 +650,30 @@ assert(addon.sessionHolyPower == 0,
     "Shield of the Righteous must spend three Holy Power before Word of Glory is evaluated")
 assert(addon.sessionCharges[activeShockIndex].nextRechargeAt == shockRechargeBeforeShield - 2,
     "Shield of the Righteous must reduce the running Holy Shock recharge by two seconds")
+now = now + 1
+addon:SetHolyPowerEstimate(3, true)
+addon.sessionCharges[activeShockIndex] = {
+    baseCharges = 1,
+    bonusCharges = 0,
+    nextRechargeAt = now + 5,
+}
+local rechargeBeforeCurrentShield = addon.sessionCharges[activeShockIndex].nextRechargeAt
+assert(addon:RecordPlayerSpellSucceeded(415091, "Current-Direct-Shield"),
+    "the Midnight Shield of the Righteous spell ID must be directly confirmed")
+assert(addon.sessionHolyPower == 0
+        and addon.sessionCharges[activeShockIndex].nextRechargeAt == rechargeBeforeCurrentShield - 2,
+    "the current Shield spell ID must spend Holy Power and reduce Holy Shock by two seconds")
 assert(not addon:RecordExternalHolyPowerSpell(53600, now),
     "a configured Shield must not also enter the external-spell fallback")
 assert(addon.sessionHolyPower == 0,
     "the same Shield success must not spend Holy Power twice")
 
 addon:SetHolyPowerEstimate(3, true)
+addon.sessionCharges[activeShockIndex] = {
+    baseCharges = 1,
+    bonusCharges = 0,
+    nextRechargeAt = now + 1,
+}
 addon.pendingAssistedCombat = { generation = addon.inputGeneration or 0, expectedSpellID = 53600 }
 assert(addon:RecordPlayerSpellSucceeded(53600, "OBA-Shield"),
     "One Button Assistant must correlate Shield of the Righteous through its configured slot")
