@@ -38,6 +38,7 @@ local selectedSpellIDs = {
     230332, -- Cavalier
     469409, -- Divine Spurs
     114154, -- Unbreakable Spirit
+    378425, -- Uther's Counsel
     432804, -- Forewarning
     432919, -- Valiance
     432866, -- Laying Down Arms
@@ -113,7 +114,8 @@ assert(addon.talentSnapshot.paladinBlessingSacrifice
     and addon.talentSnapshot.paladinDivineSteed
     and addon.talentSnapshot.paladinCavalier
     and addon.talentSnapshot.paladinDivineSpurs
-    and addon.talentSnapshot.paladinUnbreakableSpirit,
+    and addon.talentSnapshot.paladinUnbreakableSpirit
+    and addon.talentSnapshot.paladinUthersCounsel,
     "Paladin defensive, external and movement talents must be detected from committed entries")
 assert(addon.talentSnapshot.paladinTier4,
     "the Midnight 12.1 Holy Paladin four-set must be detected out of combat")
@@ -132,6 +134,15 @@ assert(addon:GetSlot(crusaderIndex).enabled and addon:GetSlot(crusaderIndex).coo
 local steedIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_steed")
 assert(addon:GetSlot(steedIndex).cooldown == 36 and addon:GetSlot(steedIndex).maxCharges == 2,
     "Divine Spurs and Cavalier must alter Divine Steed's recharge and charges independently")
+local shieldIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_shield")
+local protectionIndex = addon:GetSlotIndexByAbilityKey("paladin_blessing_of_protection")
+local layOnHandsIndex = addon:GetSlotIndexByAbilityKey("paladin_lay_on_hands")
+assert(addon:GetSlot(shieldIndex).cooldown == 165,
+    "Unbreakable Spirit and Uther's Counsel must reduce Divine Shield by a combined 45 percent")
+assert(addon:GetSlot(protectionIndex).cooldown == 204,
+    "Improved Blessing of Protection must apply before Uther's Counsel's 15-percent reduction")
+assert(math.abs(addon:GetSlot(layOnHandsIndex).cooldown - 90) < 0.01,
+    "Unbreakable Spirit, Tirion's Devotion and Uther's Counsel must combine on Lay on Hands")
 
 selectedSpellIDs = {
     431377, -- Herald of the Sun

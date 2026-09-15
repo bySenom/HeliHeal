@@ -17,6 +17,7 @@ ns.changelog = {
                 "Add collapsible FAQ categories, responsive spell cards, remembered open topics and mode guidance.",
                 "Stop ready abilities in the DEF window from repeatedly replaying cooldown completion effects.",
                 "Count Holy Bulwark or Sacred Weapon once per player cast without consuming another shared charge for its Solidarity copy.",
+                "Apply Uther's Counsel to Divine Shield, Blessing of Protection and Lay on Hands in the DEF cooldown model.",
                 "Consume a known Infusion between the two Hand of Divinity Holy Lights instead of overwriting the second four-piece proc.",
                 "Keep Aura Mastery available without Ringing of the Heavens and apply Divine Toll effects only when Ringing is selected.",
                 "Track the confirmed nine-second Beacon of Virtue window and pair ready Divine Toll or Ringing-enhanced Aura Mastery with it in Raid AoE mode.",

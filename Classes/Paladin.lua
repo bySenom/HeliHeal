@@ -108,7 +108,10 @@ local abilities = {
     },
     paladin_divine_shield = {
         spellID = 642, name = "Divine Shield", cooldown = 300,
-        cooldownPercentTalents = { paladinUnbreakableSpirit = 30 },
+        cooldownPercentTalents = {
+            paladinUnbreakableSpirit = 30,
+            paladinUthersCounsel = 15,
+        },
         confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     paladin_blessing_of_sacrifice = {
@@ -123,6 +126,7 @@ local abilities = {
         cooldownPercentTalents = {
             paladinUnbreakableSpirit = 30,
             paladinTirionsDevotion = 40,
+            paladinUthersCounsel = 15,
         },
         confirmOnPlayerSuccess = true, inputLockout = 0.5,
     },
@@ -130,6 +134,7 @@ local abilities = {
         spellID = 1022, name = "Blessing of Protection", cooldown = 300,
         requiresTalent = "paladinBlessingProtection",
         cooldownTalent = "paladinImprovedBlessingProtection", cooldownReduction = 60,
+        cooldownPercentTalents = { paladinUthersCounsel = 15 },
         confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     paladin_divine_steed = {

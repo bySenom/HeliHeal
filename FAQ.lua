@@ -94,9 +94,9 @@ local HOLY_PALADIN = {
     {
         group = "HOLY PALADIN",
         tag = "DEFENSIV",
-        spellIDs = { 498, 6940, 633 },
+        spellIDs = { 498, 6940, 633, 378425 },
         question = "Was bedeutet das separate DEF-Fenster?",
-        answer = "DEF zeigt nur, welche defensiven und unterstützenden Fähigkeiten lokal bereit sind. Es bedeutet nicht, dass du sie sofort casten sollst. Nutze Divine Protection, Blessing of Sacrifice, Lay on Hands und ähnliche Werkzeuge passend zur Mechanik und zum Ziel.",
+        answer = "DEF zeigt nur, welche defensiven und unterstützenden Fähigkeiten lokal bereit sind. Es bedeutet nicht, dass du sie sofort casten sollst. Nutze Divine Protection, Blessing of Sacrifice, Lay on Hands und ähnliche Werkzeuge passend zur Mechanik und zum Ziel. Uther's Counsel reduziert Divine Shield, Blessing of Protection und Lay on Hands um 15 Prozent; HeliHeal kombiniert dies lokal mit weiteren ausgewählten Cooldown-Talenten.",
     },
     {
         group = "HOLY PALADIN",
