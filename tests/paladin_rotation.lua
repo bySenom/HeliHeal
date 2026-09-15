@@ -11,6 +11,7 @@ GetTime = function() return now end
 assert(loadfile("AbilityLibrary.lua"))("HeliHeal", namespace)
 assert(loadfile("Classes/Paladin.lua"))("HeliHeal", namespace)
 assert(loadfile("Core.lua"))("HeliHeal", namespace)
+assert(loadfile("Snapshots.lua"))("HeliHeal", namespace)
 assert(loadfile("Input.lua"))("HeliHeal", namespace)
 assert(loadfile("Display.lua"))("HeliHeal", namespace)
 
@@ -456,6 +457,16 @@ end
 assert(armamentDisplay and armamentDisplay.remaining > 0,
     "Holy Armament must remain on its local recharge after both charges are consumed")
 addon:ResetRuntimeState()
+addon:BackoffRejectedRotationSlot(armamentIndex, now)
+order = addon:GetDisplayOrder(now)
+local backedOffArmament
+for _, item in ipairs(order) do
+    if item.ability.abilityKey == "paladin_holy_armament" then backedOffArmament = item break end
+end
+assert(backedOffArmament and backedOffArmament.remaining == 5
+        and order[1].ability.abilityKey ~= "paladin_holy_armament",
+    "a Blizzard-rejected ready Armament must leave primary position during its retry backoff")
+addon:ClearRotationRejectionBackoff(armamentIndex)
 assert(addon:GetSlot(wordIndex).enabled and not addon:GetSlotIndexByAbilityKey("paladin_eternal_flame"),
     "Lightsmith must use Word of Glory instead of Eternal Flame")
 assert(addon:GetSlotIndexByAbilityKey("paladin_beacon_of_virtue"),

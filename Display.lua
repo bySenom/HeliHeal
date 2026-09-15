@@ -626,6 +626,15 @@ function HeliHeal:GetDisplayOrder(now)
                 usedAt = atonementStartedAt
                 cooldownDuration = atonementDuration
             end
+            local rejectionReadyAt, rejectionDuration
+            if self.GetRotationRejectionReadyAt then
+                rejectionReadyAt, rejectionDuration = self:GetRotationRejectionReadyAt(slotIndex, now)
+            end
+            if rejectionReadyAt and rejectionReadyAt > readyAt then
+                readyAt = rejectionReadyAt
+                cooldownDuration = rejectionDuration or 5
+                usedAt = readyAt - cooldownDuration
+            end
             local item = self.displayItemScratch[slotIndex]
             if not item then
                 item = {}

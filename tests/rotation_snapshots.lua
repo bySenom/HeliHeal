@@ -62,6 +62,16 @@ now = 3.2
 assert(not addon:TrackRotationInputAttempt("BUTTON5", 3, now)
     and #addon.db.global.rotationSnapshots == 1,
     "one unchanged candidate must not create duplicate snapshot spam")
+addon.sessionHolyPower = 4
+addon.lastAutomaticRotationSnapshot.capturedAt = now
+addon.pendingAcknowledgements = { [3] = { observedAt = now, generation = 1 } }
+addon:ResetRotationStuckCandidate()
+addon:TrackRotationInputAttempt("BUTTON5", 3, now)
+addon:RecordRotationInputFailure(3, 20473, now + 0.1)
+addon:RecordRotationInputFailure(3, 20473, now + 0.2)
+addon:RecordRotationInputFailure(3, 20473, now + 0.3)
+assert(#addon.db.global.rotationSnapshots == 1,
+    "the same primary ability must not create another snapshot when unrelated state changes")
 addon:ResetRotationStuckCandidate()
 assert(addon.rotationStuckCandidate == nil,
     "a confirmed cast can clear the diagnostic candidate without altering persisted snapshots")

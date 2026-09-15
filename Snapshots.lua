@@ -6,6 +6,7 @@ local ATTEMPT_WINDOW = 4
 local ATTEMPT_THRESHOLD = 6
 local ACKNOWLEDGEMENT_GRACE = 3
 local FAILURE_THRESHOLD = 3
+local REJECTION_BACKOFF = 5
 local DUPLICATE_COOLDOWN = 60
 
 local function countEntries(value)
@@ -132,6 +133,18 @@ function HeliHeal:BuildRotationSnapshotReport(reason, context, now)
         safeText(self.GetPaladinInfusionCharges and self:GetPaladinInfusionCharges(now) or 0),
         safeText(self.pendingPaladinHandOfDivinity and self.pendingPaladinHandOfDivinity.uses or 0),
         safeText(self.paladinNextArmamentType or "none"), countEntries(self.paladinArmamentExpirations))
+    local chargeLines = {}
+    for slotIndex, state in pairs(self.sessionCharges or {}) do
+        local ability = self.GetSlot and self:GetSlot(slotIndex)
+        local nextRechargeAt = tonumber(state.nextRechargeAt)
+        chargeLines[#chargeLines + 1] = ("slot%s:%s base=%s bonus=%s next=%.1fs history=%s"):format(
+            safeText(slotIndex), safeText(ability and ability.abilityKey or "unknown"),
+            safeText(state.baseCharges or 0), safeText(state.bonusCharges or 0),
+            nextRechargeAt and math.max(0, nextRechargeAt - now) or 0,
+            table.concat((self.sessionSpendHistory and self.sessionSpendHistory[slotIndex]) or {}, ","))
+    end
+    table.sort(chargeLines)
+    lines[#lines + 1] = "Charge ledger: " .. (#chargeLines > 0 and table.concat(chargeLines, " | ") or "none")
     lines[#lines + 1] = "Fingerprint: " .. safeText(context.fingerprint or self:GetRotationStateFingerprint(now) or "unavailable")
     return table.concat(lines, "\n"), timestamp
 end
@@ -173,13 +186,18 @@ function HeliHeal:CaptureRotationStuckCandidate(candidate, reason, context, now)
     if not candidate or candidate.captured then return false end
     now = now or GetTime()
     local previous = self.lastAutomaticRotationSnapshot
-    if previous and previous.fingerprint == candidate.fingerprint
+    if previous and ((previous.abilityKey and previous.abilityKey == candidate.abilityKey)
+            or (not previous.abilityKey and previous.fingerprint == candidate.fingerprint))
         and now - previous.capturedAt < DUPLICATE_COOLDOWN then
         candidate.captured = true
         return false
     end
     candidate.captured = true
-    self.lastAutomaticRotationSnapshot = { fingerprint = candidate.fingerprint, capturedAt = now }
+    self.lastAutomaticRotationSnapshot = {
+        abilityKey = candidate.abilityKey,
+        fingerprint = candidate.fingerprint,
+        capturedAt = now,
+    }
     context = context or {}
     context.inputKey = context.inputKey or candidate.inputKey
     context.slotIndex = context.slotIndex or candidate.slotIndex
@@ -193,6 +211,33 @@ function HeliHeal:CaptureRotationStuckCandidate(candidate, reason, context, now)
             "Rotations-Snapshot gespeichert: %s", snapshot.abilityName or "?"))
     end
     return true
+end
+
+function HeliHeal:GetRotationRejectionReadyAt(slotIndex, now)
+    local state = self.rotationRejectionBackoff and self.rotationRejectionBackoff[slotIndex]
+    if not state then return nil end
+    now = now or GetTime()
+    if now >= (tonumber(state.untilAt) or 0) then
+        self.rotationRejectionBackoff[slotIndex] = nil
+        return nil
+    end
+    return state.untilAt, state.duration
+end
+
+function HeliHeal:BackoffRejectedRotationSlot(slotIndex, now)
+    now = now or GetTime()
+    self.rotationRejectionBackoff = self.rotationRejectionBackoff or {}
+    self.rotationRejectionBackoff[slotIndex] = {
+        untilAt = now + REJECTION_BACKOFF,
+        duration = REJECTION_BACKOFF,
+    }
+    self.rotationStuckCandidate = nil
+    if self.RefreshDisplay then self:RefreshDisplay() end
+    return true
+end
+
+function HeliHeal:ClearRotationRejectionBackoff(slotIndex)
+    if self.rotationRejectionBackoff then self.rotationRejectionBackoff[slotIndex] = nil end
 end
 
 function HeliHeal:RecordRotationInputFailure(slotIndex, spellID, now)
@@ -215,12 +260,14 @@ function HeliHeal:RecordRotationInputFailure(slotIndex, spellID, now)
     if candidate.failures < FAILURE_THRESHOLD then return false end
     local pending = self.pendingAcknowledgements and self.pendingAcknowledgements[slotIndex]
     local pendingAt = pending and tonumber(pending.observedAt)
-    return self:CaptureRotationStuckCandidate(candidate,
+    local captured = self:CaptureRotationStuckCandidate(candidate,
         "Blizzard repeatedly rejected the still-recommended primary ability", {
             spellID = spellID,
             failures = candidate.failures,
             pendingAge = pendingAt and math.max(0, now - pendingAt) or 0,
         }, now)
+    local backedOff = self:BackoffRejectedRotationSlot(slotIndex, now)
+    return captured or backedOff
 end
 
 function HeliHeal:RecordRotationAcknowledgementTimeout(slotIndex, pending, now)
@@ -237,11 +284,13 @@ function HeliHeal:RecordRotationAcknowledgementTimeout(slotIndex, pending, now)
         or not primary or primary.slotIndex ~= slotIndex or fingerprint ~= candidate.fingerprint then
         return false
     end
-    return self:CaptureRotationStuckCandidate(candidate,
+    local captured = self:CaptureRotationStuckCandidate(candidate,
         "No cast result arrived before the input acknowledgement timed out", {
             pendingAge = math.floor((now - pendingAt) * 10 + 0.5) / 10,
             failures = candidate.failures or 0,
         }, now)
+    local backedOff = self:BackoffRejectedRotationSlot(slotIndex, now)
+    return captured or backedOff
 end
 
 function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
@@ -262,6 +311,7 @@ function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
             inputKey = inputKey,
             slotIndex = slotIndex,
             fingerprint = fingerprint,
+            abilityKey = primary.ability and primary.ability.abilityKey,
             startedAt = now,
             lastAttemptAt = now,
             attempts = 1,
@@ -281,7 +331,7 @@ function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
         return false
     end
 
-    return self:CaptureRotationStuckCandidate(candidate,
+    local captured = self:CaptureRotationStuckCandidate(candidate,
         "Repeated primary input without a successful acknowledgement or local rotation-state change", {
         inputKey = inputKey,
         slotIndex = slotIndex,
@@ -290,6 +340,8 @@ function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
         pendingAge = math.floor((now - pendingAt) * 10 + 0.5) / 10,
         fingerprint = fingerprint,
     }, now)
+    local backedOff = self:BackoffRejectedRotationSlot(slotIndex, now)
+    return captured or backedOff
 end
 
 function HeliHeal:ResetRotationStuckCandidate()

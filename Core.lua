@@ -121,6 +121,7 @@ function HeliHeal:ResetRuntimeState()
     self.sessionCharges = {}
     self.sessionSpendHistory = {}
     self.sessionTimedEffects = {}
+    self.rotationRejectionBackoff = {}
     self.sessionAtonements = {}
     self.holyPowerBaseline = 0
     self.holyPowerFreeSpenderBaseline = 0
@@ -2189,6 +2190,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
         return
     end
     if self.ResetRotationStuckCandidate then self:ResetRotationStuckCandidate() end
+    if self.ClearRotationRejectionBackoff then self:ClearRotationRejectionBackoff(slotIndex) end
 
     local now = GetTime()
     -- Avenging Wrath replaces Judgment with Hammer of Wrath on the same
