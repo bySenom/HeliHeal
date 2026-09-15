@@ -240,6 +240,13 @@ function Tracker:HasInfusionOfLight()
     return self:Refresh(false) == true
 end
 
+function Tracker:GetInfusionOfLightState()
+    local active = self:Refresh(false) == true
+    local reliable = self.registered == true and self.hideWhenInactive == true
+        and self:IsCachedFrameValid()
+    return active, reliable
+end
+
 local function debugValue(value)
     if isSecret(value) then return "<secret>" end
     if value == nil then return "unavailable" end
@@ -307,10 +314,17 @@ function HeliHeal:InitializeProcTracker()
     listener:SetScript("OnEvent", function(_, event, unit)
         if event == "UNIT_AURA" and unit ~= "player" then return end
         local forceSearch = event ~= "UNIT_AURA"
+        local function refreshTracker()
+            local wasActive = Tracker.active == true
+            local active = Tracker:Refresh(forceSearch) == true
+            if active ~= wasActive and HeliHeal.RefreshDisplay then
+                HeliHeal:RefreshDisplay()
+            end
+        end
         if C_Timer and type(C_Timer.After) == "function" then
-            C_Timer.After(0, function() Tracker:Refresh(forceSearch) end)
+            C_Timer.After(0, refreshTracker)
         else
-            Tracker:Refresh(forceSearch)
+            refreshTracker()
         end
     end)
     Tracker.listener = listener

@@ -68,6 +68,9 @@ assert(registrations.PLAYER_ENTERING_WORLD and registrations.PLAYER_SPECIALIZATI
 assert(addon.ProcTracker.registered and addon.ProcTracker.cooldownID == 77
         and addon.ProcTracker.spellID == 53576,
     "the tracker must identify and cache the Infusion frame by its base spell ID")
+local stateActive, stateReliable = addon.ProcTracker:GetInfusionOfLightState()
+assert(not stateActive and stateReliable,
+    "the tracker API must distinguish a reliable inactive state from unavailable tracking")
 local scansAfterCache = scans
 assert(not addon.ProcTracker:HasInfusionOfLight() and scans == scansAfterCache,
     "an inactive hidden Blizzard frame must stay cached without another pool scan")
@@ -77,6 +80,8 @@ addon.ProcTracker.listener.callback(nil, "UNIT_AURA", "player")
 assert(addon.ProcTracker.active and addon.ProcTracker:HasInfusionOfLight()
         and scans == scansAfterCache,
     "a player aura event must refresh the dedicated item's visibility without rescanning")
+assert(addon.ProcTracker:GetInfusionOfLightState() == true,
+    "the tracker API must expose the active proc")
 infusionActive = false
 infusionShown = false
 addon.ProcTracker.listener.callback(nil, "UNIT_AURA", "player")

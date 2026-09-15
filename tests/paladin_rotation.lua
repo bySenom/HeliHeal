@@ -723,6 +723,33 @@ now = 116
 assert(addon:GetPaladinInfusionCharges(now) == 0 and not addon.pendingPaladinInfusion,
     "locally tracked Infusion must expire after its 15-second duration")
 addon.talentSnapshot.paladinInflorescenceSunwell = false
+
+-- A configured dedicated Blizzard CDM item makes random Infusion procs
+-- available to the same local priority/consumer model.
+addon:ResetRuntimeState()
+addon.talentSnapshot.paladinTier4 = false
+local cdmInfusionActive = true
+addon.ProcTracker = {
+    GetInfusionOfLightState = function()
+        return cdmInfusionActive, true
+    end,
+}
+assert(addon:GetPaladinInfusionCharges(now) == 1
+        and addon.pendingPaladinInfusion.source == "cdm",
+    "a reliable active CDM item must import a random Infusion proc")
+order = addon:GetDisplayOrder(now)
+assert(displayContains(order, "paladin_flash_of_light"),
+    "a CDM-observed Infusion must make its healing consumer eligible")
+addon:AcknowledgeSlot(raidFlashIndex)
+assert(addon:GetPaladinInfusionCharges(now) == 0,
+    "a confirmed consumer must suppress immediate re-import of the same CDM visibility state")
+now = now + 0.25
+assert(addon:GetPaladinInfusionCharges(now) == 1,
+    "continued CDM visibility after the recheck window must represent another possible charge")
+cdmInfusionActive = false
+assert(addon:GetPaladinInfusionCharges(now) == 0,
+    "a reliable hidden CDM item must clear the imported Infusion state")
+addon.ProcTracker = nil
 now = 0
 
 -- Avenging Crusader is a separate replacement window: it adds Crusader Strike

@@ -130,6 +130,7 @@ function HeliHeal:ResetRuntimeState()
     self.nextHolyPowerEventID = 0
     self.pendingFreeHolyPowerSpenders = 0
     self.pendingPaladinInfusion = nil
+    self.paladinInfusionCDMRecheckAt = nil
     self.paladinWingsUntil = nil
     self.paladinCrusaderUntil = nil
     self.paladinVirtueUntil = nil
@@ -1014,19 +1015,48 @@ function HeliHeal:GetHolyPowerDelta(ability)
 end
 
 function HeliHeal:GetPaladinInfusionState(now)
+    now = now or GetTime()
     local state = self.pendingPaladinInfusion
     if state == true or type(state) == "number" then
         state = {
             charges = state == true and 1 or math.max(0, math.floor(state)),
-            expiresAt = (now or GetTime()) + PALADIN_INFUSION_DURATION,
+            expiresAt = now + PALADIN_INFUSION_DURATION,
         }
         self.pendingPaladinInfusion = state
     end
-    if type(state) ~= "table" then return nil end
-    now = now or GetTime()
-    if (tonumber(state.charges) or 0) <= 0 or now >= (tonumber(state.expiresAt) or 0) then
+    if type(state) == "table"
+        and ((tonumber(state.charges) or 0) <= 0 or now >= (tonumber(state.expiresAt) or 0)) then
         self.pendingPaladinInfusion = nil
-        return nil
+        state = nil
+    end
+
+    local tracker = self.ProcTracker
+    if self.classToken == "PALADIN" and tracker
+        and type(tracker.GetInfusionOfLightState) == "function" then
+        local active, reliable = tracker:GetInfusionOfLightState()
+        if reliable then
+            if active then
+                if now >= (tonumber(self.paladinInfusionCDMRecheckAt) or 0) then
+                    if not state then
+                        state = {
+                            charges = 1,
+                            expiresAt = now + PALADIN_INFUSION_DURATION,
+                            source = "cdm",
+                        }
+                        self.pendingPaladinInfusion = state
+                    else
+                        state.cdmObserved = true
+                        state.expiresAt = math.max(tonumber(state.expiresAt) or 0,
+                            now + PALADIN_INFUSION_DURATION)
+                    end
+                    self.paladinInfusionCDMRecheckAt = nil
+                end
+            elseif now >= (tonumber(state and state.localEvidenceUntil) or 0) then
+                self.pendingPaladinInfusion = nil
+                self.paladinInfusionCDMRecheckAt = nil
+                state = nil
+            end
+        end
     end
     return state
 end
@@ -1043,6 +1073,7 @@ function HeliHeal:ArmPaladinInfusion(now)
     self.pendingPaladinInfusion = {
         charges = math.min(maximum, (state and state.charges or 0) + 1),
         expiresAt = now + PALADIN_INFUSION_DURATION,
+        localEvidenceUntil = now + 0.5,
     }
     return true
 end
@@ -1071,7 +1102,13 @@ function HeliHeal:ApplyPaladinInfusionEffects(abilityKey, now)
         and (abilityKey == "paladin_flash_of_light" or abilityKey == "paladin_judgment"
             or abilityKey == "paladin_hammer_of_wrath") then
         state.charges = state.charges - 1
-        if state.charges <= 0 then self.pendingPaladinInfusion = nil end
+        if state.charges <= 0 then
+            self.pendingPaladinInfusion = nil
+            -- CDM exposes presence, not stacks. Give Blizzard one short aura
+            -- update window before treating continued visibility as another
+            -- Infusion charge.
+            self.paladinInfusionCDMRecheckAt = (now or GetTime()) + 0.2
+        end
         if self:IsTalentActive("paladinImbuedInfusions") then
             self:ReduceLocalAbilityCooldown("paladin_holy_shock", 1, now)
         end
