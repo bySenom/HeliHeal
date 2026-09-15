@@ -55,7 +55,7 @@ local abilities = {
         confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     paladin_judgment = {
-        spellID = 275773, name = "Judgment", cooldown = 11,
+        spellID = 275773, name = "Judgment", cooldown = 6,
         castSpellIDs = { 24275 }, holyPowerGain = 1, hastedCooldown = true,
         confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },

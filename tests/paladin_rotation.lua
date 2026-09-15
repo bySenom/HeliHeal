@@ -297,13 +297,20 @@ addon.talentSnapshot.paladinDivineOverload = false
 assert(addon:GetSlot(shockIndex).cooldown == 5,
     "20 percent cached spell haste must reduce Holy Shock recharge from six to five seconds")
 local judgmentIndex = addon:GetSlotIndexByAbilityKey("paladin_judgment")
-assert(addon:GetSlot(judgmentIndex).cooldown == 9.17,
-    "cached spell haste must also reduce Judgment's eleven-second cooldown")
+assert(addon:GetSlot(judgmentIndex).cooldown == 5,
+    "cached spell haste must reduce Judgment's six-second cooldown")
 addon:AcknowledgeSlot(judgmentIndex)
 now = 1
 addon:AcknowledgeSlot(shockIndex)
 assert(addon.sessionUses[judgmentIndex] == -1.5,
     "Crusader's Might must reduce the running Judgment cooldown by 1.5 seconds per Holy Shock")
+local judgment = addon:GetSlot(judgmentIndex)
+assert(math.abs(math.max(0, addon.sessionUses[judgmentIndex] + judgment.cooldown - now) - 2.5) < 0.001,
+    "Judgment must have 2.5 seconds remaining after one second and one Crusader's Might reduction")
+addon:AcknowledgeSlot(shieldIndex)
+local shockState = addon.sessionCharges[shockIndex]
+assert(shockState and math.abs(shockState.nextRechargeAt - 4) < 0.001,
+    "Shield of the Righteous must reduce Holy Shock's running five-second recharge by two seconds")
 addon:ResetRuntimeState()
 now = 0
 InCombatLockdown = function() return true end
