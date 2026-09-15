@@ -896,3 +896,9 @@ assert(not addon:ReduceLocalAbilityCooldown("paladin_holy_armament", 3, now)
         and addon.sessionCharges[auditArmament].baseCharges == 2
         and not addon.sessionCharges[auditArmament].nextRechargeAt,
     "a completed full recharge must not create another timer or bank CDR")
+for i = 1, 50 do addon:RecordArmamentDiagnostic("audit", i, now) end
+assert(#addon.armamentDiagnosticEvents == 40
+    and addon.armamentDiagnosticEvents[1]:find("spell=11", 1, true),
+    "Armament diagnostics must retain only the last forty events")
+addon:ResetRuntimeState()
+assert(#addon.armamentDiagnosticEvents == 0, "runtime reset must clear the event timeline")

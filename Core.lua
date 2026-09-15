@@ -120,6 +120,7 @@ function HeliHeal:ResetRuntimeState()
     self:ResetInputState()
     self.sessionUses = {}
     self.sessionCharges = {}
+    self.armamentDiagnosticEvents = {}
     self.sessionSpendHistory = {}
     self.sessionTimedEffects = {}
     self.rotationRejectionBackoff = {}
@@ -1118,6 +1119,11 @@ function HeliHeal:ApplyPaladinInfusionEffects(abilityKey, now)
         return self:ArmPaladinInfusion(now)
     end
     local state = self:GetPaladinInfusionConsumerState(now)
+    if abilityKey == "paladin_flash_of_light" or abilityKey == "paladin_judgment"
+        or abilityKey == "paladin_hammer_of_wrath" then
+        self:RecordArmamentDiagnostic("infusion-consumer", nil, now,
+            abilityKey .. " infusion=" .. tostring(state and state.charges or 0))
+    end
     if state
         and (abilityKey == "paladin_flash_of_light" or abilityKey == "paladin_judgment"
             or abilityKey == "paladin_hammer_of_wrath") then
@@ -1801,6 +1807,20 @@ function HeliHeal:GetRechargeFinish(ability, startedAt)
     return startedAt + acceleratedWindow + (duration - (acceleratedWindow * rate))
 end
 
+function HeliHeal:RecordArmamentDiagnostic(kind, spellID, now, detail)
+    if self.classToken ~= "PALADIN" then return end
+    local index = self:GetSlotIndexByAbilityKey("paladin_holy_armament")
+    local state = index and self.sessionCharges[index]
+    local events = self.armamentDiagnosticEvents or {}
+    self.armamentDiagnosticEvents = events
+    now = now or GetTime()
+    events[#events + 1] = ("t=%.3f %s spell=%s charges=%s next=%.3f %s"):format(
+        now, kind, tostring(spellID or "-"), tostring(state and state.baseCharges or "uninitialized"),
+        state and state.nextRechargeAt and math.max(0, state.nextRechargeAt - now) or 0,
+        detail or "")
+    if #events > 40 then table.remove(events, 1) end
+end
+
 function HeliHeal:ReduceLocalAbilityCooldown(abilityKey, seconds, now)
     local slotIndex = self:GetSlotIndexByAbilityKey(abilityKey)
     local ability = slotIndex and self:GetSlot(slotIndex)
@@ -1819,6 +1839,9 @@ function HeliHeal:ReduceLocalAbilityCooldown(abilityKey, seconds, now)
         state.cooldownReductionCount = (state.cooldownReductionCount or 0) + (applied > 0 and 1 or 0)
         state.lastCooldownReductionAt = now
         self:GetChargeState(slotIndex, ability, now)
+        if abilityKey == "paladin_holy_armament" then
+            self:RecordArmamentDiagnostic("reduction", nil, now, ("requested=%.3f applied=%.3f"):format(seconds, applied))
+        end
         return true
     end
     local usedAt = self.sessionUses[slotIndex]

@@ -257,6 +257,10 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
     spellID = tonumber(spellID)
     if not spellID then return false end
     local succeededAt = GetTime()
+    if PALADIN_ARMAMENT_SPELLS[spellID] and self.RecordArmamentDiagnostic then
+        self:RecordArmamentDiagnostic("success-received", spellID, succeededAt,
+            "input=" .. tostring(self:HasObservedPlayerInputForSpell(spellID)))
+    end
     -- Deduplicate across observed/direct/assisted paths, including delayed
     -- repeats separated by other casts. Restricted GUIDs remain opaque.
     local readableGUID = type(castGUID) == "string"
@@ -270,10 +274,18 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
         for guid, at in pairs(seen) do
             if succeededAt < at or succeededAt - at > 120 then seen[guid] = nil end
         end
-        if seen[castGUID] then return true end
+        if seen[castGUID] then
+            if PALADIN_ARMAMENT_SPELLS[spellID] and self.RecordArmamentDiagnostic then
+                self:RecordArmamentDiagnostic("duplicate-guid", spellID, succeededAt)
+            end
+            return true
+        end
         seen[castGUID] = succeededAt
     end
     if self:IsDuplicatePaladinArmamentSuccess(spellID, castGUID, succeededAt) then
+        if self.RecordArmamentDiagnostic then
+            self:RecordArmamentDiagnostic("duplicate-echo", spellID, succeededAt)
+        end
         return true
     end
     local assistedPlayerInitiated = self:HasObservedAssistedInputForSpell(spellID)
@@ -294,6 +306,10 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
     self.recentSuccessfulSpells[spellID] = succeededAt
     local committed = self:CommitObservedSpell(spellID) or self:CommitAssistedCombatSpell(spellID)
         or self:CommitConfiguredPlayerSpell(spellID)
+    if PALADIN_ARMAMENT_SPELLS[spellID] and self.RecordArmamentDiagnostic then
+        self:RecordArmamentDiagnostic("success-processed", spellID, succeededAt,
+            "committed=" .. tostring(committed))
+    end
     local externalHolyPowerConfirmed = self:RecordExternalHolyPowerSpell(spellID, succeededAt)
     if self.Mana then
         self.Mana:OnSpellSucceeded(spellID, castGUID, succeededAt, manaPlayerInitiated)

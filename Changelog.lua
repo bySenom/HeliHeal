@@ -36,6 +36,7 @@ ns.changelog = {
                 "Preserve recent Infusion visibility briefly for out-of-order cast confirmations and treat unreadable visibility as unknown.",
                 "Apply confirmed cast effects even when the local charge estimate is empty, and ignore repeated readable cast GUIDs.",
                 "Settle completed charges before applying cooldown reductions so event ordering cannot delay the next recharge; include recharge duration and applied reductions in snapshots.",
+                "Include a bounded Armament event timeline in snapshots to identify duplicate casts and missed Infusion reductions.",
             },
         },
         {

@@ -148,6 +148,10 @@ function HeliHeal:BuildRotationSnapshotReport(reason, context, now)
     end
     table.sort(chargeLines)
     lines[#lines + 1] = "Charge ledger: " .. (#chargeLines > 0 and table.concat(chargeLines, " | ") or "none")
+    if self.armamentDiagnosticEvents and #self.armamentDiagnosticEvents > 0 then
+        lines[#lines + 1] = "Armament events (last 40, local time):"
+        for _, event in ipairs(self.armamentDiagnosticEvents) do lines[#lines + 1] = "  " .. event end
+    end
     lines[#lines + 1] = "Fingerprint: " .. safeText(context.fingerprint or self:GetRotationStateFingerprint(now) or "unavailable")
     return table.concat(lines, "\n"), timestamp
 end
