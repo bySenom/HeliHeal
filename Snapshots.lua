@@ -137,10 +137,11 @@ function HeliHeal:BuildRotationSnapshotReport(reason, context, now)
     for slotIndex, state in pairs(self.sessionCharges or {}) do
         local ability = self.GetSlot and self:GetSlot(slotIndex)
         local nextRechargeAt = tonumber(state.nextRechargeAt)
-        chargeLines[#chargeLines + 1] = ("slot%s:%s base=%s bonus=%s next=%.1fs history=%s"):format(
+        chargeLines[#chargeLines + 1] = ("slot%s:%s base=%s bonus=%s next=%.1fs rejected=%s history=%s"):format(
             safeText(slotIndex), safeText(ability and ability.abilityKey or "unknown"),
             safeText(state.baseCharges or 0), safeText(state.bonusCharges or 0),
             nextRechargeAt and math.max(0, nextRechargeAt - now) or 0,
+            safeText(state.rejectedChargeReconciliations or 0),
             table.concat((self.sessionSpendHistory and self.sessionSpendHistory[slotIndex]) or {}, ","))
     end
     table.sort(chargeLines)
@@ -240,6 +241,27 @@ function HeliHeal:ClearRotationRejectionBackoff(slotIndex)
     if self.rotationRejectionBackoff then self.rotationRejectionBackoff[slotIndex] = nil end
 end
 
+function HeliHeal:ReconcileRejectedChargeSlot(slotIndex, now)
+    local ability = self.GetSlot and self:GetSlot(slotIndex)
+    if not ability or (tonumber(ability.maxCharges) or 1) <= 1 then
+        return false
+    end
+    now = now or GetTime()
+    local state = self.GetChargeState and self:GetChargeState(slotIndex, ability, now)
+    if not state or (tonumber(state.baseCharges) or 0) <= 0 then return false end
+
+    state.baseCharges = state.baseCharges - 1
+    state.rejectedChargeReconciliations = (tonumber(state.rejectedChargeReconciliations) or 0) + 1
+    if not state.nextRechargeAt and (tonumber(ability.cooldown) or 0) > 0 then
+        if self.GetRechargeFinish then
+            state.nextRechargeAt = self:GetRechargeFinish(ability, now)
+        else
+            state.nextRechargeAt = now + ability.cooldown
+        end
+    end
+    return true
+end
+
 function HeliHeal:RecordRotationInputFailure(slotIndex, spellID, now)
     now = now or GetTime()
     local candidate = self.rotationStuckCandidate
@@ -266,8 +288,9 @@ function HeliHeal:RecordRotationInputFailure(slotIndex, spellID, now)
             failures = candidate.failures,
             pendingAge = pendingAt and math.max(0, now - pendingAt) or 0,
         }, now)
+    local reconciled = self:ReconcileRejectedChargeSlot(slotIndex, now)
     local backedOff = self:BackoffRejectedRotationSlot(slotIndex, now)
-    return captured or backedOff
+    return captured or reconciled or backedOff
 end
 
 function HeliHeal:RecordRotationAcknowledgementTimeout(slotIndex, pending, now)

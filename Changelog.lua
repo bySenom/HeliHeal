@@ -25,6 +25,8 @@ ns.changelog = {
                 "Predict Divine Resonance's three automatic Holy Shock timings and spend at four Holy Power when the next fixed tick would otherwise overcap.",
                 "Apply Divine Spurs to Divine Steed's local recharge while documenting its shorter movement duration.",
                 "Use Holy Armaments' current 60-second recharge without the obsolete Quickened Invocation reduction; Forewarning and Valiance remain supported.",
+                "Apply Valiance conditionally: extend active Armaments, or reduce their recharge only when none are active.",
+                "Reconcile one locally available charge after Blizzard rejects a charged ability three times, preventing phantom charges from returning as the primary recommendation.",
             },
         },
         {

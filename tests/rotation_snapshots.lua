@@ -131,4 +131,25 @@ assert(#addon.db.global.rotationSnapshots == 1
     and addon.db.global.rotationSnapshots[1].reason:find("Blizzard repeatedly rejected", 1, true),
     "the failure snapshot must preserve its strong trigger evidence")
 
+local armament = {
+    abilityKey = "paladin_holy_armament", spellID = 432472, name = "Sacred Weapon",
+    maxCharges = 2, cooldown = 60,
+}
+order[1] = { slotIndex = 1, ability = armament, remaining = 0, charges = 1 }
+addon.sessionCharges[1] = { baseCharges = 1, bonusCharges = 0, nextRechargeAt = now + 50 }
+addon.GetSlot = function(_, slotIndex) return slotIndex == 1 and armament or ability end
+addon.GetChargeState = function(self, slotIndex) return self.sessionCharges[slotIndex] end
+addon.pendingAcknowledgements = { [1] = { observedAt = now, generation = 1 } }
+addon.lastAutomaticRotationSnapshot = nil
+addon:ResetRotationStuckCandidate()
+addon:TrackRotationInputAttempt("2", 1, now)
+assert(not addon:RecordRotationInputFailure(1, 432472, now + 0.1)
+        and not addon:RecordRotationInputFailure(1, 432472, now + 0.2),
+    "a charged ability must retain its local charge before the third matching rejection")
+assert(addon:RecordRotationInputFailure(1, 432472, now + 0.3)
+        and addon.sessionCharges[1].baseCharges == 0
+        and addon.sessionCharges[1].nextRechargeAt == now + 50
+        and addon.sessionCharges[1].rejectedChargeReconciliations == 1,
+    "three rejected charged-ability attempts must reconcile one phantom charge without restarting recharge")
+
 print("Rotation snapshots OK: stable-input detection, diagnostic export, dedupe and storage cap")

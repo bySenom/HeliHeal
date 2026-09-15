@@ -389,6 +389,7 @@ assert(addon:GetSlot(armamentIndex).confirmOnPlayerSuccess,
     "both transformed Holy Armament casts must support direct Blizzard success confirmation")
 addon:AcknowledgeSlot(armamentIndex)
 local armamentRechargeBeforeValiance = addon.sessionCharges[armamentIndex].nextRechargeAt
+local bulwarkExpirationBeforeValiance = addon.paladinArmamentExpirations.bulwark
 assert(addon.paladinNextArmamentType == "sacred"
         and addon:GetSlot(armamentIndex).spellID == 432472
         and addon:GetSlot(armamentIndex).name == "Sacred Weapon",
@@ -396,8 +397,15 @@ assert(addon.paladinNextArmamentType == "sacred"
 addon.pendingPaladinInfusion = true
 local lightsmithFlashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
 addon:AcknowledgeSlot(lightsmithFlashIndex)
+assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance
+        and addon.paladinArmamentExpirations.bulwark == bulwarkExpirationBeforeValiance + 3,
+    "Valiance must extend active Armaments instead of advancing their recharge")
+addon.paladinArmamentExpirations = {}
+addon.pendingPaladinInfusion = true
+addon:AcknowledgeSlot(lightsmithFlashIndex)
 assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance - 3,
-    "Valiance must advance the active Holy Armament recharge by three seconds")
+    "Valiance must advance Holy Armament recharge only while no Armament is active")
+addon.paladinArmamentExpirations.bulwark = now + 20
 local lightsmithLayOnHandsIndex = addon:GetSlotIndexByAbilityKey("paladin_lay_on_hands")
 addon:AcknowledgeSlot(lightsmithLayOnHandsIndex)
 local layOnHandsUsedAt = addon.sessionUses[lightsmithLayOnHandsIndex]

@@ -21,7 +21,7 @@ HeliHeal models Holy Paladin as a player-driven priority helper, not an automati
 - Infusion prefers Flash of Light in healing modes and Judgment or its Hammer replacement in Mana Saving mode.
 - Flash of Light is shown only while an Infusion is locally known; otherwise the static tracker cannot justify recommending the expensive emergency cast.
 - When a locally known Infusion is consumed, Imbued Infusions reduces the locally tracked Holy Shock recharge by one second.
-- Forewarning reduces Holy Armaments' two-charge recharge by 20%. When a locally known Infusion is consumed, Valiance also advances the running Holy Armaments recharge by three seconds.
+- Forewarning reduces Holy Armaments' two-charge recharge by 20%. When a locally known Infusion is consumed, Valiance extends every active self-Armament by three seconds; it advances the running recharge by three seconds only when no self-Armament is active.
 - With both Solidarity and Laying Down Arms selected, every confirmed Holy Armament cast starts a local 20-second self-Armament timer. Its expiration grants the guaranteed Infusion of Light and advances a running Lay on Hands cooldown by 15 seconds. Holy Bulwark and Sacred Weapon are tracked separately, including same-caster duration extensions.
 - Holy Bulwark and Sacred Weapon alternate inside one recommendation slot and retain one shared hotkey. The displayed localized spell name and icon switch after each confirmed cast.
 - Blizzard success events for both Armament variants directly consume their shared local charges, even when the transformed action-button input could not be correlated first.
