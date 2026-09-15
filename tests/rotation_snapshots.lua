@@ -147,9 +147,9 @@ assert(not addon:RecordRotationInputFailure(1, 432472, now + 0.1)
         and not addon:RecordRotationInputFailure(1, 432472, now + 0.2),
     "a charged ability must retain its local charge before the third matching rejection")
 assert(addon:RecordRotationInputFailure(1, 432472, now + 0.3)
-        and addon.sessionCharges[1].baseCharges == 0
+        and addon.sessionCharges[1].baseCharges == 1
         and addon.sessionCharges[1].nextRechargeAt == now + 50
-        and addon.sessionCharges[1].rejectedChargeReconciliations == 1,
-    "three rejected charged-ability attempts must reconcile one phantom charge without restarting recharge")
+        and not addon.sessionCharges[1].rejectedChargeReconciliations,
+    "generic cast failures must capture diagnostics without deleting a real charge or restarting recharge")
 
 print("Rotation snapshots OK: stable-input detection, diagnostic export, dedupe and storage cap")

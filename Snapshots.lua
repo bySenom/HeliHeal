@@ -250,16 +250,10 @@ function HeliHeal:ReconcileRejectedChargeSlot(slotIndex, now)
     local state = self.GetChargeState and self:GetChargeState(slotIndex, ability, now)
     if not state or (tonumber(state.baseCharges) or 0) <= 0 then return false end
 
-    state.baseCharges = state.baseCharges - 1
-    state.rejectedChargeReconciliations = (tonumber(state.rejectedChargeReconciliations) or 0) + 1
-    if not state.nextRechargeAt and (tonumber(ability.cooldown) or 0) > 0 then
-        if self.GetRechargeFinish then
-            state.nextRechargeAt = self:GetRechargeFinish(ability, now)
-        else
-            state.nextRechargeAt = now + ability.cooldown
-        end
-    end
-    return true
+    -- A generic failed cast does not establish a missing charge (range,
+    -- target and GCD failures use the same event). Keep this compatibility
+    -- entry point non-mutating; only the retry backoff is justified.
+    return false
 end
 
 function HeliHeal:RecordRotationInputFailure(slotIndex, spellID, now)

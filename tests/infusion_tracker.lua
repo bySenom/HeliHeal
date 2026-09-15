@@ -126,4 +126,11 @@ addon.ProcTracker:PrintStatus()
 addon.ProcTracker:PrintRegisteredBuffs()
 assert(#addon.messages > 0, "debug commands must produce one-time diagnostic output")
 
+dedicatedFrame.IsShown = function() return nil end
+local unknownActive, unknownReliable = addon.ProcTracker:GetInfusionOfLightState()
+assert(not unknownActive and not unknownReliable,
+    "unreadable visibility must not be reported as reliable inactivity")
+dedicatedFrame.IsShown = function() error("unreadable") end
+assert(select(2, addon.ProcTracker:GetInfusionOfLightState()) == false,
+    "a failed visibility method must also report unknown state")
 print("Infusion tracker OK: CDM identity, dedicated visibility state, shells and recycling")

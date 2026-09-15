@@ -243,7 +243,7 @@ end
 function Tracker:GetInfusionOfLightState()
     local active = self:Refresh(false) == true
     local reliable = self.registered == true and self.hideWhenInactive == true
-        and self:IsCachedFrameValid()
+        and not self.secretShown and self:IsCachedFrameValid()
     return active, reliable
 end
 

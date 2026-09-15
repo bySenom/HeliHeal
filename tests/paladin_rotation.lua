@@ -833,4 +833,52 @@ addon.talentSnapshot.paladinSanctifiedWrath = true
 assert(addon:GetPaladinMajorCooldownDuration("paladin_avenging_wrath") == 21,
     "Sanctified Wrath must extend the Call-adjusted Avenging Wrath duration by 50 percent")
 
+-- Audit regressions: hidden-before-success, duplicate events and stale charges.
+addon:SetRotationPreset("paladin_lightsmith_mythicplus")
+addon.talentSnapshot.paladinLightsmith = true
+addon.talentSnapshot.paladinHerald = false
+addon.talentSnapshot.paladinValiance = true
+addon.talentSnapshot.paladinQuickenedInvocation = true
+addon.talentSnapshot.paladinForewarning = false
+addon:ResetRuntimeState()
+now = 2000
+local auditArmament = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
+local auditFlash = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
+addon:RecordPlayerSpellSucceeded(432459, "audit-armament")
+local auditVisible = true
+addon.ProcTracker = { GetInfusionOfLightState = function() return auditVisible, true end }
+addon:GetPaladinInfusionCharges(now)
+local auditDue = addon.sessionCharges[auditArmament].nextRechargeAt
+now = now + 0.1
+auditVisible = false
+assert(addon:GetPaladinInfusionCharges(now) == 0, "hidden proc must leave the HUD immediately")
+addon.pendingAcknowledgements[auditFlash] = { observedAt = now, generation = addon.inputGeneration }
+addon:RecordPlayerSpellSucceeded(19750, "audit-flash")
+assert(addon.sessionCharges[auditArmament].nextRechargeAt == auditDue - 3,
+    "recent visibility must survive hide-before-success ordering for one consumption")
+now = now + 0.05
+addon:RecordPlayerSpellSucceeded(19750, "audit-uninfused")
+assert(addon.sessionCharges[auditArmament].nextRechargeAt == auditDue - 3,
+    "consumed visibility evidence must never be reused")
+now = now + 0.4
+auditVisible = true
+addon:GetPaladinInfusionCharges(now)
+addon:RecordPlayerSpellSucceeded(19750, "audit-flash")
+assert(addon.sessionCharges[auditArmament].nextRechargeAt == auditDue - 3,
+    "the same GUID must not consume a later proc through direct confirmation")
+now = now + 0.1
+auditVisible = false
+addon:GetPaladinInfusionCharges(now)
+now = now + 0.4
+addon:RecordPlayerSpellSucceeded(19750, "audit-expired-evidence")
+assert(addon.sessionCharges[auditArmament].nextRechargeAt == auditDue - 3,
+    "expired visibility evidence must not grant cooldown reductions")
+addon:ResetRuntimeState()
+addon.ProcTracker = nil
+addon.sessionCharges[auditArmament] = { baseCharges = 0, bonusCharges = 0, nextRechargeAt = now + 20 }
+addon:RecordPlayerSpellSucceeded(432459, "audit-real-cast")
+assert(addon.paladinNextArmamentType == "sacred" and addon.sessionHolyPower == 3
+        and addon.sessionCharges[auditArmament].baseCharges == 0
+        and addon.sessionCharges[auditArmament].nextRechargeAt == now + 20,
+    "a confirmed cast with stale zero charges must apply effects and preserve the running recharge")
 print("paladin_rotation.lua: OK")

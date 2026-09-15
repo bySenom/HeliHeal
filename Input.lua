@@ -257,6 +257,22 @@ function HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
     spellID = tonumber(spellID)
     if not spellID then return false end
     local succeededAt = GetTime()
+    -- Deduplicate across observed/direct/assisted paths, including delayed
+    -- repeats separated by other casts. Restricted GUIDs remain opaque.
+    local readableGUID = type(castGUID) == "string"
+    if readableGUID and type(issecretvalue) == "function" then
+        local ok, secret = pcall(issecretvalue, castGUID)
+        readableGUID = ok and not secret
+    end
+    if readableGUID then
+        self.processedPlayerCastGUIDs = self.processedPlayerCastGUIDs or {}
+        local seen = self.processedPlayerCastGUIDs
+        for guid, at in pairs(seen) do
+            if succeededAt < at or succeededAt - at > 120 then seen[guid] = nil end
+        end
+        if seen[castGUID] then return true end
+        seen[castGUID] = succeededAt
+    end
     if self:IsDuplicatePaladinArmamentSuccess(spellID, castGUID, succeededAt) then
         return true
     end

@@ -104,6 +104,7 @@ function HeliHeal:ResetInputState()
     self.holyPowerSyncToken = (self.holyPowerSyncToken or 0) + 1
     self.pendingAcknowledgements = {}
     self.recentSuccessfulSpells = {}
+    self.processedPlayerCastGUIDs = {}
     self.recentDirectConfirmations = {}
     self.recentExternalHolyPowerSuccess = {}
     self.recentPaladinArmamentSuccess = nil
@@ -131,6 +132,7 @@ function HeliHeal:ResetRuntimeState()
     self.pendingFreeHolyPowerSpenders = 0
     self.pendingPaladinInfusion = nil
     self.paladinInfusionCDMRecheckAt = nil
+    self.paladinInfusionConsumptionEvidence = nil
     self.paladinWingsUntil = nil
     self.paladinCrusaderUntil = nil
     self.paladinVirtueUntil = nil
@@ -1003,7 +1005,7 @@ function HeliHeal:GetHolyPowerDelta(ability)
         gain = gain + math.max(0, tonumber(ability.holyPowerTalentGain) or 0)
     end
     if (ability.abilityKey == "paladin_judgment" or ability.abilityKey == "paladin_hammer_of_wrath")
-        and self:GetPaladinInfusionCharges() > 0 then
+        and self:GetPaladinInfusionConsumerState() then
         gain = gain + 1
     end
     if ability.abilityKey == "paladin_hammer_of_wrath" and self:IsPaladinWingsActive() then
@@ -1050,8 +1052,17 @@ function HeliHeal:GetPaladinInfusionState(now)
                             now + PALADIN_INFUSION_DURATION)
                     end
                     self.paladinInfusionCDMRecheckAt = nil
+                    state.lastVisibleAt = now
+                    self.paladinInfusionConsumptionEvidence = nil
                 end
             elseif now >= (tonumber(state and state.localEvidenceUntil) or 0) then
+                -- Retain a single recent observation for success-event ordering
+                -- only. It must not keep the proc eligible in the HUD.
+                if state and state.lastVisibleAt and now - state.lastVisibleAt <= 0.3 then
+                    self.paladinInfusionConsumptionEvidence = {
+                        charges = 1, expiresAt = state.lastVisibleAt + 0.3,
+                    }
+                end
                 self.pendingPaladinInfusion = nil
                 self.paladinInfusionCDMRecheckAt = nil
                 state = nil
@@ -1064,6 +1075,15 @@ end
 function HeliHeal:GetPaladinInfusionCharges(now)
     local state = self:GetPaladinInfusionState(now)
     return state and math.max(0, math.floor(tonumber(state.charges) or 0)) or 0
+end
+
+function HeliHeal:GetPaladinInfusionConsumerState(now)
+    now = now or GetTime()
+    local state = self:GetPaladinInfusionState(now)
+    if state then return state end
+    local evidence = self.paladinInfusionConsumptionEvidence
+    if evidence and now <= evidence.expiresAt then return evidence end
+    self.paladinInfusionConsumptionEvidence = nil
 end
 
 function HeliHeal:ArmPaladinInfusion(now)
@@ -1097,10 +1117,11 @@ function HeliHeal:ApplyPaladinInfusionEffects(abilityKey, now)
     if abilityKey == "paladin_holy_light" and self:IsTalentActive("paladinTier4") then
         return self:ArmPaladinInfusion(now)
     end
-    local state = self:GetPaladinInfusionState(now)
+    local state = self:GetPaladinInfusionConsumerState(now)
     if state
         and (abilityKey == "paladin_flash_of_light" or abilityKey == "paladin_judgment"
             or abilityKey == "paladin_hammer_of_wrath") then
+        self.paladinInfusionConsumptionEvidence = nil
         state.charges = state.charges - 1
         if state.charges <= 0 then
             self.pendingPaladinInfusion = nil
@@ -2003,6 +2024,16 @@ function HeliHeal:SpendCharge(slotIndex, ability, now, observedSpellID)
         return true
     end
     if state.baseCharges <= 0 then
+        if observedSpellID then
+            -- Blizzard confirmed a cast our estimate considered unavailable.
+            -- Its post-cast count is conservatively zero, but its effects must
+            -- still run. Preserve any running recharge rather than restart it.
+            if not state.nextRechargeAt and ability.cooldown > 0 then
+                state.nextRechargeAt = self:GetRechargeFinish(ability, now)
+            end
+            table.insert(self.sessionSpendHistory[slotIndex], "confirmed_unestimated")
+            return true
+        end
         return false
     end
 
