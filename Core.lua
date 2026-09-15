@@ -693,7 +693,7 @@ local function countEntries(value)
     return count
 end
 
-function HeliHeal:BuildDiagnosticReport()
+function HeliHeal:BuildDiagnosticReport(currentRotationOnly)
     local version = "?"
     if C_AddOns and type(C_AddOns.GetAddOnMetadata) == "function" then
         version = C_AddOns.GetAddOnMetadata("HeliHeal", "Version") or version
@@ -702,11 +702,30 @@ function HeliHeal:BuildDiagnosticReport()
     end
     local build = type(GetBuildInfo) == "function" and select(2, GetBuildInfo()) or "?"
     local talent = self.talentSnapshot or {}
+    local activeBindingKeys
+    if currentRotationOnly then
+        activeBindingKeys = {}
+        for slotIndex, configuredSlot in ipairs(self.db.profile.slots or {}) do
+            local ability = self.GetSlot and self:GetSlot(slotIndex) or configuredSlot
+            if ability and ability.enabled then
+                activeBindingKeys[configuredSlot.abilityKey] = true
+                if configuredSlot.derivedBindingFrom then activeBindingKeys[configuredSlot.derivedBindingFrom] = true end
+            end
+        end
+    end
     local conflictKeys = {}
-    for _, conflict in ipairs(self:GetBindingConflicts()) do conflictKeys[#conflictKeys + 1] = conflict.inputKey end
+    for _, conflict in ipairs(self:GetBindingConflicts()) do
+        local relevant = not currentRotationOnly
+        for abilityKey in pairs(conflict.abilityKeys or {}) do
+            if activeBindingKeys and activeBindingKeys[abilityKey] then relevant = true break end
+        end
+        if relevant then conflictKeys[#conflictKeys + 1] = conflict.inputKey end
+    end
     local bindings = {}
     for abilityKey, inputKey in pairs(self.db.profile.bindings or {}) do
-        if inputKey ~= "" then bindings[#bindings + 1] = abilityKey .. "=" .. inputKey end
+        if inputKey ~= "" and (not activeBindingKeys or activeBindingKeys[abilityKey]) then
+            bindings[#bindings + 1] = abilityKey .. "=" .. inputKey
+        end
     end
     table.sort(bindings)
     return table.concat({

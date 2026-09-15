@@ -1601,7 +1601,7 @@ function HeliHeal:BuildSnapshotsPage(parent)
     toolbar:SetHeight(58)
     backdrop(toolbar, C.panel, C.borderSoft)
     local hint = text(toolbar,
-        L("Automatisch nach 6 gleichen Primär-Inputs in 4 Sekunden. Keine Health-, Target- oder Aura-Daten."),
+        L("Automatisch nach 6 gleichen Primär-Inputs und 3 Sekunden ohne Cast-Bestätigung. Keine Health-, Target- oder Aura-Daten."),
         9, C.muted)
     hint:SetPoint("LEFT", 15, 0)
     hint:SetPoint("RIGHT", -300, 0)

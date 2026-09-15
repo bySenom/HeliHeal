@@ -471,6 +471,7 @@ function HeliHeal:RejectObservedSpell(spellID)
             if pending.timer and type(pending.timer.Cancel) == "function" then pending.timer:Cancel() end
             self.pendingAcknowledgements[slotIndex] = nil
             self.inputLockedUntil[slotIndex] = nil
+            if self.ResetRotationStuckCandidate then self:ResetRotationStuckCandidate() end
             return true
         end
     end

@@ -4,6 +4,7 @@ local HeliHeal = ns.addon
 local MAX_SNAPSHOTS = 20
 local ATTEMPT_WINDOW = 4
 local ATTEMPT_THRESHOLD = 6
+local ACKNOWLEDGEMENT_GRACE = 3
 local DUPLICATE_COOLDOWN = 60
 
 local function countEntries(value)
@@ -82,11 +83,12 @@ function HeliHeal:BuildRotationSnapshotReport(reason, context, now)
         "Input: key=" .. safeText(context.inputKey or "manual")
             .. "; attempts=" .. safeText(context.attempts or 0)
             .. "; window=" .. safeText(context.window or 0) .. "s"
+            .. "; pendingAge=" .. safeText(context.pendingAge or 0) .. "s"
             .. "; slot=" .. safeText(context.slotIndex or "n/a"),
     }
 
     if self.BuildDiagnosticReport then
-        lines[#lines + 1] = "Diagnostic: " .. self:BuildDiagnosticReport()
+        lines[#lines + 1] = "Diagnostic: " .. self:BuildDiagnosticReport(true)
     end
 
     local order = self.GetDisplayOrder and self:GetDisplayOrder(now) or {}
@@ -188,12 +190,19 @@ function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
             attempts = 1,
         }
         self.rotationStuckCandidate = candidate
+    else
+        if now - candidate.lastAttemptAt < 0.08 then return false end
+        candidate.lastAttemptAt = now
+        candidate.attempts = candidate.attempts + 1
+    end
+    if candidate.attempts < ATTEMPT_THRESHOLD or candidate.captured then return false end
+
+    local pending = self.pendingAcknowledgements and self.pendingAcknowledgements[slotIndex]
+    local pendingAt = pending and tonumber(pending.observedAt)
+    if not pending or not pendingAt or now < pendingAt or now - pendingAt < ACKNOWLEDGEMENT_GRACE
+        or (pending.generation ~= nil and pending.generation ~= (self.inputGeneration or 0)) then
         return false
     end
-    if now - candidate.lastAttemptAt < 0.08 then return false end
-    candidate.lastAttemptAt = now
-    candidate.attempts = candidate.attempts + 1
-    if candidate.attempts < ATTEMPT_THRESHOLD or candidate.captured then return false end
 
     local previous = self.lastAutomaticRotationSnapshot
     if previous and previous.fingerprint == fingerprint and now - previous.capturedAt < DUPLICATE_COOLDOWN then
@@ -207,6 +216,7 @@ function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
         slotIndex = slotIndex,
         attempts = candidate.attempts,
         window = math.floor((now - candidate.startedAt) * 10 + 0.5) / 10,
+        pendingAge = math.floor((now - pendingAt) * 10 + 0.5) / 10,
         fingerprint = fingerprint,
     }, now)
     if self.Print then

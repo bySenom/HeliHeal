@@ -24,6 +24,8 @@ addon.sessionUses = {}
 addon.sessionCharges = {}
 addon.sessionTimedEffects = {}
 addon.sessionSpendHistory = {}
+addon.inputGeneration = 1
+addon.pendingAcknowledgements = { [3] = { observedAt = 0, generation = 1 } }
 addon.paladinArmamentExpirations = {}
 addon.paladinNextArmamentType = "bulwark"
 addon.talentSnapshot = { available = true, configID = 123, solidarity = true }
@@ -38,14 +40,16 @@ local order = {
 }
 addon.GetDisplayOrder = function() return order end
 
-for attempt = 1, 5 do
-    now = (attempt - 1) * 0.5
+for attempt = 1, 6 do
+    now = (attempt - 1) * 0.2
     assert(not addon:TrackRotationInputAttempt("BUTTON5", 3, now),
-        "a snapshot must not be captured before the repeated-input threshold")
+        "rapid spam during a normal cast must not create a snapshot")
 end
-now = 2.5
+assert(#addon.db.global.rotationSnapshots == 0,
+    "six inputs without the three-second acknowledgement grace must be ignored")
+now = 3
 assert(addon:TrackRotationInputAttempt("BUTTON5", 3, now),
-    "six stable primary inputs inside four seconds must capture a snapshot")
+    "continued stable input after three seconds without acknowledgement must capture a snapshot")
 assert(#addon.db.global.rotationSnapshots == 1, "automatic capture must persist one account-wide snapshot")
 local snapshot = addon.db.global.rotationSnapshots[1]
 assert(snapshot.report:find("suspected stuck rotation", 1, true)
@@ -54,7 +58,7 @@ assert(snapshot.report:find("suspected stuck rotation", 1, true)
     and snapshot.report:find("solidarity", 1, true),
     "the report must contain classification, recommendations, runtime state, and active talents")
 
-now = 3
+now = 3.2
 assert(not addon:TrackRotationInputAttempt("BUTTON5", 3, now)
     and #addon.db.global.rotationSnapshots == 1,
     "one unchanged candidate must not create duplicate snapshot spam")
@@ -67,6 +71,15 @@ now = 3.5
 assert(not addon:TrackRotationInputAttempt("BUTTON5", 3, now)
     and addon.rotationStuckCandidate == nil,
     "a different primary recommendation must clear the stuck candidate")
+
+order[1] = { slotIndex = 3, ability = ability, remaining = 0, charges = 1 }
+addon.pendingAcknowledgements = { [9] = { observedAt = 0, generation = 1 } }
+for attempt = 1, 8 do
+    now = 4 + (attempt * 0.4)
+    addon:TrackRotationInputAttempt("BUTTON5", 3, now)
+end
+assert(#addon.db.global.rotationSnapshots == 1,
+    "an acknowledgement for another slot must never validate a stuck candidate")
 
 local manual = addon:CaptureRotationSnapshot("Manual snapshot", { inputKey = "manual" }, now)
 assert(manual.reason == "Manual snapshot" and #addon.db.global.rotationSnapshots == 2,

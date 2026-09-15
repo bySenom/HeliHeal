@@ -87,6 +87,11 @@ assert(not next(addon.pendingAcknowledgements) and not next(addon.heldInputKeys)
 local report = addon:BuildDiagnosticReport()
 assert(report:find("version=test", 1, true) and report:find("conflicts=BUTTON5", 1, true),
     "diagnostic report must include version and binding conflicts")
+profile.bindings.monk_tiger_palm = "4"
+local focusedReport = addon:BuildDiagnosticReport(true)
+assert(focusedReport:find("healing_stream_combo=BUTTON5", 1, true)
+    and not focusedReport:find("monk_tiger_palm", 1, true),
+    "snapshot diagnostics must include only bindings from the active rotation")
 assert(not report:find("health", 1, true) and not report:find("target", 1, true),
     "diagnostic report must remain independent of combat-unit data")
 
