@@ -28,6 +28,7 @@ Classes\DisciplinePriest.lua
 Classes\Monk.lua
 Defaults.lua
 Core.lua
+InfusionTracker.lua
 ManaTracker.lua
 TalentSnapshot.lua
 Snapshots.lua

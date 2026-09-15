@@ -27,6 +27,7 @@ ns.changelog = {
                 "Use Holy Armaments' current 60-second recharge without the obsolete Quickened Invocation reduction; Forewarning and Valiance remain supported.",
                 "Apply Valiance conditionally: extend active Armaments, or reduce their recharge only when none are active.",
                 "Reconcile one locally available charge after Blizzard rejects a charged ability three times, preventing phantom charges from returning as the primary recommendation.",
+                "Add a read-only Infusion of Light proof-of-concept using Blizzard's Buff Bar Cooldown Viewer, with /hh iol and /hh cdmbuffs diagnostics.",
             },
         },
         {

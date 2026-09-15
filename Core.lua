@@ -374,6 +374,7 @@ function HeliHeal:OnEnable()
     self.inputListenerEnabled = true
     self:CreateManaTracker()
     self:CreateInputListener()
+    self:InitializeProcTracker()
     self:CreateDisplay()
     self:SetupOptions()
     self:CreateTalentListener()
@@ -385,6 +386,7 @@ function HeliHeal:OnDisable()
     if self.mouseInputListener then self.mouseInputListener:UnregisterAllEvents() end
     if self.castInputListener then self.castInputListener:UnregisterAllEvents() end
     if self.talentListener then self.talentListener:UnregisterAllEvents() end
+    if self.DisableProcTracker then self:DisableProcTracker() end
     if self.Mana then self.Mana:Disable() end
     self:ResetRuntimeState()
     if self.frame then self.frame:Hide() end
@@ -2425,6 +2427,10 @@ function HeliHeal:HandleSlashCommand(input)
         self:ReconcileOutOfCombatState(false)
     elseif command == "debug" or command == "diag" then
         self:PrintDiagnostics()
+    elseif command == "iol" then
+        self.ProcTracker:PrintStatus()
+    elseif command == "cdmbuffs" then
+        self.ProcTracker:PrintRegisteredBuffs()
     elseif command == "changelog" or command == "updates" then
         self:ShowChangelogHistory()
     elseif command == "refund" or command == "zurueck" then
