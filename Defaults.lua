@@ -12,6 +12,7 @@ ns.defaults = {
         optionsWindowBackgroundColor = { 0.025, 0.035, 0.045 },
         optionsWindowAccentColor = { 0.02, 0.88, 0.7 },
         optionsWindowUseClassColor = false,
+        rotationSnapshots = {},
     },
     profile = {
         schemaVersion = 6,

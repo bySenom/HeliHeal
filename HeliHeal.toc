@@ -30,6 +30,7 @@ Defaults.lua
 Core.lua
 ManaTracker.lua
 TalentSnapshot.lua
+Snapshots.lua
 Input.lua
 Display.lua
 Options.lua

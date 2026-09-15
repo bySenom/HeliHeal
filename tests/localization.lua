@@ -16,6 +16,13 @@ assert(english.L("Übersicht") == "Overview", "enUS must translate the German so
 assert(english.L("FAQ & Spielhilfe") == "FAQ & Play Guide"
     and english.L("Auf wen caste ich Holy Bulwark?") == "Who should receive Holy Bulwark?",
     "the FAQ navigation and Holy Paladin guidance must be localized for English clients")
+assert(english.L("Rotations-Snapshots") == "Rotation Snapshots"
+    and english.L("Rotations-Diagnose") == "Rotation diagnostics"
+    and english.L("JETZT AUFNEHMEN") == "CAPTURE NOW",
+    "snapshot diagnostics must be localized for English clients")
+assert(english.L("Rotations-Snapshot gespeichert: %s", "Holy Shock")
+        == "Rotation snapshot saved: Holy Shock",
+    "automatic snapshot notifications must be localized")
 assert(english.L("Wie wähle ich Beacon-Ziele richtig?") == "How should I choose Beacon targets?"
     and english.L("BEWEGUNG") == "MOVEMENT"
     and english.L("Warum empfiehlt HeliHeal keinen Dispel automatisch?")

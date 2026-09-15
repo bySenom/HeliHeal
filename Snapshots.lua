@@ -1,0 +1,221 @@
+local _, ns = ...
+local HeliHeal = ns.addon
+
+local MAX_SNAPSHOTS = 20
+local ATTEMPT_WINDOW = 4
+local ATTEMPT_THRESHOLD = 6
+local DUPLICATE_COOLDOWN = 60
+
+local function countEntries(value)
+    local count = 0
+    for _ in pairs(value or {}) do count = count + 1 end
+    return count
+end
+
+local function readableTimestamp()
+    if type(GetServerTime) == "function" then
+        local ok, value = pcall(GetServerTime)
+        if ok and tonumber(value) then return tonumber(value) end
+    end
+    if type(time) == "function" then
+        local ok, value = pcall(time)
+        if ok and tonumber(value) then return tonumber(value) end
+    end
+    return 0
+end
+
+local function formatTimestamp(timestamp)
+    if timestamp > 0 and type(date) == "function" then
+        local ok, value = pcall(date, "%Y-%m-%d %H:%M:%S", timestamp)
+        if ok and value then return value end
+    end
+    return "unknown"
+end
+
+local function safeText(value)
+    value = tostring(value == nil and "nil" or value)
+    return value:gsub("[\r\n]", " ")
+end
+
+function HeliHeal:GetRotationSnapshots()
+    if not self.db or not self.db.global then return {} end
+    if type(self.db.global.rotationSnapshots) ~= "table" then
+        self.db.global.rotationSnapshots = {}
+    end
+    return self.db.global.rotationSnapshots
+end
+
+function HeliHeal:GetRotationStateFingerprint(now)
+    if not self.db or not self.db.profile or not self.GetDisplayOrder then return nil end
+    now = now or GetTime()
+    local order = self:GetDisplayOrder(now)
+    local parts = {
+        tostring(self.db.profile.rotationPreset or "?"),
+        tostring(self.GetHealingMode and self:GetHealingMode() or self.db.profile.healingMode or "standard"),
+        tostring(self.sessionHolyPower or 0),
+        tostring(self.pendingFreeHolyPowerSpenders or 0),
+        tostring(self.paladinNextArmamentType or "none"),
+        tostring(self.monkTeachingsStacks or 0),
+    }
+    for index = 1, math.min(5, #order) do
+        local item = order[index]
+        parts[#parts + 1] = table.concat({
+            tostring(item.slotIndex or 0),
+            tostring(item.ability and item.ability.abilityKey or "?"),
+            tostring(item.charges or "-"),
+            item.paladinResourceBlocked and "blocked" or "ready",
+            tostring(item.trackedText or "-"),
+        }, ":")
+    end
+    return table.concat(parts, "|")
+end
+
+function HeliHeal:BuildRotationSnapshotReport(reason, context, now)
+    now = now or GetTime()
+    context = context or {}
+    local timestamp = readableTimestamp()
+    local lines = {
+        "HeliHeal rotation snapshot",
+        "Classification: suspected stuck rotation (diagnostic candidate, not proof of an addon fault)",
+        "Captured: " .. formatTimestamp(timestamp),
+        "Reason: " .. safeText(reason or "manual"),
+        "Input: key=" .. safeText(context.inputKey or "manual")
+            .. "; attempts=" .. safeText(context.attempts or 0)
+            .. "; window=" .. safeText(context.window or 0) .. "s"
+            .. "; slot=" .. safeText(context.slotIndex or "n/a"),
+    }
+
+    if self.BuildDiagnosticReport then
+        lines[#lines + 1] = "Diagnostic: " .. self:BuildDiagnosticReport()
+    end
+
+    local order = self.GetDisplayOrder and self:GetDisplayOrder(now) or {}
+    lines[#lines + 1] = "Recommendations:"
+    for index = 1, math.min(5, #order) do
+        local item = order[index]
+        local ability = item.ability or {}
+        lines[#lines + 1] = ("  %d. %s [%s, spell=%s, slot=%s, remaining=%.1f, charges=%s, tracked=%s, blocked=%s]"):format(
+            index,
+            safeText(ability.name or ability.abilityKey or "unknown"),
+            safeText(ability.abilityKey or "unknown"),
+            safeText(ability.spellID or "?"),
+            safeText(item.slotIndex or "?"),
+            tonumber(item.remaining) or 0,
+            safeText(item.charges or "-"),
+            safeText(item.trackedText or "-"),
+            tostring(item.paladinResourceBlocked == true))
+    end
+    if #order == 0 then lines[#lines + 1] = "  none" end
+
+    local talent = self.talentSnapshot or {}
+    local activeTalents = {}
+    for key, value in pairs(talent) do
+        if value == true and key ~= "available" then activeTalents[#activeTalents + 1] = tostring(key) end
+    end
+    table.sort(activeTalents)
+    lines[#lines + 1] = "Active talents: " .. (#activeTalents > 0 and table.concat(activeTalents, ",") or "none/read unavailable")
+
+    local pending = {}
+    for slotIndex, acknowledgement in pairs(self.pendingAcknowledgements or {}) do
+        pending[#pending + 1] = tostring(slotIndex) .. "@" .. safeText(acknowledgement.observedAt or "?")
+    end
+    table.sort(pending)
+    lines[#lines + 1] = "Pending acknowledgements: " .. (#pending > 0 and table.concat(pending, ",") or "none")
+    lines[#lines + 1] = ("Local state: uses=%d; charges=%d; tracked=%d; spendHistory=%d; holyPower=%s; freeSpenders=%s; infusion=%s; handUses=%s; armament=%s; armamentEffects=%d"):format(
+        countEntries(self.sessionUses), countEntries(self.sessionCharges), countEntries(self.sessionTimedEffects),
+        countEntries(self.sessionSpendHistory), safeText(self.sessionHolyPower or 0),
+        safeText(self.pendingFreeHolyPowerSpenders or 0),
+        safeText(self.GetPaladinInfusionCharges and self:GetPaladinInfusionCharges(now) or 0),
+        safeText(self.pendingPaladinHandOfDivinity and self.pendingPaladinHandOfDivinity.uses or 0),
+        safeText(self.paladinNextArmamentType or "none"), countEntries(self.paladinArmamentExpirations))
+    lines[#lines + 1] = "Fingerprint: " .. safeText(context.fingerprint or self:GetRotationStateFingerprint(now) or "unavailable")
+    return table.concat(lines, "\n"), timestamp
+end
+
+function HeliHeal:CaptureRotationSnapshot(reason, context, now)
+    local snapshots = self:GetRotationSnapshots()
+    local report, timestamp = self:BuildRotationSnapshotReport(reason, context, now)
+    local primary = self.GetDisplayOrder and self:GetDisplayOrder(now or GetTime())[1]
+    self.rotationSnapshotSequence = (self.rotationSnapshotSequence or 0) + 1
+    local snapshot = {
+        id = tostring(timestamp) .. "-" .. tostring(self.rotationSnapshotSequence),
+        timestamp = timestamp,
+        capturedAt = formatTimestamp(timestamp),
+        reason = tostring(reason or "manual"),
+        abilityName = primary and primary.ability and primary.ability.name or "No recommendation",
+        abilityKey = primary and primary.ability and primary.ability.abilityKey or nil,
+        report = report,
+    }
+    table.insert(snapshots, 1, snapshot)
+    while #snapshots > MAX_SNAPSHOTS do table.remove(snapshots) end
+    if self.optionsWindow and self.optionsWindow.pages and self.optionsWindow.pages.snapshots
+        and self.optionsWindow.pages.snapshots.RefreshSnapshots then
+        self.optionsWindow.pages.snapshots:RefreshSnapshots(snapshot.id)
+    end
+    return snapshot
+end
+
+function HeliHeal:ClearRotationSnapshots()
+    local snapshots = self:GetRotationSnapshots()
+    for index = #snapshots, 1, -1 do snapshots[index] = nil end
+    self.rotationStuckCandidate = nil
+    if self.optionsWindow and self.optionsWindow.pages and self.optionsWindow.pages.snapshots
+        and self.optionsWindow.pages.snapshots.RefreshSnapshots then
+        self.optionsWindow.pages.snapshots:RefreshSnapshots()
+    end
+end
+
+function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
+    if not self.GetDisplayOrder or not inputKey then return false end
+    now = now or GetTime()
+    local order = self:GetDisplayOrder(now)
+    local primary = order[1]
+    if not primary or primary.slotIndex ~= slotIndex then
+        self.rotationStuckCandidate = nil
+        return false
+    end
+    local fingerprint = self:GetRotationStateFingerprint(now)
+    local candidate = self.rotationStuckCandidate
+    if not candidate or candidate.inputKey ~= inputKey or candidate.slotIndex ~= slotIndex
+        or candidate.fingerprint ~= fingerprint or now < candidate.startedAt
+        or now - candidate.startedAt > ATTEMPT_WINDOW then
+        candidate = {
+            inputKey = inputKey,
+            slotIndex = slotIndex,
+            fingerprint = fingerprint,
+            startedAt = now,
+            lastAttemptAt = now,
+            attempts = 1,
+        }
+        self.rotationStuckCandidate = candidate
+        return false
+    end
+    if now - candidate.lastAttemptAt < 0.08 then return false end
+    candidate.lastAttemptAt = now
+    candidate.attempts = candidate.attempts + 1
+    if candidate.attempts < ATTEMPT_THRESHOLD or candidate.captured then return false end
+
+    local previous = self.lastAutomaticRotationSnapshot
+    if previous and previous.fingerprint == fingerprint and now - previous.capturedAt < DUPLICATE_COOLDOWN then
+        candidate.captured = true
+        return false
+    end
+    candidate.captured = true
+    self.lastAutomaticRotationSnapshot = { fingerprint = fingerprint, capturedAt = now }
+    local snapshot = self:CaptureRotationSnapshot("Repeated primary input without a successful acknowledgement or local rotation-state change", {
+        inputKey = inputKey,
+        slotIndex = slotIndex,
+        attempts = candidate.attempts,
+        window = math.floor((now - candidate.startedAt) * 10 + 0.5) / 10,
+        fingerprint = fingerprint,
+    }, now)
+    if self.Print then
+        self:Print((ns.L or function(value, ...) return value:format(...) end)(
+            "Rotations-Snapshot gespeichert: %s", snapshot.abilityName or "?"))
+    end
+    return true
+end
+
+function HeliHeal:ResetRotationStuckCandidate()
+    self.rotationStuckCandidate = nil
+end

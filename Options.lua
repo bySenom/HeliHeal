@@ -1589,6 +1589,149 @@ local function changelogText(entry)
     return table.concat(lines, "\n")
 end
 
+function HeliHeal:BuildSnapshotsPage(parent)
+    local page = CreateFrame("Frame", nil, parent)
+    page:SetAllPoints()
+    setPageHeader(page, L("Rotations-Snapshots"),
+        L("Verdächtige festhängende Zustände lokal speichern, prüfen und kopieren."))
+
+    local toolbar = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    toolbar:SetPoint("TOPLEFT", 28, -105)
+    toolbar:SetPoint("TOPRIGHT", -28, -105)
+    toolbar:SetHeight(58)
+    backdrop(toolbar, C.panel, C.borderSoft)
+    local hint = text(toolbar,
+        L("Automatisch nach 6 gleichen Primär-Inputs in 4 Sekunden. Keine Health-, Target- oder Aura-Daten."),
+        9, C.muted)
+    hint:SetPoint("LEFT", 15, 0)
+    hint:SetPoint("RIGHT", -300, 0)
+    hint:SetWordWrap(true)
+
+    local capture = createButton(toolbar, L("JETZT AUFNEHMEN"), 138, 30, false)
+    capture:SetPoint("RIGHT", -146, 0)
+    local clear = createButton(toolbar, L("ALLE LÖSCHEN"), 132, 30, false)
+    clear:SetPoint("RIGHT", -8, 0)
+    clear:SetBackdropBorderColor(unpackColor(C.danger))
+
+    local listPanel = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    listPanel:SetPoint("TOPLEFT", 28, -175)
+    listPanel:SetPoint("BOTTOMLEFT", 28, 22)
+    listPanel:SetWidth(236)
+    backdrop(listPanel, C.panel, C.borderSoft)
+    local listTitle = text(listPanel, L("GESPEICHERTE FEHLER"), 9, C.accent, "OUTLINE")
+    listTitle:SetPoint("TOPLEFT", 12, -12)
+    page.countLabel = text(listPanel, "", 9, C.muted, "OUTLINE")
+    page.countLabel:SetPoint("TOPRIGHT", -12, -12)
+
+    local listScroll = CreateFrame("ScrollFrame", nil, listPanel, "UIPanelScrollFrameTemplate")
+    listScroll:SetPoint("TOPLEFT", 8, -36)
+    listScroll:SetPoint("BOTTOMRIGHT", -28, 8)
+    local listContent = CreateFrame("Frame", nil, listScroll)
+    listContent:SetWidth(196)
+    listContent:SetHeight(1)
+    listScroll:SetScrollChild(listContent)
+    page.snapshotRows = {}
+
+    local reportPanel = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    reportPanel:SetPoint("TOPLEFT", listPanel, "TOPRIGHT", 12, 0)
+    reportPanel:SetPoint("BOTTOMRIGHT", -28, 22)
+    backdrop(reportPanel, C.panel, C.borderSoft)
+    page.reportTitle = text(reportPanel, L("SNAPSHOT AUSWÄHLEN"), 11, C.text, "OUTLINE")
+    page.reportTitle:SetPoint("TOPLEFT", 14, -12)
+    local copyHint = text(reportPanel, L("In den Bericht klicken, dann Strg+A und Strg+C drücken."), 9, C.muted)
+    copyHint:SetPoint("TOPRIGHT", -14, -13)
+
+    local reportScroll = CreateFrame("ScrollFrame", nil, reportPanel, "UIPanelScrollFrameTemplate")
+    reportScroll:SetPoint("TOPLEFT", 12, -38)
+    reportScroll:SetPoint("BOTTOMRIGHT", -30, 12)
+    local report = CreateFrame("EditBox", nil, reportScroll)
+    report:SetMultiLine(true)
+    report:SetAutoFocus(false)
+    report:SetFont(FONT, 10, "")
+    report:SetTextColor(unpackColor(C.text))
+    report:SetWidth(430)
+    report:SetTextInsets(5, 5, 5, 5)
+    report:SetJustifyH("LEFT")
+    report:SetJustifyV("TOP")
+    report:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    report:SetScript("OnTextChanged", function(self)
+        self:SetHeight(math.max(1, (self:GetNumLines() or 1) * 14 + 14))
+    end)
+    reportScroll:SetScrollChild(report)
+    page.report = report
+
+    function page:SelectSnapshot(snapshotID)
+        self.selectedSnapshotID = snapshotID
+        local selected
+        for _, snapshot in ipairs(HeliHeal:GetRotationSnapshots()) do
+            if snapshot.id == snapshotID then selected = snapshot break end
+        end
+        self.report:SetText(selected and selected.report or L("Noch keine Snapshots gespeichert."))
+        self.report:SetCursorPosition(0)
+        self.reportTitle:SetText(selected
+            and ((selected.capturedAt or L("Unbekannte Zeit")) .. " • " .. (selected.abilityName or "?"))
+            or L("KEIN SNAPSHOT"))
+        for _, row in ipairs(self.snapshotRows) do
+            row:SetSelected(row.snapshot and row.snapshot.id == snapshotID)
+        end
+    end
+
+    function page:RefreshSnapshots(preferredID)
+        local snapshots = HeliHeal:GetRotationSnapshots()
+        self.countLabel:SetText(tostring(#snapshots) .. "/20")
+        for index = 1, math.max(#snapshots, #self.snapshotRows) do
+            local row = self.snapshotRows[index]
+            if not row then
+                row = createButton(listContent, "", 196, 48, false)
+                row.label:ClearAllPoints()
+                row.label:SetPoint("TOPLEFT", 10, -8)
+                row.label:SetPoint("RIGHT", -8, 0)
+                row.label:SetJustifyH("LEFT")
+                row.time = text(row, "", 8, C.dim)
+                row.time:SetPoint("BOTTOMLEFT", 10, 7)
+                row:SetScript("OnClick", function(button)
+                    if button.snapshot then page:SelectSnapshot(button.snapshot.id) end
+                end)
+                self.snapshotRows[index] = row
+            end
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", 0, -((index - 1) * 54))
+            row.snapshot = snapshots[index]
+            if row.snapshot then
+                row.label:SetText(row.snapshot.abilityName or L("Unbekannte Fähigkeit"))
+                row.time:SetText(row.snapshot.capturedAt or L("Unbekannte Zeit"))
+                row:Show()
+            else
+                row:Hide()
+            end
+        end
+        listContent:SetHeight(math.max(1, #snapshots * 54))
+        local selectedID = preferredID or self.selectedSnapshotID
+        local valid = false
+        for _, snapshot in ipairs(snapshots) do if snapshot.id == selectedID then valid = true break end end
+        if not valid then selectedID = snapshots[1] and snapshots[1].id end
+        self:SelectSnapshot(selectedID)
+    end
+
+    capture:SetScript("OnClick", function()
+        local snapshot = HeliHeal:CaptureRotationSnapshot("Manual snapshot", { inputKey = "manual" }, GetTime())
+        page:RefreshSnapshots(snapshot.id)
+    end)
+    clear:SetScript("OnClick", function(button)
+        if not button.confirming then
+            button.confirming = true
+            button.label:SetText(L("LÖSCHEN BESTÄTIGEN"))
+            return
+        end
+        button.confirming = nil
+        button.label:SetText(L("ALLE LÖSCHEN"))
+        HeliHeal:ClearRotationSnapshots()
+    end)
+    page:SetScript("OnShow", function() page:RefreshSnapshots() end)
+    page:RefreshSnapshots()
+    return page
+end
+
 function HeliHeal:BuildChangelogPage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
@@ -2058,6 +2201,7 @@ function HeliHeal:CreateModernOptions()
         priorities = self:BuildPrioritiesPage(window.pagesHost),
         profiles = self:BuildProfilesPage(window.pagesHost),
         faq = self:BuildFAQPage(window.pagesHost),
+        snapshots = self:BuildSnapshotsPage(window.pagesHost),
         changelog = self:BuildChangelogPage(window.pagesHost),
     }
     window.priorityPages = { [self.specializationID or 0] = window.pages.priorities }
@@ -2072,6 +2216,7 @@ function HeliHeal:CreateModernOptions()
         { "priorities", L("PRIORITÄTEN"), L("Fähigkeiten & Inputs") },
         { "profiles", L("PROFILE & RESET"), L("Konfiguration verwalten") },
         { "faq", L("FAQ & GUIDE"), L("Spielweise & Ziele") },
+        { "snapshots", L("SNAPSHOTS"), L("Rotations-Diagnose") },
         { "changelog", L("UPDATE-VERLAUF"), L("Was ist neu?") },
     }
     for index, item in ipairs(navigation) do
@@ -2312,6 +2457,7 @@ function HeliHeal:RefreshOptionsUI()
         control:Refresh()
     end
     if window.pages.profiles.RefreshProfiles then window.pages.profiles:RefreshProfiles() end
+    if window.pages.snapshots.RefreshSnapshots then window.pages.snapshots:RefreshSnapshots() end
 
     local prioritiesPage = window.pages.priorities
     for presetKey, button in pairs(prioritiesPage.presetButtons or {}) do

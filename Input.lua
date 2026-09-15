@@ -515,9 +515,18 @@ function HeliHeal:ObserveInputKey(inputKey)
             self.heldInputKeys = self.heldInputKeys or {}
             self.inputLockedUntil = self.inputLockedUntil or {}
             local impulseInput = isImpulseInput(inputKey)
-            if (not impulseInput and self.heldInputKeys[inputKey]) or now < (self.inputLockedUntil[slotIndex] or 0) then
+            if not impulseInput and self.heldInputKeys[inputKey] then
                 return
             end
+
+            -- Diagnostic attempts remain separate from cast acknowledgement.
+            -- Repeated physical presses may therefore be observed while the
+            -- first press is still waiting for Blizzard's success event.
+            if self.TrackRotationInputAttempt then
+                self:TrackRotationInputAttempt(inputKey, slotIndex, now)
+            end
+            if not impulseInput then self.heldInputKeys[inputKey] = true end
+            if now < (self.inputLockedUntil[slotIndex] or 0) then return end
 
             self.lastObservedInputs = self.lastObservedInputs or {}
             local lastObservedAt = self.lastObservedInputs[inputKey]
@@ -526,9 +535,6 @@ function HeliHeal:ObserveInputKey(inputKey)
                 -- A global timestamp could discard a different instant spell
                 -- pressed immediately afterwards while WoW still casts it.
                 self.lastObservedInputs[inputKey] = now
-                if not impulseInput then
-                    self.heldInputKeys[inputKey] = true
-                end
                 local safetyTimeout = 5
                 self.inputLockedUntil[slotIndex] = now + safetyTimeout
                 self:QueueSlotAcknowledgement(slotIndex, safetyTimeout)

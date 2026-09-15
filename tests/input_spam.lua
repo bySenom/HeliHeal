@@ -107,6 +107,7 @@ addon:ObserveInputKey("BUTTON5")
 assert(#scheduled == 1, "the live 1.2-second GCD must keep the input locked")
 
 now = 3.21
+addon:ReleaseInputKey("BUTTON5")
 addon:ObserveInputKey("BUTTON5")
 assert(#scheduled == 2, "a genuinely later press must remain observable")
 assert(scheduled[2].delay == 5, "later inputs must use the same event timeout")

@@ -31,6 +31,7 @@ HeliHeal 1.0 is the first stable release. Individual experimental features are m
 - Movable, scalable and customizable display
 - Persistent AceDB profiles
 - One-time What's New popup and local update history
+- Automatic stuck-rotation snapshots with copyable in-game diagnostic reports
 - Selectable Client Language, German or English UI with client-localized spell names
 
 ## Supported builds
@@ -77,6 +78,8 @@ Holy Paladin's exact supported state model and the situations that still require
 ## Limitations
 
 HeliHeal does not inspect health, mana, targets, auras, range, healing results, combat logs or SecretValues. The only live combat resource it reads is the player's Blizzard-permitted secondary Holy Power value. Spell haste is cached outside combat, so temporary in-combat haste buffs do not alter local recharge estimates. It cannot automatically know when raid damage is incoming, whether a HoT was refreshed on the same target, or recommend unreadable random procs such as Divine Purpose, Spiritfont or Dance of Chi-Ji before they are consumed. Mistweaver Mana Tea stacks and Master of Harmony vitality are intentionally not guessed because they depend on hidden throughput, mana spending and critical results. Guaranteed talent effects and confirmed casts remain available as a fallback; `/hh hp 0-5` can manually synchronize the Holy Power estimate.
+
+WoW addons cannot create arbitrary text files while the game is running. HeliHeal stores up to 20 diagnostic snapshots in its SavedVariables instead and exposes them in the Snapshots tab for manual copying.
 
 ## Feedback
 

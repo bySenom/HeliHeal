@@ -112,6 +112,7 @@ function HeliHeal:ResetInputState()
     self.inputLockedUntil = {}
     self.lastObservedInputs = {}
     self.recentAssistedSwiftnessConsumer = nil
+    self.rotationStuckCandidate = nil
 end
 
 function HeliHeal:ResetRuntimeState()
@@ -2168,6 +2169,7 @@ function HeliHeal:AcknowledgeSlot(slotIndex, observedSpellID)
         self:Print(L("Prioritätsplatz %s ist nicht belegt.", tostring(slotIndex or "?")))
         return
     end
+    if self.ResetRotationStuckCandidate then self:ResetRotationStuckCandidate() end
 
     local now = GetTime()
     -- Avenging Wrath replaces Judgment with Hammer of Wrath on the same
