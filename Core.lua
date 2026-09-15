@@ -1113,17 +1113,10 @@ function HeliHeal:ApplyPaladinInfusionEffects(abilityKey, now)
             self:ReduceLocalAbilityCooldown("paladin_holy_shock", 1, now)
         end
         if self:IsTalentActive("paladinValiance") then
-            local extendedArmament = false
-            self.paladinArmamentExpirations = self.paladinArmamentExpirations or {}
-            for armamentType, expiresAt in pairs(self.paladinArmamentExpirations) do
-                if tonumber(expiresAt) and expiresAt > (now or GetTime()) then
-                    self.paladinArmamentExpirations[armamentType] = expiresAt + 3
-                    extendedArmament = true
-                end
-            end
-            if not extendedArmament then
-                self:ReduceLocalAbilityCooldown("paladin_holy_armament", 3, now)
-            end
+            -- Valiance advances the shared Holy Armaments recharge whenever
+            -- an Infusion charge is consumed. Active Bulwark/Sacred Weapon
+            -- effect durations are unrelated and must never absorb this CDR.
+            self:ReduceLocalAbilityCooldown("paladin_holy_armament", 3, now)
         end
         return true
     end

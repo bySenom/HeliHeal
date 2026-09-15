@@ -401,17 +401,24 @@ assert(addon.paladinNextArmamentType == "sacred"
         and addon:GetSlot(armamentIndex).spellID == 432472
         and addon:GetSlot(armamentIndex).name == "Sacred Weapon",
     "Holy Bulwark must transform the shared Armament slot into Sacred Weapon")
-addon.pendingPaladinInfusion = true
+local cdmValianceActive = true
+addon.ProcTracker = {
+    GetInfusionOfLightState = function() return cdmValianceActive, true end,
+}
+assert(addon:GetPaladinInfusionCharges(now) == 1,
+    "the dedicated CDM proc must arm Valiance before the consumer succeeds")
 local lightsmithFlashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
 addon:AcknowledgeSlot(lightsmithFlashIndex)
-assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance
-        and addon.paladinArmamentExpirations.bulwark == bulwarkExpirationBeforeValiance + 3,
-    "Valiance must extend active Armaments instead of advancing their recharge")
+assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance - 3
+        and addon.paladinArmamentExpirations.bulwark == bulwarkExpirationBeforeValiance,
+    "a CDM-confirmed Infusion consumption must advance the shared Armaments recharge without changing active effect durations")
+cdmValianceActive = false
+addon.ProcTracker = nil
 addon.paladinArmamentExpirations = {}
 addon.pendingPaladinInfusion = true
 addon:AcknowledgeSlot(lightsmithFlashIndex)
-assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance - 3,
-    "Valiance must advance Holy Armament recharge only while no Armament is active")
+assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance - 6,
+    "each confirmed Infusion consumption must advance Holy Armaments by another three seconds")
 addon.paladinArmamentExpirations.bulwark = now + 20
 local lightsmithLayOnHandsIndex = addon:GetSlotIndexByAbilityKey("paladin_lay_on_hands")
 addon:AcknowledgeSlot(lightsmithLayOnHandsIndex)

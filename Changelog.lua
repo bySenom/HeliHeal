@@ -25,7 +25,7 @@ ns.changelog = {
                 "Predict Divine Resonance's three automatic Holy Shock timings and spend at four Holy Power when the next fixed tick would otherwise overcap.",
                 "Apply Divine Spurs to Divine Steed's local recharge while documenting its shorter movement duration.",
                 "Use Holy Armaments' current 60-second recharge without the obsolete Quickened Invocation reduction; Forewarning and Valiance remain supported.",
-                "Apply Valiance conditionally: extend active Armaments, or reduce their recharge only when none are active.",
+                "Apply Valiance correctly: every confirmed Infusion consumption reduces the shared Holy Armaments recharge by three seconds without extending active Armament effects.",
                 "Reconcile one locally available charge after Blizzard rejects a charged ability three times, preventing phantom charges from returning as the primary recommendation.",
                 "Add a read-only Infusion of Light proof-of-concept using Blizzard's Buff Bar Cooldown Viewer, with /hh iol and /hh cdmbuffs diagnostics.",
                 "Use a dedicated Infusion of Light Tracked Bar's visibility as the proc signal and ignore empty Edit Mode pool frames.",
