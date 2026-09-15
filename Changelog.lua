@@ -24,6 +24,7 @@ ns.changelog = {
                 "Detect Divine Favor, Divine Overload and the redesigned Rising Sunlight; show reliable Holy Light modifiers while leaving restricted Beacon-health scaling to the player.",
                 "Predict Divine Resonance's three automatic Holy Shock timings and spend at four Holy Power when the next fixed tick would otherwise overcap.",
                 "Apply Divine Spurs to Divine Steed's local recharge while documenting its shorter movement duration.",
+                "Use Holy Armaments' current 60-second recharge without the obsolete Quickened Invocation reduction; Forewarning and Valiance remain supported.",
             },
         },
         {

@@ -367,7 +367,7 @@ addon:SetRotationPreset("paladin_lightsmith_raid")
 addon.talentSnapshot.paladinHerald = false
 addon.talentSnapshot.paladinLightsmith = true
 addon.talentSnapshot.paladinDivineToll = false
-addon.talentSnapshot.paladinForewarning = true
+addon.talentSnapshot.paladinForewarning = false
 addon.talentSnapshot.paladinValiance = true
 addon.talentSnapshot.paladinLayingDownArms = true
 addon.talentSnapshot.paladinSolidarity = true
@@ -375,13 +375,16 @@ addon.talentSnapshot.paladinBeaconVirtue = false
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
 local wordIndex = addon:GetSlotIndexByAbilityKey("paladin_word_of_glory")
 local raidDawnIndex = addon:GetSlotIndexByAbilityKey("paladin_light_of_dawn")
+assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 60,
+    "Quickened Invocation must not reduce Holy Armament's current 60-second recharge")
+addon.talentSnapshot.paladinForewarning = true
 order = addon:GetDisplayOrder(now)
 assert(#order >= 5 and order[5].paladinResourceBlocked
         and (order[5].ability.holyPowerCost or 0) == 3,
     "Lightsmith without Beacon or Infusion must backfill a fifth future Holy Power spender")
 addon.talentSnapshot.paladinBeaconVirtue = true
-assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 36,
-    "Lightsmith must combine Quickened Invocation and Forewarning on Holy Armament")
+assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 48,
+    "Forewarning must reduce Holy Armament to 48 seconds without the obsolete Quickened Invocation reduction")
 assert(addon:GetSlot(armamentIndex).confirmOnPlayerSuccess,
     "both transformed Holy Armament casts must support direct Blizzard success confirmation")
 addon:AcknowledgeSlot(armamentIndex)
