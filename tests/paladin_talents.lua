@@ -128,7 +128,7 @@ assert(addon.db.profile.rotationPreset == "paladin_lightsmith_raid",
 local armamentIndex = addon:GetSlotIndexByAbilityKey("paladin_holy_armament")
 local crusaderIndex = addon:GetSlotIndexByAbilityKey("paladin_avenging_crusader")
 assert(addon:GetSlot(armamentIndex).enabled and addon:GetSlot(armamentIndex).cooldown == 36,
-    "Lightsmith must apply Forewarning without applying Quickened Invocation to Holy Armament")
+    "Lightsmith must apply Quickened Invocation and Forewarning to Holy Armament in order")
 assert(addon:GetSlot(crusaderIndex).enabled and addon:GetSlot(crusaderIndex).cooldown == 45,
     "Avenging Crusader must apply both ranks of Call of the Righteous")
 local steedIndex = addon:GetSlotIndexByAbilityKey("paladin_divine_steed")

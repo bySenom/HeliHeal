@@ -24,7 +24,7 @@ ns.changelog = {
                 "Detect Divine Favor, Divine Overload and the redesigned Rising Sunlight; show reliable Holy Light modifiers while leaving restricted Beacon-health scaling to the player.",
                 "Predict Divine Resonance's three automatic Holy Shock timings and spend at four Holy Power when the next fixed tick would otherwise overcap.",
                 "Apply Divine Spurs to Divine Steed's local recharge while documenting its shorter movement duration.",
-                "Use Holy Armaments' current 45-second recharge, reduced to 36 seconds by Forewarning, without the obsolete Quickened Invocation reduction.",
+                "Model Holy Armaments from its 60-second base recharge: Quickened Invocation subtracts 15 seconds, then Forewarning reduces the remaining recharge by 20%.",
                 "Apply Valiance correctly: every confirmed Infusion consumption reduces the shared Holy Armaments recharge by three seconds without extending active Armament effects.",
                 "Reconcile one locally available charge after Blizzard rejects a charged ability three times, preventing phantom charges from returning as the primary recommendation.",
                 "Add a read-only Infusion of Light proof-of-concept using Blizzard's Buff Bar Cooldown Viewer, with /hh iol and /hh cdmbuffs diagnostics.",
