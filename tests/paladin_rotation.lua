@@ -412,7 +412,8 @@ addon.ProcTracker = {
 assert(addon:GetPaladinInfusionCharges(now) == 1,
     "the dedicated CDM proc must arm Valiance before the consumer succeeds")
 local lightsmithFlashIndex = addon:GetSlotIndexByAbilityKey("paladin_flash_of_light")
-addon:AcknowledgeSlot(lightsmithFlashIndex)
+assert(addon:RecordPlayerSpellSucceeded(19750),
+    "Flash of Light must confirm directly when click-casting bypasses an observed action binding")
 assert(addon.sessionCharges[armamentIndex].nextRechargeAt == armamentRechargeBeforeValiance - 3
         and addon.paladinArmamentExpirations.bulwark == bulwarkExpirationBeforeValiance,
     "a CDM-confirmed Infusion consumption must advance the shared Armaments recharge without changing active effect durations")

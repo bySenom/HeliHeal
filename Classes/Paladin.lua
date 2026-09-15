@@ -97,7 +97,8 @@ local abilities = {
     },
     paladin_flash_of_light = {
         spellID = 19750, name = "Flash of Light", cooldown = 0,
-        holyPowerGain = 1, roleLabel = "BURST", inputLockout = 1.5,
+        holyPowerGain = 1, roleLabel = "BURST",
+        confirmOnPlayerSuccess = true, inputLockout = 1.5,
     },
     -- These tools use the same confirmed-cast and local cooldown ledger as the
     -- healing rotation, but are rendered in a separate readiness strip. Their

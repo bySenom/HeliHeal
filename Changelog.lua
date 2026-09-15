@@ -32,6 +32,7 @@ ns.changelog = {
                 "Synchronize Holy Paladin priorities and Infusion consumers with the confirmed Cooldown Manager proc state.",
                 "Correct Judgment to its current six-second base cooldown and retain Crusader's Might and Shield of the Righteous reductions.",
                 "Recognize Shield of the Righteous spell ID 415091 so its confirmed casts reduce Holy Shock by two seconds.",
+                "Confirm Flash of Light directly from Blizzard spell success so click-casts reliably consume Infusion and apply Valiance to Holy Armaments.",
             },
         },
         {
