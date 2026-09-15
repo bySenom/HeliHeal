@@ -177,6 +177,9 @@ function HeliHeal:QueueSlotAcknowledgement(slotIndex, delay)
         end
         -- No matching successful cast arrived. Discard only the observation;
         -- never advance the rotation on a timeout or failed early queue input.
+        if HeliHeal.RecordRotationAcknowledgementTimeout then
+            HeliHeal:RecordRotationAcknowledgementTimeout(slotIndex, pending, GetTime())
+        end
         HeliHeal.pendingAcknowledgements[slotIndex] = nil
         HeliHeal.inputLockedUntil[slotIndex] = nil
     end)
@@ -464,14 +467,18 @@ function HeliHeal:CommitRecentSpellForAssistedCombat()
     return committed
 end
 
-function HeliHeal:RejectObservedSpell(spellID)
+function HeliHeal:RejectObservedSpell(spellID, failureEvent)
     for slotIndex, pending in pairs(self.pendingAcknowledgements or {}) do
         local configuredSlot = self.db.profile.slots[slotIndex]
         if self:SlotAcceptsSpell(configuredSlot, spellID) then
+            if failureEvent == "UNIT_SPELLCAST_FAILED" and self.RecordRotationInputFailure then
+                self:RecordRotationInputFailure(slotIndex, spellID, GetTime())
+            elseif self.ResetRotationStuckCandidate then
+                self:ResetRotationStuckCandidate()
+            end
             if pending.timer and type(pending.timer.Cancel) == "function" then pending.timer:Cancel() end
             self.pendingAcknowledgements[slotIndex] = nil
             self.inputLockedUntil[slotIndex] = nil
-            if self.ResetRotationStuckCandidate then self:ResetRotationStuckCandidate() end
             return true
         end
     end
@@ -641,7 +648,7 @@ function HeliHeal:CreateInputListener()
         if event == "UNIT_SPELLCAST_SUCCEEDED" then
             HeliHeal:RecordPlayerSpellSucceeded(spellID, castGUID)
         else
-            HeliHeal:RejectObservedSpell(spellID)
+            HeliHeal:RejectObservedSpell(spellID, event)
             HeliHeal:RejectAssistedCombatSpell(spellID)
         end
     end)

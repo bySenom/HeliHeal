@@ -128,9 +128,16 @@ assert(acknowledgements[2] == 1, "keyboard action may advance only on successful
 now = 20
 addon:ReleaseInputKey("1")
 addon:ObserveInputKey("1")
-assert(addon:RejectObservedSpell(1064), "matching failed cast must reject the pending observation")
+local rejectedSlot
+addon.RecordRotationInputFailure = function(_, slotIndex, spellID)
+    rejectedSlot = slotIndex .. ":" .. spellID
+end
+assert(addon:RejectObservedSpell(1064, "UNIT_SPELLCAST_FAILED"),
+    "matching failed cast must reject the pending observation")
 assert(acknowledgements[2] == 1 and not addon.pendingAcknowledgements[2],
     "failed casts must keep the recommendation and clear only the pending input")
+assert(rejectedSlot == "2:1064",
+    "Blizzard cast failures must be forwarded to the matching snapshot candidate")
 
 now = 30
 addon:ReleaseInputKey("1")

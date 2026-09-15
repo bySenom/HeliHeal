@@ -5,6 +5,7 @@ local MAX_SNAPSHOTS = 20
 local ATTEMPT_WINDOW = 4
 local ATTEMPT_THRESHOLD = 6
 local ACKNOWLEDGEMENT_GRACE = 3
+local FAILURE_THRESHOLD = 3
 local DUPLICATE_COOLDOWN = 60
 
 local function countEntries(value)
@@ -82,6 +83,7 @@ function HeliHeal:BuildRotationSnapshotReport(reason, context, now)
         "Reason: " .. safeText(reason or "manual"),
         "Input: key=" .. safeText(context.inputKey or "manual")
             .. "; attempts=" .. safeText(context.attempts or 0)
+            .. "; failures=" .. safeText(context.failures or 0)
             .. "; window=" .. safeText(context.window or 0) .. "s"
             .. "; pendingAge=" .. safeText(context.pendingAge or 0) .. "s"
             .. "; slot=" .. safeText(context.slotIndex or "n/a"),
@@ -167,6 +169,81 @@ function HeliHeal:ClearRotationSnapshots()
     end
 end
 
+function HeliHeal:CaptureRotationStuckCandidate(candidate, reason, context, now)
+    if not candidate or candidate.captured then return false end
+    now = now or GetTime()
+    local previous = self.lastAutomaticRotationSnapshot
+    if previous and previous.fingerprint == candidate.fingerprint
+        and now - previous.capturedAt < DUPLICATE_COOLDOWN then
+        candidate.captured = true
+        return false
+    end
+    candidate.captured = true
+    self.lastAutomaticRotationSnapshot = { fingerprint = candidate.fingerprint, capturedAt = now }
+    context = context or {}
+    context.inputKey = context.inputKey or candidate.inputKey
+    context.slotIndex = context.slotIndex or candidate.slotIndex
+    context.attempts = context.attempts or candidate.attempts
+    context.window = context.window
+        or math.floor((now - candidate.startedAt) * 10 + 0.5) / 10
+    context.fingerprint = context.fingerprint or candidate.fingerprint
+    local snapshot = self:CaptureRotationSnapshot(reason, context, now)
+    if self.Print then
+        self:Print((ns.L or function(value, ...) return value:format(...) end)(
+            "Rotations-Snapshot gespeichert: %s", snapshot.abilityName or "?"))
+    end
+    return true
+end
+
+function HeliHeal:RecordRotationInputFailure(slotIndex, spellID, now)
+    now = now or GetTime()
+    local candidate = self.rotationStuckCandidate
+    if not candidate or candidate.slotIndex ~= slotIndex or candidate.captured then return false end
+    local primary = self.GetDisplayOrder and self:GetDisplayOrder(now)[1]
+    local fingerprint = self:GetRotationStateFingerprint(now)
+    if not primary or primary.slotIndex ~= slotIndex or fingerprint ~= candidate.fingerprint then
+        self.rotationStuckCandidate = nil
+        return false
+    end
+    if not candidate.firstFailureAt or now < candidate.firstFailureAt
+        or now - candidate.firstFailureAt > ATTEMPT_WINDOW then
+        candidate.firstFailureAt = now
+        candidate.failures = 1
+    else
+        candidate.failures = (candidate.failures or 0) + 1
+    end
+    if candidate.failures < FAILURE_THRESHOLD then return false end
+    local pending = self.pendingAcknowledgements and self.pendingAcknowledgements[slotIndex]
+    local pendingAt = pending and tonumber(pending.observedAt)
+    return self:CaptureRotationStuckCandidate(candidate,
+        "Blizzard repeatedly rejected the still-recommended primary ability", {
+            spellID = spellID,
+            failures = candidate.failures,
+            pendingAge = pendingAt and math.max(0, now - pendingAt) or 0,
+        }, now)
+end
+
+function HeliHeal:RecordRotationAcknowledgementTimeout(slotIndex, pending, now)
+    now = now or GetTime()
+    local candidate = self.rotationStuckCandidate
+    if not candidate or candidate.slotIndex ~= slotIndex or candidate.captured
+        or (candidate.attempts or 0) < ATTEMPT_THRESHOLD then
+        return false
+    end
+    local pendingAt = pending and tonumber(pending.observedAt)
+    local primary = self.GetDisplayOrder and self:GetDisplayOrder(now)[1]
+    local fingerprint = self:GetRotationStateFingerprint(now)
+    if not pendingAt or now < pendingAt or now - pendingAt < 4.9
+        or not primary or primary.slotIndex ~= slotIndex or fingerprint ~= candidate.fingerprint then
+        return false
+    end
+    return self:CaptureRotationStuckCandidate(candidate,
+        "No cast result arrived before the input acknowledgement timed out", {
+            pendingAge = math.floor((now - pendingAt) * 10 + 0.5) / 10,
+            failures = candidate.failures or 0,
+        }, now)
+end
+
 function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
     if not self.GetDisplayOrder or not inputKey then return false end
     now = now or GetTime()
@@ -204,14 +281,8 @@ function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
         return false
     end
 
-    local previous = self.lastAutomaticRotationSnapshot
-    if previous and previous.fingerprint == fingerprint and now - previous.capturedAt < DUPLICATE_COOLDOWN then
-        candidate.captured = true
-        return false
-    end
-    candidate.captured = true
-    self.lastAutomaticRotationSnapshot = { fingerprint = fingerprint, capturedAt = now }
-    local snapshot = self:CaptureRotationSnapshot("Repeated primary input without a successful acknowledgement or local rotation-state change", {
+    return self:CaptureRotationStuckCandidate(candidate,
+        "Repeated primary input without a successful acknowledgement or local rotation-state change", {
         inputKey = inputKey,
         slotIndex = slotIndex,
         attempts = candidate.attempts,
@@ -219,11 +290,6 @@ function HeliHeal:TrackRotationInputAttempt(inputKey, slotIndex, now)
         pendingAge = math.floor((now - pendingAt) * 10 + 0.5) / 10,
         fingerprint = fingerprint,
     }, now)
-    if self.Print then
-        self:Print((ns.L or function(value, ...) return value:format(...) end)(
-            "Rotations-Snapshot gespeichert: %s", snapshot.abilityName or "?"))
-    end
-    return true
 end
 
 function HeliHeal:ResetRotationStuckCandidate()

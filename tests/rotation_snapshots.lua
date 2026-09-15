@@ -93,4 +93,32 @@ assert(#addon.db.global.rotationSnapshots == 20, "snapshot storage must be cappe
 addon:ClearRotationSnapshots()
 assert(#addon.db.global.rotationSnapshots == 0, "clear must remove all locally stored snapshots")
 
+now = 50
+addon.sessionHolyPower = 0
+addon.lastAutomaticRotationSnapshot = nil
+addon.pendingAcknowledgements = { [3] = { observedAt = now, generation = 1 } }
+for attempt = 1, 6 do
+    addon:TrackRotationInputAttempt("BUTTON5", 3, now + ((attempt - 1) * 0.2))
+end
+assert(addon:RecordRotationAcknowledgementTimeout(3, addon.pendingAcknowledgements[3], now + 5),
+    "six attempts without any Blizzard result must snapshot when acknowledgement expires")
+assert(addon.db.global.rotationSnapshots[1].reason:find("timed out", 1, true),
+    "timeout snapshots must identify the missing cast-result path")
+addon:ClearRotationSnapshots()
+
+now = 100
+addon.sessionHolyPower = 4
+addon.lastAutomaticRotationSnapshot = nil
+addon.pendingAcknowledgements = { [3] = { observedAt = now, generation = 1 } }
+addon:TrackRotationInputAttempt("BUTTON5", 3, now)
+assert(not addon:RecordRotationInputFailure(3, 20473, now)
+    and not addon:RecordRotationInputFailure(3, 20473, now + 0.2),
+    "one or two Blizzard failures must not create a noisy snapshot")
+assert(addon:RecordRotationInputFailure(3, 20473, now + 0.4),
+    "three matching Blizzard failures must capture a cooldown-mismatch candidate")
+assert(#addon.db.global.rotationSnapshots == 1
+    and addon.db.global.rotationSnapshots[1].report:find("failures=3", 1, true)
+    and addon.db.global.rotationSnapshots[1].reason:find("Blizzard repeatedly rejected", 1, true),
+    "the failure snapshot must preserve its strong trigger evidence")
+
 print("Rotation snapshots OK: stable-input detection, diagnostic export, dedupe and storage cap")

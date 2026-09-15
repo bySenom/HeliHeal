@@ -23,8 +23,8 @@ assert(english.L("Rotations-Snapshots") == "Rotation Snapshots"
 assert(english.L("Rotations-Snapshot gespeichert: %s", "Holy Shock")
         == "Rotation snapshot saved: Holy Shock",
     "automatic snapshot notifications must be localized")
-assert(english.L("Automatisch nach 6 gleichen Primär-Inputs und 3 Sekunden ohne Cast-Bestätigung. Keine Health-, Target- oder Aura-Daten.")
-        == "Automatic after 6 identical primary inputs and 3 seconds without cast confirmation. No health, target, or aura data.",
+assert(english.L("Automatisch nach 3 Blizzard-Fehlschlägen oder 6 gleichen Primär-Inputs und 3 Sekunden ohne Bestätigung. Keine Health-, Target- oder Aura-Daten.")
+        == "Automatic after 3 Blizzard failures or 6 identical primary inputs and 3 seconds without confirmation. No health, target, or aura data.",
     "the snapshot trigger explanation must be localized")
 assert(english.L("Wie wähle ich Beacon-Ziele richtig?") == "How should I choose Beacon targets?"
     and english.L("BEWEGUNG") == "MOVEMENT"
