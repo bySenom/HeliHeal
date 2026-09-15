@@ -35,6 +35,7 @@ ns.changelog = {
                 "Confirm Flash of Light directly from Blizzard spell success so click-casts reliably consume Infusion and apply Valiance to Holy Armaments.",
                 "Preserve recent Infusion visibility briefly for out-of-order cast confirmations and treat unreadable visibility as unknown.",
                 "Apply confirmed cast effects even when the local charge estimate is empty, and ignore repeated readable cast GUIDs.",
+                "Settle completed charges before applying cooldown reductions so event ordering cannot delay the next recharge; include recharge duration and applied reductions in snapshots.",
             },
         },
         {

@@ -137,12 +137,14 @@ function HeliHeal:BuildRotationSnapshotReport(reason, context, now)
     for slotIndex, state in pairs(self.sessionCharges or {}) do
         local ability = self.GetSlot and self:GetSlot(slotIndex)
         local nextRechargeAt = tonumber(state.nextRechargeAt)
-        chargeLines[#chargeLines + 1] = ("slot%s:%s base=%s bonus=%s next=%.1fs rejected=%s history=%s"):format(
+        chargeLines[#chargeLines + 1] = ("slot%s:%s base=%s bonus=%s next=%.1fs rejected=%s history=%s recharge=%ss cdr=%ss cdrEvents=%s"):format(
             safeText(slotIndex), safeText(ability and ability.abilityKey or "unknown"),
             safeText(state.baseCharges or 0), safeText(state.bonusCharges or 0),
             nextRechargeAt and math.max(0, nextRechargeAt - now) or 0,
             safeText(state.rejectedChargeReconciliations or 0),
-            table.concat((self.sessionSpendHistory and self.sessionSpendHistory[slotIndex]) or {}, ","))
+            table.concat((self.sessionSpendHistory and self.sessionSpendHistory[slotIndex]) or {}, ","),
+            safeText(ability and ability.cooldown), safeText(state.cooldownReductionTotal or 0),
+            safeText(state.cooldownReductionCount or 0))
     end
     table.sort(chargeLines)
     lines[#lines + 1] = "Charge ledger: " .. (#chargeLines > 0 and table.concat(chargeLines, " | ") or "none")

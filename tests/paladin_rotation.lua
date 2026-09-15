@@ -882,3 +882,17 @@ assert(addon.paladinNextArmamentType == "sacred" and addon.sessionHolyPower == 3
         and addon.sessionCharges[auditArmament].nextRechargeAt == now + 20,
     "a confirmed cast with stale zero charges must apply effects and preserve the running recharge")
 print("paladin_rotation.lua: OK")
+-- A success between HUD updates must settle the old recharge before CDR.
+addon.sessionCharges[auditArmament] = { baseCharges = 0, bonusCharges = 0, nextRechargeAt = 3045 }
+now = 3047
+addon:ReduceLocalAbilityCooldown("paladin_holy_armament", 3, now)
+local boundaryState = addon.sessionCharges[auditArmament]
+assert(boundaryState.baseCharges == 1 and boundaryState.nextRechargeAt == 3087,
+    "expired first recharge must advance to 3090 before applying three seconds CDR")
+assert(boundaryState.cooldownReductionTotal == 3 and boundaryState.cooldownReductionCount == 1,
+    "diagnostics must record the applied reduction")
+addon.sessionCharges[auditArmament] = { baseCharges = 1, bonusCharges = 0, nextRechargeAt = 3045 }
+assert(not addon:ReduceLocalAbilityCooldown("paladin_holy_armament", 3, now)
+        and addon.sessionCharges[auditArmament].baseCharges == 2
+        and not addon.sessionCharges[auditArmament].nextRechargeAt,
+    "a completed full recharge must not create another timer or bank CDR")

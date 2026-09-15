@@ -1809,8 +1809,15 @@ function HeliHeal:ReduceLocalAbilityCooldown(abilityKey, seconds, now)
     seconds = math.max(0, tonumber(seconds) or 0)
     if ability.maxCharges > 1 then
         local state = self.sessionCharges[slotIndex]
+        -- Settle completed recharges before modifying the running one. A cast
+        -- event can arrive after the deadline but before the next HUD update.
+        if state then state = self:GetChargeState(slotIndex, ability, now) end
         if not state or not state.nextRechargeAt then return false end
-        state.nextRechargeAt = math.max(now, state.nextRechargeAt - seconds)
+        local applied = math.min(seconds, math.max(0, state.nextRechargeAt - now))
+        state.nextRechargeAt = state.nextRechargeAt - applied
+        state.cooldownReductionTotal = (state.cooldownReductionTotal or 0) + applied
+        state.cooldownReductionCount = (state.cooldownReductionCount or 0) + (applied > 0 and 1 or 0)
+        state.lastCooldownReductionAt = now
         self:GetChargeState(slotIndex, ability, now)
         return true
     end
