@@ -142,6 +142,76 @@ local function isConfiguredFrame(info)
     return info and info.cooldownID ~= nil and not info.placeholder
 end
 
+-- Independent background sources. Only plain configuration and public item
+-- visibility are used; no aura payload, stack count or cooldown is read.
+function Tracker:GetProcEntries()
+    if not HeliHeal.db or not HeliHeal.db.char then return {} end
+    local char = HeliHeal.db.char
+    if not char.procEntries then
+        char.procEntries = { { key = "infusion_of_light", spellID = 53576,
+            name = "Infusion of Light" } }
+    end
+    return char.procEntries
+end
+
+function Tracker:AddProc(spellID)
+    spellID = cleanNumber(tonumber(spellID))
+    if not spellID or spellID <= 0 or spellID % 1 ~= 0 then return false end
+    local entries = self:GetProcEntries()
+    for _, entry in ipairs(entries) do
+        if entry.spellID == spellID then return false end
+    end
+    if #entries >= 20 then return false end
+    entries[#entries + 1] = { key = "spell_" .. spellID, spellID = spellID }
+    return true
+end
+
+function Tracker:RemoveProc(key)
+    for index, entry in ipairs(self:GetProcEntries()) do
+        if entry.key == key and key ~= "infusion_of_light" then
+            table.remove(self:GetProcEntries(), index)
+            return true
+        end
+    end
+    return false
+end
+
+function Tracker:GetProcState(key)
+    if self.disabled then return "UNKNOWN", "Tracker disabled" end
+    local entry
+    for _, candidate in ipairs(self:GetProcEntries()) do
+        if candidate.key == key then entry = candidate; break end
+    end
+    if not entry then return "UNKNOWN", "Not configured" end
+    local viewer = self:GetViewer()
+    if not viewer then return "UNKNOWN", "Blizzard buff bars missing" end
+    if cleanBoolean(safeMethod(viewer, "GetHideWhenInactive")) ~= true then
+        return "UNKNOWN", "Enable Hide When Inactive"
+    end
+    local found
+    for frame in viewer.itemFramePool:EnumerateActive() do
+        local info = inspectFrame(frame)
+        if isConfiguredFrame(info) then
+            local matches = info.seenSpellIDs[entry.spellID] == true
+                or (key == "infusion_of_light" and isInfusionInfo(info, getInfusionNames()))
+            -- A known cooldown definition remains stable when spell fields
+            -- become redacted. Never guess from the number of pooled items.
+            if not matches and #info.spellIDs == 0 and not info.name then
+                matches = entry.cooldownID ~= nil and info.cooldownID == entry.cooldownID
+            end
+            if matches then
+                if found then return "UNKNOWN", "Ambiguous source" end
+                found = info
+            end
+        end
+    end
+    if not found then return "UNKNOWN", "Add this proc to Blizzard Tracked Buff Bars" end
+    entry.cooldownID = found.cooldownID
+    entry.name = found.name or entry.name
+    if found.shown == nil then return "UNKNOWN", "Visibility unavailable" end
+    return found.shown and "ACTIVE" or "INACTIVE", "Blizzard item visibility"
+end
+
 function Tracker:ClearFrame()
     self.infusionFrame = nil
     self.cooldownID = nil
@@ -237,10 +307,16 @@ function Tracker:Refresh(forceSearch)
 end
 
 function Tracker:HasInfusionOfLight()
-    return self:Refresh(false) == true
+    local active = self:GetInfusionOfLightState()
+    return active == true
 end
 
 function Tracker:GetInfusionOfLightState()
+    if HeliHeal.db and HeliHeal.db.char then
+        if not self:IsHolyPaladin() then return false, false end
+        local state = self:GetProcState("infusion_of_light")
+        return state == "ACTIVE", state ~= "UNKNOWN"
+    end
     local active = self:Refresh(false) == true
     local reliable = self.registered == true and self.hideWhenInactive == true
         and not self.secretShown and self:IsCachedFrameValid()
@@ -296,6 +372,7 @@ function Tracker:PrintRegisteredBuffs()
 end
 
 function HeliHeal:InitializeProcTracker()
+    Tracker.disabled = false
     if Tracker.listener then
         Tracker.listener:RegisterEvent("PLAYER_ENTERING_WORLD")
         Tracker.listener:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
@@ -332,6 +409,7 @@ function HeliHeal:InitializeProcTracker()
 end
 
 function HeliHeal:DisableProcTracker()
+    Tracker.disabled = true
     if Tracker.listener then Tracker.listener:UnregisterAllEvents() end
     Tracker:ClearFrame()
 end

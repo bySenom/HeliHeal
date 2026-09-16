@@ -1589,6 +1589,77 @@ local function changelogText(entry)
     return table.concat(lines, "\n")
 end
 
+function HeliHeal:BuildProcsPage(parent)
+    local page = CreateFrame("Frame", nil, parent)
+    page:SetAllPoints()
+    setPageHeader(page, "Background Procs", "One Blizzard buff-bar source per proc. No separate cooldown HUD.")
+    local hint = text(page, "Add each proc to Blizzard Tracked Buff Bars and enable Hide When Inactive.\nKeep the source items intact. UNKNOWN means no reliable observation; stacks are not tracked.", 11, C.muted)
+    hint:SetPoint("TOPLEFT", 28, -102)
+    hint:SetPoint("TOPRIGHT", -28, -102)
+    hint:SetWordWrap(true)
+    local input = createEditBox(page, 220, "Proc spell ID")
+    input:SetPoint("TOPLEFT", 28, -152)
+    local add = createButton(page, "ADD PROC", 140, 34, true)
+    add:SetPoint("LEFT", input, "RIGHT", 10, 0)
+    local feedback = text(page, "", 10, C.muted)
+    feedback:SetPoint("LEFT", add, "RIGHT", 10, 0)
+    local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 28, -204)
+    scroll:SetPoint("BOTTOMRIGHT", -48, 22)
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetWidth(680)
+    content:SetHeight(1)
+    scroll:SetScrollChild(content)
+    local rows = {}
+    function page:RefreshProcs()
+        local tracker = HeliHeal.ProcTracker
+        for _, row in ipairs(rows) do row:Hide() end
+        for index, entry in ipairs(tracker:GetProcEntries()) do
+            local row = rows[index]
+            if not row then
+                row = CreateFrame("Frame", nil, content, "BackdropTemplate")
+                row:SetSize(680, 68)
+                backdrop(row, C.panel, C.borderSoft)
+                row.icon = row:CreateTexture(nil, "ARTWORK")
+                row.icon:SetSize(36, 36)
+                row.icon:SetPoint("LEFT", 12, 0)
+                row.title = text(row, "", 12, C.text)
+                row.title:SetPoint("TOPLEFT", 60, -12)
+                row.status = text(row, "", 10, C.muted)
+                row.status:SetPoint("TOPLEFT", 60, -36)
+                row.remove = createButton(row, "REMOVE", 88, 28)
+                row.remove:SetPoint("RIGHT", -10, 0)
+                row.remove:SetScript("OnClick", function()
+                    tracker:RemoveProc(row.key)
+                    page:RefreshProcs()
+                end)
+                rows[index] = row
+            end
+            local state, reason = tracker:GetProcState(entry.key)
+            row.key = entry.key
+            row:SetPoint("TOPLEFT", 0, -(index - 1) * 76)
+            row.title:SetText((entry.name or "Proc") .. "  [" .. entry.spellID .. "]")
+            row.status:SetText(state .. " — " .. reason)
+            row.icon:SetTexture(C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(entry.spellID) or 134400)
+            row.remove:SetShown(entry.key ~= "infusion_of_light")
+            row:Show()
+        end
+        content:SetHeight(math.max(1, #tracker:GetProcEntries() * 76))
+    end
+    add:SetScript("OnClick", function()
+        local ok = HeliHeal.ProcTracker:AddProc(input:GetText())
+        feedback:SetText(ok and "Added" or "Invalid / duplicate ID, or limit reached")
+        if ok then input:SetText(""); input:ClearFocus() end
+        page:RefreshProcs()
+    end)
+    page:SetScript("OnShow", function() page:RefreshProcs() end)
+    page:SetScript("OnUpdate", function(_, elapsed)
+        page.procElapsed = (page.procElapsed or 0) + elapsed
+        if page.procElapsed >= 0.5 then page.procElapsed = 0; page:RefreshProcs() end
+    end)
+    return page
+end
+
 function HeliHeal:BuildSnapshotsPage(parent)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints()
@@ -2202,6 +2273,7 @@ function HeliHeal:CreateModernOptions()
         profiles = self:BuildProfilesPage(window.pagesHost),
         faq = self:BuildFAQPage(window.pagesHost),
         snapshots = self:BuildSnapshotsPage(window.pagesHost),
+        procs = self:BuildProcsPage(window.pagesHost),
         changelog = self:BuildChangelogPage(window.pagesHost),
     }
     window.priorityPages = { [self.specializationID or 0] = window.pages.priorities }
@@ -2217,13 +2289,14 @@ function HeliHeal:CreateModernOptions()
         { "profiles", L("PROFILE & RESET"), L("Konfiguration verwalten") },
         { "faq", L("FAQ & GUIDE"), L("Spielweise & Ziele") },
         { "snapshots", L("SNAPSHOTS"), L("Rotations-Diagnose") },
+        { "procs", "PROCS", "Background sources" },
         { "changelog", L("UPDATE-VERLAUF"), L("Was ist neu?") },
     }
     for index, item in ipairs(navigation) do
         local nav = CreateFrame("Button", nil, sidebar, "BackdropTemplate")
-        nav:SetPoint("TOPLEFT", 14, -144 - ((index - 1) * 66))
-        nav:SetPoint("TOPRIGHT", -14, -144 - ((index - 1) * 66))
-        nav:SetHeight(56)
+        nav:SetPoint("TOPLEFT", 14, -144 - ((index - 1) * 57))
+        nav:SetPoint("TOPRIGHT", -14, -144 - ((index - 1) * 57))
+        nav:SetHeight(50)
         backdrop(nav, C.sidebar, C.sidebar)
         nav.indicator = nav:CreateTexture(nil, "ARTWORK")
         nav.indicator:SetTexture(WHITE)
