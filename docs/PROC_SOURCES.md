@@ -7,8 +7,13 @@ use a readable Blizzard IsActive flag when available (inactive icons can remain
 shown in custom layouts). Otherwise visibility requires Hide When Inactive and
 no settings/edit preview. Redacted active state without safe visibility yields
 UNKNOWN. No source frames are changed. Ellesmere integration still needs
-in-game validation. Divine Purpose sources are observable but have not yet
-been wired into free-spender rotation decisions.
+in-game validation. Holy Paladin automatically gets a Divine Purpose source
+(408458 with 223819/408459/223817 identity aliases). Existing configurations
+using these IDs are reused. Click TRACK for automatic CDM assignment if needed.
+An ACTIVE source enables and prioritizes a free Holy Power spender. Successful
+consumption preserves estimated Holy Power, uses at most 0.3 seconds of recent
+observation for event ordering, and suppresses stale re-import for 0.2 seconds.
+UNKNOWN never creates free-spender eligibility. No random proc is simulated.
 
 The PROCS options tab stores one source definition per proc on the current
 character. Infusion of Light is the built-in rotation source. Additional entries

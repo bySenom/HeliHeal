@@ -470,8 +470,9 @@ function HeliHeal:GetDisplayOrder(now)
     clearArray(blocked)
     local priorityRanks = self:GetActivePriorityRanks()
     local downpourReady = self:IsDownpourReady(now)
+    local freeHolyPowerSpenders = self.classToken == "PALADIN" and self:GetPaladinFreeSpenders(now) or 0
     local preferHolyPowerSpender = self.classToken == "PALADIN"
-        and ((self.pendingFreeHolyPowerSpenders or 0) > 0 or (self.sessionHolyPower or 0) >= 5
+        and (freeHolyPowerSpenders > 0 or (self.sessionHolyPower or 0) >= 5
             or self:IsPaladinDivineResonanceOvercapImminent(now))
     local preferredConsumer = self.pendingSwiftness and self.pendingSwiftness.consumerAbilityKey
     local priestApotheosisReady = false
@@ -527,7 +528,7 @@ function HeliHeal:GetDisplayOrder(now)
             local crusaderActive = self:IsPaladinCrusaderActive(now)
             local resourceBlocked = false
             if (ability.holyPowerCost or 0) > holyPower
-                and (self.pendingFreeHolyPowerSpenders or 0) <= 0 then
+                and freeHolyPowerSpenders <= 0 then
                 -- Keep an unavailable spender only as a desaturated future
                 -- step. It is sorted behind every currently actionable and
                 -- cooling-down ability, but can fill an otherwise short HUD.

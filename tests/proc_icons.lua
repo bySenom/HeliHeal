@@ -16,10 +16,10 @@ BuffIconCooldownViewer = { GetHideWhenInactive = function() return false end,
     end } }
 tracker:AddProc(223819)
 assert(tracker:GetProcState("infusion_of_light") == "INACTIVE")
-assert(tracker:GetProcState("spell_223819") == "ACTIVE")
+assert(tracker:GetDivinePurposeState() == "ACTIVE")
 infusion.active, purpose.active = true, false
 assert(tracker:GetProcState("infusion_of_light") == "ACTIVE")
-assert(tracker:GetProcState("spell_223819") == "INACTIVE")
+assert(tracker:GetDivinePurposeState() == "INACTIVE")
 infusion.active = nil
 assert(tracker:GetProcState("infusion_of_light") == "UNKNOWN")
 infusion.active = true; infusion.spell = 999

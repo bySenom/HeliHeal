@@ -1649,7 +1649,7 @@ function HeliHeal:BuildProcsPage(parent)
             row.title:SetText((entry.name or "Proc") .. "  [" .. entry.spellID .. "]")
             row.status:SetText(state .. " — " .. reason)
             row.icon:SetTexture(C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(entry.spellID) or 134400)
-            row.remove:SetShown(entry.key ~= "infusion_of_light")
+            row.remove:SetShown(entry.key ~= "infusion_of_light" and entry.key ~= "divine_purpose")
             row:Show()
         end
         content:SetHeight(math.max(1, #tracker:GetProcEntries() * 76))

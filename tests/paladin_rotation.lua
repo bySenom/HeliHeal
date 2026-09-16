@@ -910,3 +910,31 @@ assert(#addon.armamentDiagnosticEvents == 40
     "Armament diagnostics must retain only the last forty events")
 addon:ResetRuntimeState()
 assert(#addon.armamentDiagnosticEvents == 0, "runtime reset must clear the event timeline")
+
+-- Public CDM Divine Purpose evidence must affect eligibility and accounting,
+-- without fabricating random procs or spending Holy Power on a free cast.
+local purposeState = "ACTIVE"
+addon.ProcTracker = { GetDivinePurposeState = function() return purposeState end }
+now = 20000
+addon.holyPowerBaseline = 5
+addon:RecalculateHolyPower()
+assert(addon:GetPaladinFreeSpenders(now) == 1)
+assert(addon:RecordHolyPowerEvent(123, { abilityKey = "paladin_word_of_glory", holyPowerCost = 3 }))
+assert(addon.sessionHolyPower == 5, "Divine Purpose spender must preserve Holy Power even at five HP")
+assert(addon:GetPaladinFreeSpenders(now) == 0, "stale visible proc must not be imported immediately after consumption")
+now = now + 0.21
+purposeState = "INACTIVE"
+assert(addon:GetPaladinFreeSpenders(now) == 0)
+addon:RecordHolyPowerEvent(123, { abilityKey = "paladin_word_of_glory", holyPowerCost = 3 })
+assert(addon.sessionHolyPower == 2, "next non-proc spender must consume three HP")
+purposeState = "UNKNOWN"
+assert(addon:GetPaladinFreeSpenders(now) == 0, "UNKNOWN must not create free-spender eligibility")
+addon:ResetRuntimeState()
+purposeState = "ACTIVE"
+assert(addon:GetPaladinFreeSpenders(now) == 1)
+local purposeOrder = addon:GetDisplayOrder(now)
+assert((purposeOrder[1].ability.holyPowerCost or 0) > 0 and not purposeOrder[1].paladinResourceBlocked,
+    "confirmed Divine Purpose must prioritize an unblocked spender at zero HP")
+purposeState = "INACTIVE"
+assert(addon:GetPaladinFreeSpenders(now) == 0)
+addon.ProcTracker = nil

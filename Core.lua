@@ -131,6 +131,8 @@ function HeliHeal:ResetRuntimeState()
     self.holyPowerEvents = {}
     self.nextHolyPowerEventID = 0
     self.pendingFreeHolyPowerSpenders = 0
+    self.paladinDivinePurposeLastSeenAt = nil
+    self.paladinDivinePurposeRecheckAt = nil
     self.pendingPaladinInfusion = nil
     self.paladinInfusionCDMRecheckAt = nil
     self.paladinInfusionConsumptionEvidence = nil
@@ -761,7 +763,9 @@ function HeliHeal:BuildDiagnosticReport(currentRotationOnly)
         "holyPower=" .. tostring(self.sessionHolyPower or 0),
         "mana=" .. tostring(self.Mana and self.Mana.current or "unavailable"),
         "manaReliability=" .. tostring(self.Mana and self.Mana.reliability or "UNKNOWN"),
-        "freeSpenders=" .. tostring(self.pendingFreeHolyPowerSpenders or 0),
+        "freeSpenders=" .. tostring(self:GetPaladinFreeSpenders()),
+        "paladinDivinePurpose=" .. tostring(self.ProcTracker
+            and self.ProcTracker.GetDivinePurposeState and self.ProcTracker:GetDivinePurposeState() or "UNKNOWN"),
         "paladinInfusions=" .. tostring(self:GetPaladinInfusionCharges()),
         "paladinWingsUntil=" .. tostring(self.paladinWingsUntil or 0),
         "paladinCrusaderUntil=" .. tostring(self.paladinCrusaderUntil or 0),
@@ -1071,6 +1075,28 @@ function HeliHeal:GetPaladinInfusionState(now)
         end
     end
     return state
+end
+
+function HeliHeal:GetPaladinDivinePurposeActive(now, forConsumption)
+    now = now or GetTime()
+    if self.classToken ~= "PALADIN" or self.specializationID ~= 65 then return false end
+    local tracker = self.ProcTracker
+    if not tracker or type(tracker.GetDivinePurposeState) ~= "function" then return false end
+    if now < (self.paladinDivinePurposeRecheckAt or 0) then return false end
+    local state = tracker:GetDivinePurposeState()
+    if state == "ACTIVE" then
+        self.paladinDivinePurposeLastSeenAt = now
+        return true
+    end
+    -- A buff can disappear before the successful-cast event arrives. This
+    -- narrow evidence window is for accounting only, never HUD eligibility.
+    return forConsumption == true and self.paladinDivinePurposeLastSeenAt ~= nil
+        and now - self.paladinDivinePurposeLastSeenAt <= 0.3
+end
+
+function HeliHeal:GetPaladinFreeSpenders(now)
+    return math.max(self.pendingFreeHolyPowerSpenders or 0,
+        self:GetPaladinDivinePurposeActive(now) and 1 or 0)
 end
 
 function HeliHeal:GetPaladinInfusionCharges(now)
@@ -1423,6 +1449,11 @@ function HeliHeal:RecordHolyPowerEvent(slotIndex, ability)
     if grantsFreeSpender and ability.grantsFreeSpenderRequiredTalent then
         grantsFreeSpender = self:IsTalentActive(ability.grantsFreeSpenderRequiredTalent)
     end
+    local divinePurpose = cost > 0 and self:GetPaladinDivinePurposeActive(GetTime(), true)
+    if divinePurpose then
+        self.paladinDivinePurposeRecheckAt = GetTime() + 0.2
+        self.paladinDivinePurposeLastSeenAt = nil
+    end
     self.nextHolyPowerEventID = (self.nextHolyPowerEventID or 0) + 1
     self.holyPowerEvents = self.holyPowerEvents or {}
     self.holyPowerEvents[#self.holyPowerEvents + 1] = {
@@ -1431,8 +1462,8 @@ function HeliHeal:RecordHolyPowerEvent(slotIndex, ability)
         abilityKey = ability.abilityKey,
         gain = gain,
         cost = cost,
-        forcedFree = cost > (self.sessionHolyPower or 0)
-            and (self.pendingFreeHolyPowerSpenders or 0) <= 0,
+        forcedFree = divinePurpose or (cost > (self.sessionHolyPower or 0)
+            and (self.pendingFreeHolyPowerSpenders or 0) <= 0),
         grantsFreeSpender = grantsFreeSpender,
     }
     self:RecalculateHolyPower()

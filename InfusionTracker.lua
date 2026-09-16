@@ -9,6 +9,8 @@ local INFUSION_SPELL_IDS = {
     [54149] = true, -- Infusion of Light aura observed by current clients.
 }
 local SEARCH_RETRY_SECONDS = 2
+local DIVINE_PURPOSE_IDS = { [408458] = true, [223819] = true,
+    [408459] = true, [223817] = true }
 
 local function isSecret(value)
     if type(issecretvalue) ~= "function" then return false end
@@ -151,7 +153,24 @@ function Tracker:GetProcEntries()
         char.procEntries = { { key = "infusion_of_light", spellID = 53576,
             name = "Infusion of Light" } }
     end
+    if HeliHeal.classToken == "PALADIN" and HeliHeal.specializationID == 65 then
+        local configured = false
+        for _, entry in ipairs(char.procEntries) do
+            if DIVINE_PURPOSE_IDS[entry.spellID] then configured = true; break end
+        end
+        if not configured then
+            char.procEntries[#char.procEntries + 1] = { key = "divine_purpose",
+                spellID = 408458, name = "Divine Purpose" }
+        end
+    end
     return char.procEntries
+end
+
+function Tracker:GetDivinePurposeState()
+    for _, entry in ipairs(self:GetProcEntries()) do
+        if DIVINE_PURPOSE_IDS[entry.spellID] then return self:GetProcState(entry.key) end
+    end
+    return "UNKNOWN", "Not configured"
 end
 
 function Tracker:AddProc(spellID)
@@ -160,6 +179,10 @@ function Tracker:AddProc(spellID)
     local entries = self:GetProcEntries()
     for _, entry in ipairs(entries) do
         if entry.spellID == spellID then return false end
+        if DIVINE_PURPOSE_IDS[entry.spellID] and DIVINE_PURPOSE_IDS[spellID] then
+            local tracked, reason = self:RegisterProcWithBlizzard(entry.key)
+            return true, tracked, reason
+        end
     end
     if #entries >= 20 then return false end
     local entry = { key = "spell_" .. spellID, spellID = spellID }
@@ -206,6 +229,9 @@ function Tracker:RegisterProcWithBlizzard(key)
                 for _, id in ipairs(info.linkedSpellIDs) do addSpellID(ids, id) end
             end
             local matches = ids.seenSpellIDs[entry.spellID] == true
+            if DIVINE_PURPOSE_IDS[entry.spellID] then
+                for id in pairs(DIVINE_PURPOSE_IDS) do matches = matches or ids.seenSpellIDs[id] == true end
+            end
             if key == "infusion_of_light" then
                 for id in pairs(INFUSION_SPELL_IDS) do matches = matches or ids.seenSpellIDs[id] == true end
             end
@@ -263,6 +289,9 @@ function Tracker:GetProcState(key)
         if isConfiguredFrame(info) then
             local matches = info.seenSpellIDs[entry.spellID] == true
                 or (key == "infusion_of_light" and isInfusionInfo(info, getInfusionNames()))
+            if DIVINE_PURPOSE_IDS[entry.spellID] then
+                for id in pairs(DIVINE_PURPOSE_IDS) do matches = matches or info.seenSpellIDs[id] == true end
+            end
             -- A known cooldown definition remains stable when spell fields
             -- become redacted. Never guess from the number of pooled items.
             if not matches and #info.spellIDs == 0 and not info.name then
