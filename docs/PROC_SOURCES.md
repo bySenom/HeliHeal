@@ -1,5 +1,15 @@
 # Background proc sources
 
+Tracked Buff icons are also supported. Existing icon assignments are preserved
+by ADD PROC/TRACK, so Ellesmere can continue displaying them. Each item is
+identified independently, never by the visibility of the entire viewer. Icons
+use a readable Blizzard IsActive flag when available (inactive icons can remain
+shown in custom layouts). Otherwise visibility requires Hide When Inactive and
+no settings/edit preview. Redacted active state without safe visibility yields
+UNKNOWN. No source frames are changed. Ellesmere integration still needs
+in-game validation. Divine Purpose sources are observable but have not yet
+been wired into free-spender rotation decisions.
+
 The PROCS options tab stores one source definition per proc on the current
 character. Infusion of Light is the built-in rotation source. Additional entries
 are available to rotation modules through `HeliHeal.ProcTracker:GetProcState(key)`;

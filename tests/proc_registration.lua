@@ -37,6 +37,9 @@ assert(changes == 1 and saves == 1)
 catalog[78] = { spellID = 54149, category = 2 }
 assert(not tracker:RegisterProcWithBlizzard("infusion_of_light"))
 catalog[78] = nil
+assert(tracker:RegisterProcWithBlizzard("infusion_of_light"))
+assert(catalog[77].category == 2 and changes == 1 and saves == 1)
+catalog[77].category = -2
 rejected = true
 assert(not tracker:RegisterProcWithBlizzard("infusion_of_light"))
 assert(saves == 1)

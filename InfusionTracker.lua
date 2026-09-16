@@ -219,9 +219,10 @@ function Tracker:RegisterProcWithBlizzard(key)
         end
     end
     if not found then return false, "No matching Blizzard buff definition; configure manually" end
-    if cleanNumber(found.category) == categories.TrackedBar then
+    if cleanNumber(found.category) == categories.TrackedBar
+        or cleanNumber(found.category) == categories.TrackedBuff then
         entry.cooldownID = foundID
-        return true, "Already in Blizzard Tracked Buff Bars"
+        return true, "Already tracked; keeping current Blizzard category"
     end
     local ok, status = pcall(provider.SetCooldownToCategory, provider, foundID, categories.TrackedBar)
     if not ok or cleanNumber(status) ~= success then
@@ -253,12 +254,10 @@ function Tracker:GetProcState(key)
         if candidate.key == key then entry = candidate; break end
     end
     if not entry then return "UNKNOWN", "Not configured" end
-    local viewer = self:GetViewer()
-    if not viewer then return "UNKNOWN", "Blizzard buff bars missing" end
-    if cleanBoolean(safeMethod(viewer, "GetHideWhenInactive")) ~= true then
-        return "UNKNOWN", "Enable Hide When Inactive"
-    end
-    local found
+    local found, sourceViewer, sourceName
+    for _, viewerName in ipairs({ "BuffIconCooldownViewer", "BuffBarCooldownViewer" }) do
+    local viewer = _G[viewerName]
+    if viewer and viewer.itemFramePool and type(viewer.itemFramePool.EnumerateActive) == "function" then
     for frame in viewer.itemFramePool:EnumerateActive() do
         local info = inspectFrame(frame)
         if isConfiguredFrame(info) then
@@ -272,14 +271,31 @@ function Tracker:GetProcState(key)
             if matches then
                 if found then return "UNKNOWN", "Ambiguous source" end
                 found = info
+                sourceViewer, sourceName = viewer, viewerName
             end
         end
     end
-    if not found then return "UNKNOWN", "Add this proc to Blizzard Tracked Buff Bars" end
+    end
+    end
+    if not found then return "UNKNOWN", "Add this proc to Blizzard Tracked Buffs or Bars" end
     entry.cooldownID = found.cooldownID
     entry.name = found.name or entry.name
+    entry.sourceViewer = sourceName
+    -- Icon managers may keep inactive icons shown. A readable Blizzard item
+    -- active flag is independent of that presentation; never read aura data.
+    if sourceName == "BuffIconCooldownViewer" and found.active ~= nil then
+        return found.active and "ACTIVE" or "INACTIVE", "Tracked Buff item active state"
+    end
+    if cleanBoolean(safeMethod(sourceViewer, "GetHideWhenInactive")) ~= true
+        or cleanBoolean(found.frame.allowHideWhenInactive) == false then
+        return "UNKNOWN", "Enable Hide When Inactive for this source"
+    end
+    if cleanBoolean(safeMethod(found.frame, "IsEditing")) == true
+        or cleanBoolean(safeMethod(_G.CooldownViewerSettings, "IsVisible")) == true then
+        return "UNKNOWN", "Blizzard settings/edit preview is visible"
+    end
     if found.shown == nil then return "UNKNOWN", "Visibility unavailable" end
-    return found.shown and "ACTIVE" or "INACTIVE", "Blizzard item visibility"
+    return found.shown and "ACTIVE" or "INACTIVE", sourceName .. " item visibility"
 end
 
 function Tracker:ClearFrame()
@@ -400,6 +416,17 @@ local function debugValue(value)
 end
 
 function Tracker:PrintStatus()
+    if HeliHeal.db and HeliHeal.db.char then
+        local state, reason = self:GetProcState("infusion_of_light")
+        HeliHeal:Print("Infusion Tracker: " .. state .. "; " .. reason)
+        for _, entry in ipairs(self:GetProcEntries()) do
+            if entry.key == "infusion_of_light" then
+                HeliHeal:Print("Source=" .. debugValue(entry.sourceViewer)
+                    .. "; Cooldown ID=" .. debugValue(entry.cooldownID))
+            end
+        end
+        return
+    end
     self:Refresh(true)
     local frame = self.infusionFrame
     local info = frame and inspectFrame(frame) or nil
