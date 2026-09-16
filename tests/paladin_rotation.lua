@@ -879,8 +879,16 @@ addon.sessionCharges[auditArmament] = { baseCharges = 0, bonusCharges = 0, nextR
 addon:RecordPlayerSpellSucceeded(432459, "audit-real-cast")
 assert(addon.paladinNextArmamentType == "sacred" and addon.sessionHolyPower == 3
         and addon.sessionCharges[auditArmament].baseCharges == 0
-        and addon.sessionCharges[auditArmament].nextRechargeAt == now + 20,
-    "a confirmed cast with stale zero charges must apply effects and preserve the running recharge")
+        and addon.sessionCharges[auditArmament].nextRechargeAt == now + 45,
+    "a confirmed cast with stale zero charges must apply effects and replace the disproved recharge")
+-- Replay the actual snapshot: a real cast 1.539 seconds before our stale
+-- deadline must not produce a phantom ready charge at that deadline.
+now = 15052.920
+addon.sessionCharges[auditArmament] = { baseCharges = 0, bonusCharges = 0, nextRechargeAt = 15054.459 }
+addon:AcknowledgeSlot(auditArmament, 432459)
+local replay = addon:GetChargeState(auditArmament, addon:GetSlot(auditArmament), 15060.232)
+assert(replay.baseCharges == 0 and math.abs(replay.nextRechargeAt - 15097.920) < 0.001,
+    "snapshot replay must retain zero charges after the stale deadline passes")
 print("paladin_rotation.lua: OK")
 -- A success between HUD updates must settle the old recharge before CDR.
 addon.sessionCharges[auditArmament] = { baseCharges = 0, bonusCharges = 0, nextRechargeAt = 3045 }

@@ -2056,11 +2056,13 @@ function HeliHeal:SpendCharge(slotIndex, ability, now, observedSpellID)
     if state.baseCharges <= 0 then
         if observedSpellID then
             -- Blizzard confirmed a cast our estimate considered unavailable.
-            -- Its post-cast count is conservatively zero, but its effects must
-            -- still run. Preserve any running recharge rather than restart it.
-            if not state.nextRechargeAt and ability.cooldown > 0 then
+            -- The old deadline is disproved: a real charge was available and
+            -- has just been consumed. Restart the conservative estimate so the
+            -- stale deadline cannot resurrect that already-spent charge.
+            if ability.cooldown > 0 then
                 state.nextRechargeAt = self:GetRechargeFinish(ability, now)
             end
+            state.confirmedChargeCorrections = (state.confirmedChargeCorrections or 0) + 1
             table.insert(self.sessionSpendHistory[slotIndex], "confirmed_unestimated")
             return true
         end
