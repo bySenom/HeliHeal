@@ -162,8 +162,78 @@ function Tracker:AddProc(spellID)
         if entry.spellID == spellID then return false end
     end
     if #entries >= 20 then return false end
-    entries[#entries + 1] = { key = "spell_" .. spellID, spellID = spellID }
-    return true
+    local entry = { key = "spell_" .. spellID, spellID = spellID }
+    entries[#entries + 1] = entry
+    local tracked, reason = self:RegisterProcWithBlizzard(entry.key)
+    return true, tracked, reason
+end
+
+function Tracker:RegisterProcWithBlizzard(key)
+    if InCombatLockdown and InCombatLockdown() then
+        return false, "Out of combat only; click TRACK after combat"
+    end
+    local entry
+    for _, candidate in ipairs(self:GetProcEntries()) do
+        if candidate.key == key then entry = candidate; break end
+    end
+    if not entry then return false, "Not configured" end
+    local settings = _G.CooldownViewerSettings
+    local provider = safeMethod(settings, "GetDataProvider")
+    local manager = safeMethod(provider, "GetLayoutManager")
+    local categories = Enum and Enum.CooldownViewerCategory
+    local success = Enum and Enum.CooldownLayoutStatus and Enum.CooldownLayoutStatus.Success
+    if not provider or not manager or not categories or not categories.TrackedBar
+        or success == nil or type(provider.SetCooldownToCategory) ~= "function"
+        or type(manager.SaveLayouts) ~= "function" then
+        return false, "Open Blizzard Cooldown Settings once, then click TRACK"
+    end
+    -- Read already-built data. Getters that build display data can write layout
+    -- state, so do not call them from background polling or the priority engine.
+    local data = safeMethod(provider, "GetDisplayData")
+    if not data or type(data.cooldownInfoByID) ~= "table" then
+        return false, "Open Blizzard Cooldown Settings once, then click TRACK"
+    end
+    if safeMethod(manager, "HasPendingChanges") == true then
+        return false, "Save your Blizzard CDM edits first"
+    end
+    local found, foundID
+    for cooldownID, info in pairs(data.cooldownInfoByID) do
+        if type(info) == "table" then
+            local ids = { spellIDs = {}, seenSpellIDs = {} }
+            addSpellID(ids, info.spellID)
+            addSpellID(ids, info.overrideSpellID)
+            if type(info.linkedSpellIDs) == "table" then
+                for _, id in ipairs(info.linkedSpellIDs) do addSpellID(ids, id) end
+            end
+            local matches = ids.seenSpellIDs[entry.spellID] == true
+            if key == "infusion_of_light" then
+                for id in pairs(INFUSION_SPELL_IDS) do matches = matches or ids.seenSpellIDs[id] == true end
+            end
+            local category = cleanNumber(info.category)
+            local buffCategory = category == categories.TrackedBuff or category == categories.TrackedBar
+                or (categories.HiddenPassive ~= nil and category == categories.HiddenPassive)
+            if matches and buffCategory and cleanNumber(cooldownID) then
+                if found then return false, "Ambiguous Blizzard definition; configure manually" end
+                found, foundID = info, cooldownID
+            end
+        end
+    end
+    if not found then return false, "No matching Blizzard buff definition; configure manually" end
+    if cleanNumber(found.category) == categories.TrackedBar then
+        entry.cooldownID = foundID
+        return true, "Already in Blizzard Tracked Buff Bars"
+    end
+    local ok, status = pcall(provider.SetCooldownToCategory, provider, foundID, categories.TrackedBar)
+    if not ok or cleanNumber(status) ~= success then
+        return false, "Blizzard rejected assignment; configure manually"
+    end
+    local saved = pcall(manager.SaveLayouts, manager)
+    if not saved then return false, "Assignment could not be saved; check Blizzard settings" end
+    -- Rebuild only the settings data, never invoke live viewer frame updates
+    -- from addon execution. Blizzard's saved-layout event owns live refresh.
+    if type(provider.MarkDirty) == "function" then pcall(provider.MarkDirty, provider) end
+    entry.cooldownID = foundID
+    return true, "Assigned to Blizzard Tracked Buff Bars"
 end
 
 function Tracker:RemoveProc(key)

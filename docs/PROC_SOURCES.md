@@ -5,12 +5,19 @@ character. Infusion of Light is the built-in rotation source. Additional entries
 are available to rotation modules through `HeliHeal.ProcTracker:GetProcState(key)`;
 adding a source does not automatically change a specialization's priorities.
 
-1. Add the buff to Blizzard's Tracked Buff Bars.
+1. Open Blizzard Cooldown Settings once so its catalog is available.
 2. Enable Hide When Inactive for the Blizzard viewer.
-3. Add its spell ID in HeliHeal's PROCS tab.
+3. Add its spell ID in HeliHeal's PROCS tab. HeliHeal attempts to move the
+   uniquely matching buff definition into Tracked Buff Bars outside combat.
+   TRACK retries existing entries. No unrelated category or order is changed.
 4. Check ACTIVE when the proc is present and INACTIVE after it is consumed.
 
-HeliHeal does not create, reparent, hide or replace Blizzard's tracked items.
+HeliHeal does not create, reparent, hide or replace Blizzard's tracked frames.
+Assignment uses the settings data provider's SetCooldownToCategory and saves
+the layout. Missing APIs/catalog, ambiguous definitions, pending user edits,
+combat, or Blizzard rejection require a retry or manual configuration. Removal
+only removes the HeliHeal source, never a Blizzard setting. Hide When Inactive
+is not automatically changed because that is a shared viewer-wide setting.
 Its entries are background source definitions, not extra on-screen buff bars.
 The options tab is a diagnostic view and refreshes twice per second while open.
 
