@@ -1,8 +1,21 @@
 local _, ns = ...
 
 ns.changelog = {
-    currentVersion = "1.0.1",
+    currentVersion = "1.0.2",
     entries = {
+        {
+            version = "1.0.2",
+            title = "Holy Paladin Proc and Cooldown Tracking",
+            changes = {
+                "Track Infusion of Light and Divine Purpose from individual Blizzard Tracked Buff or Bar items, preserving Ellesmere buff-icon assignments.",
+                "Add the background PROCS editor and automatic out-of-combat assignment for uniquely matching Blizzard buff definitions.",
+                "Prioritize confirmed Divine Purpose free spenders and preserve Holy Power on successful consumption without simulating random procs.",
+                "Correct Holy Armaments talent modifiers, Valiance reductions, charge reconciliation and duplicate cast handling.",
+                "Correct Judgment cooldown modeling and apply Crusader's Might and Shield of the Righteous cooldown reductions.",
+                "Improve customizable windows, defensive display behavior, collapsible spell-icon FAQs and diagnostic rotation snapshots.",
+                "Include all runtime modules in the release package and verify every TOC module is present.",
+            },
+        },
         {
             version = "1.0.1",
             title = "Charge-Aware Shaman Priorities",
